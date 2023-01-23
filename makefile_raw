@@ -1,0 +1,85 @@
+# Makefile
+
+# program file name
+PROG = XXXXX
+
+# compiler
+#FXX = mpifccpx
+#FCC = mpifccpx
+FXX = COMPF
+FCC = COMPC
+# compiler option
+#FFLAGS  = -Hs -Kopenmp -Qt #array check need parallel ? ,parallel,visimpact  -W0,-zdump=all
+#FFLAGS  = -Kopenmp -Qt -O0 -Nnoline #-Nquickdbg=subchk 
+#FFLAGS	= -Kocl,dalign,openmp,ilfunc,preex,array_private,auto,simd=1 -xfminmod -Qt -Nnoline -NRtrap
+#FFLAGS	= -Kocl,dalign,fast,openmp,ilfunc,preex,array_private,auto,simd=2 -xfminmod -Qt -Nnoline
+
+#FFLAGS=-check uninit -O0 -convert big_endian -openmp -CB -traceback -g
+#FFLAGS= -h byteswapio,list=a -hpic -dynamic #-O0 -convert big_endian -openmp  -CB -traceback -g
+#FFLAGS= -h byteswapio,list=a -hpic -dynamic -R b -G 0
+
+FFLAGS=YYYYY #-O0 -CB -traceback -g
+
+# library link
+LIBS =
+
+# suffix rule
+.SUFFIXES: .f90 .F90 .o
+# source file
+SRC1=\
+unit_mod.f90\
+const_mod.f90\
+module_eos.f90\
+io_mod.f90\
+simdata3D_mod.f90\
+particle_data_mod.f90\
+particle_set_mod.f90\
+divide.f90\
+module_rho_ye.f90\
+module_restart_hdf.f90\
+module_flux_sample.f90\
+main.f90\
+coorindex3D.f90\
+evolution_particle_3D.f90\
+set_ejecta_inside_3D_divide.f90\
+recursive_division.f90\
+condition_ejecta.f90\
+module_store.f90\
+ascii.f90\
+subroutine_analysis.f90
+
+SRC2= 
+
+OBJS = $(SRC1:%.f90=%.o)
+OBJS+= $(SRC2:%.F90=%.o)
+#OBJS+= fjmpi.o
+
+.PHONY: all
+all: $(PROG)
+
+# 1st rule
+$(PROG): $(OBJS)
+	$(FXX) $(FFLAGS) -o $(PROG) $(OMPFLAGS) $(LIBS) $(OBJS)
+
+.f90.o:
+	$(FXX) $(FFLAGS) $(OMPFLAGS) $(LIBS) -c $<
+
+.c.o:
+	$(FCC) -O -c $<
+
+.f90.s:
+	$(FXX) $(FFLAGS) $(OMPFLAGS) $(LIBS) -S $<
+
+.F90.o:
+	$(FXX) $(FFLAGS) $(OMPFLAGS) $(LIBS) -c $<
+
+.F90.s:
+	$(FXX) $(FFLAGS) $(OMPFLAGS) $(LIBS) -S $<
+
+#cal.o:
+#	$(FXX) $(FFLAGS) $(OMPFLAGS) $(LIBS) -c cal.F90
+
+# clean rule
+.PHONY: clean
+clean:
+	$(RM) $(OBJS) fort* *.mod

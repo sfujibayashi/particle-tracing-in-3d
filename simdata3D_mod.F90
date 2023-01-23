@@ -1,0 +1,471 @@
+module simdata3D
+#include "macro.h"
+  implicit none
+
+  integer :: ld,lu,kd,ku,jd,ju,lv_min,lv_max
+  
+
+  real(4),allocatable :: x(:,:),y(:,:),z(:,:),&
+       vol3D(:,:,:,:)
+
+  real(4) :: tms(1)
+  
+  real(4),allocatable :: &
+       qrho(:,:,:,:),&
+       ye  (:,:,:,:),&
+       tem (:,:,:,:),&
+       ut  (:,:,:,:),&
+       qb  (:,:,:,:),&
+       sen (:,:,:,:),&
+       vlx (:,:,:,:),&
+       vly (:,:,:,:),&
+       vlz (:,:,:,:),&
+       ! hhh (:,:,:,:),&
+       rne (:,:,:,:),&
+       rae (:,:,:,:),&
+       deptn(:,:,:,:),&
+       depta(:,:,:,:)
+       
+  ! integer,allocatable :: &
+  !      flag_active(:,:,:,:)
+  
+  real(4),allocatable :: &
+       vlx_b (:,:,:,:),&
+       vly_b (:,:,:,:),&
+       vlz_b (:,:,:,:)
+
+!!! secondary
+  real(4),allocatable :: &
+       qe  (:,:,:,:),&
+       pres(:,:,:,:),&
+       eps (:,:,:,:),&
+       hhh (:,:,:,:)
+contains
+  subroutine get_ngrid_info(file_id)
+    use hdf5
+    use h5lt
+    
+    INTEGER(HID_T),intent(in) :: file_id
+    INTEGER        :: error         ! Error flag
+    INTEGER(HID_T) :: dataset_id    ! Dataset identifier
+    INTEGER(HID_T) :: dataspace_id  ! Data space identifier
+    INTEGER(HSIZE_T) :: npoints
+    logical :: link_exists
+    character(10) :: str1
+    integer :: lv
+
+!!! open dataset
+    call h5dopen_f(file_id,"/level1/x",dataset_id,error)
+!!! get dataspace
+    call h5dget_space_f(dataset_id, dataspace_id, error)
+!!! get number of points
+    call h5sget_simple_extent_npoints_f(dataspace_id, npoints, error) 
+!!! close dataspace
+    call h5sclose_f(dataspace_id, error)
+!!! close dataset
+    call h5dclose_f(dataset_id, error)
+
+    if(npoints<10)then
+       write(*,*) "Npoints does not set properly!"
+       stop
+    endif
+
+#ifdef STAGGERED
+    jd = -npoints/2
+    ju = +npoints/2-1
+    kd = -npoints/2
+    ku = +npoints/2-1
+#ifdef FULL
+    ld = -npoints/2
+#else
+    ! ld = 0
+    ld = -1
+#endif
+    lu = +npoints/2-1
+
+#else
+    jd = -(npoints-1)/2
+    ju = +(npoints-1)/2
+    kd = -(npoints-1)/2
+    ku = +(npoints-1)/2
+#ifdef FULL
+    ld = -(npoints-1)/2
+#else
+    ld = 0
+#endif
+    lu = +(npoints-1)/2
+#endif
+
+    lv_min = 1
+    lv = 0
+    setlevel: do
+       lv = lv + 1
+       write(str1,'(i10)') lv
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1)),link_exists,error)
+       if(.not. link_exists)then
+          lv_max = lv - 1
+          exit setlevel
+       endif
+
+    enddo setlevel
+
+    write(6,*)
+    write(6,*) "level min, max = ",lv_min,lv_max
+    write(6,'("# of grid points = ",99i5)') npoints, jd, ju, kd, ku, ld, lu
+    
+  end subroutine get_ngrid_info
+
+  subroutine get_coor(file_id)
+    use hdf5
+    use h5lt
+    
+    INTEGER(HID_T),intent(in) :: file_id
+    INTEGER        :: error         ! Error flag
+    INTEGER(HID_T) :: dataset_id    ! Dataset identifier
+    INTEGER(HID_T) :: dataspace_id  ! Data space identifier
+    INTEGER(HSIZE_T) :: npoints
+    integer(HSIZE_T) :: dims1(1)
+
+    character(10) :: str1
+    integer :: j,k,l,lv, jdat,kdat,ldat, ld_read
+
+    real(8) :: dx,dy,dz,fac1,fac,vol,vol_tot,vol_tot_analytic,vol_tot_analytic2
+    
+    ldat = (lu-ld+1)
+    kdat = (ku-kd+1)
+    jdat = (ju-jd+1)
+
+    ld_read=ld
+#ifdef STAGGERED
+#ifndef FULL
+    ld_read=ld+1
+#endif
+#endif
+
+    do lv = lv_min,lv_max
+       
+       write(str1,'(i10)') lv
+       dims1(1) = jdat
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/x",x(:,lv),dims1,error)
+     
+       dims1(1) = kdat
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/y",y(:,lv),dims1,error)
+
+       dims1(1) = ldat
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/z",z(ld_read:lu,lv),dims1,error)
+
+    enddo
+
+#ifdef STAGGERED
+#ifndef FULL
+    z(ld,lv_min:lv_max) = -z(ld+1,lv_min:lv_max)
+#endif
+#endif
+
+    write(6,*)
+    write(6,'("setting 3D volume element...")')
+    vol3D(:,:,:,:) = 0.d0
+    do lv = lv_min,lv_max
+
+       ! dx = dlx0*2.d0**( lv_max - lv )
+       ! dy = dlx0*2.d0**( lv_max - lv )
+       ! dz = dlx0*2.d0**( lv_max - lv )
+       dx = x(1,lv) - x(0,lv)
+       dy = y(1,lv) - y(0,lv)
+       dz = z(1,lv) - z(0,lv)
+
+       do l = ld,lu
+          do k = kd,ku
+             do j = jd,ju
+
+                vol = dx*dy*dz
+#ifdef STAGGERED
+                if(lv/=lv_max.and.jd/2<=j.and.j<=(ju-1)/2.and.kd/2<=k.and.k<=(ku-1)/2.and.ld/2<=l.and.l<=(lu-1)/2)then
+                   vol=0.d0
+                endif
+#ifdef FULL
+                vol3D(j,k,l,lv) = vol
+#else
+                if(l==ld) vol=0.d0
+                vol3D(j,k,l,lv) = vol*2.d0
+#endif
+
+#else
+
+                fac1= 0.d0
+                if(lv.ne.lv_max.and.jd/2.le.j.and.j.le.ju/2.and.kd/2.le.k.and.k.le.ku/2.and.ld/2.le.l.and.l.le.lu/2)then
+                   fac1= 1.d0
+
+                   if(j.eq.ju/2.or.j.eq.jd/2)then
+                      fac1 = fac1*0.5d0
+                   endif
+                   if(k.eq.ku/2.or.k.eq.kd/2)then
+                      fac1 = fac1*0.5d0
+                   endif
+#ifdef FULL
+                   if(l.eq.lu/2.or.l.eq.ld/2)then
+                      fac1 = fac1*0.5d0
+                   endif
+#else
+                   if(l.eq.lu/2)then
+                      fac1 = fac1*0.5d0
+                   endif
+#endif
+                endif
+
+                fac = 1.d0
+                if (j.eq.ju.or.j.eq.jd)then
+                   fac = fac * 0.5d0
+                endif
+                if (k.eq.ku.or.k.eq.kd)then
+                   fac = fac * 0.5d0
+                endif
+                if (l.eq.lu.or.l.eq.ld)then
+                   fac = fac * 0.5d0
+                endif
+
+#ifdef FULL
+                vol3D(j,k,l,lv) = vol*fac*(1.d0-fac1)
+#else
+                vol3D(j,k,l,lv) = vol*fac*(1.d0-fac1)*2.d0
+#endif
+#endif
+
+             end do
+          end do
+       end do
+    end do
+
+    vol_tot = 0.d0
+    do lv = lv_min,lv_max
+       do l = ld,lu
+          do k = kd,ku
+             do j = jd,ju
+
+                vol_tot = vol_tot + vol3D(j,k,l,lv)
+
+             end do
+          end do
+       end do
+    enddo
+    ! vol_tot = sum(vol3D(:,:,:,lv_max))
+#ifdef STAGGERED
+
+    lv=lv_min
+    dx = x(1,lv) - x(0,lv)
+    dy = y(1,lv) - y(0,lv)
+    dz = z(1,lv) - z(0,lv)
+
+#ifdef FULL
+    vol_tot_analytic =  (x(ju,lv)-x(jd,lv)+1d0*dx)*(y(ku,lv)-y(kd,lv)+1d0*dy)*(z(lu,lv)+0.75d0*dz)
+    vol_tot_analytic2= dx*dy*dz*dble(ju-jd+1)*dble(ku-kd+1)*dble(lu-ld+1)
+#else
+    vol_tot_analytic =  (x(ju,lv)-x(jd,lv)+1d0*dx)*(y(ku,lv)-y(kd,lv)+1d0*dy)*(z(lu,lv)+0.75d0*dz)*2d0 !* 7d0/8d0
+    vol_tot_analytic2= dx*dy*dz*dble(ju-jd+1)*dble(ku-kd+1)*dble(lu-(ld+1)+1)*2d0
+#endif
+    
+#else
+
+    lv=lv_min
+#ifdef FULL
+    vol_tot_analytic =  (x(ju,lv)-x(jd,lv))*(y(ku,lv)-y(kd,lv))*(z(lu,lv)-z(ld,lv))
+    vol_tot_analytic2= dx*dy*dz*dble(ju-jd+1)*dble(ku-kd+1)*dble(lu-ld+1)
+#else
+    vol_tot_analytic =  (x(ju,lv)-x(jd,lv))*(y(ku,lv)-y(kd,lv))*(z(lu,lv)-z(ld,lv))*2.d0
+    vol_tot_analytic2= dx*dy*dz*dble(ju-jd+1)*dble(ku-kd+1)*dble(lu-ld+1)*2d0
+#endif
+
+#endif
+
+    write(6,'("x,y,z = ",99es13.5)') x(ju,lv_min),x(jd,lv_min),y(ku,lv_min),y(kd,lv_min),z(lu,lv_min),z(ld,lv_min)
+    write(6,'("total volume            = ",99es13.5)') vol_tot,vol_tot_analytic,vol_tot_analytic2
+
+  end subroutine get_coor
+
+  subroutine allocate_simdata
+    
+    allocate(x(jd:ju,lv_min:lv_max),y(kd:ku,lv_min:lv_max),z(ld:lu,lv_min:lv_max),&
+         qrho(jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         ye  (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         tem (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         ut  (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         qb  (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         sen (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         vlx (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         vly (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         vlz (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         rne (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         rae (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         deptn(jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         depta(jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         vol3D(jd:ju,kd:ku,ld:lu,lv_min:lv_max), &
+         ! flag_active(jd:ju,kd:ku,ld:lu,lv_min:lv_max), &
+         vlx_b (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         vly_b (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         vlz_b (jd:ju,kd:ku,ld:lu,lv_min:lv_max)   )
+
+    allocate( &
+         qe  (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         pres(jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         eps (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         hhh (jd:ju,kd:ku,ld:lu,lv_min:lv_max) )
+
+  end subroutine allocate_simdata
+
+  subroutine read_simdata(file_id,it,t)
+    use hdf5
+    use h5lt
+    use unit
+
+    INTEGER(HID_T),intent(in) :: file_id
+    integer,intent(in)  :: it
+    real(8),intent(out) :: t
+    integer :: error
+    integer(HSIZE_T) :: dims1(1),dims3(3)
+
+    integer :: lv,jdat,kdat,ldat,ld_read
+    character(10) :: str1,str2
+
+ld_read=ld
+#ifdef STAGGERED
+#ifndef FULL
+    ld_read=ld+1
+#endif
+#endif
+
+    write(str2,'(i10)') it
+
+    call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+    t = tms(1)/1.d3
+    
+    ldat = (lu-ld+1)
+    kdat = (ku-kd+1)
+    jdat = (ju-jd+1)
+
+    dims3(1) = jdat
+    dims3(2) = kdat
+    dims3(3) = ldat
+    
+    do lv=lv_min,lv_max
+
+       write(str1,'(i10)') lv
+
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density",qrho(:,:,ld_read:lu,lv),dims3,error)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/u_t"    ,ut  (:,:,ld_read:lu,lv),dims3,error)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ye"     ,ye  (:,:,ld_read:lu,lv),dims3,error)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/entropy",sen (:,:,ld_read:lu,lv),dims3,error)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/temperature",tem (:,:,ld_read:lu,lv),dims3,error)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vx"     ,vlx (:,:,ld_read:lu,lv),dims3,error)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vy"     ,vly (:,:,ld_read:lu,lv),dims3,error)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,vlz (:,:,ld_read:lu,lv),dims3,error)
+
+       if(1==0)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",qb(:,:,ld_read:lu,lv),dims3,error)
+
+          qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
+          
+       else
+          qb(:,:,:,lv) = qrho(:,:,:,lv)
+          
+       endif
+
+    enddo
+
+#ifdef STAGGERED
+#ifndef FULL
+    call zboundary
+#endif
+#endif
+
+  end subroutine read_simdata
+
+  subroutine zboundary
+    integer :: j,k,l,lv
+
+    do lv=lv_min,lv_max
+       !$omp parallel private(j,k)
+       !$omp do
+       do k=kd,ku
+          do j=jd,ju
+             qrho(j,k,ld,lv) = qrho(j,k,ld+1,lv)
+             qb  (j,k,ld,lv) = qb  (j,k,ld+1,lv)
+             ut  (j,k,ld,lv) = ut  (j,k,ld+1,lv)
+             ye  (j,k,ld,lv) = ye  (j,k,ld+1,lv)
+             sen (j,k,ld,lv) = sen (j,k,ld+1,lv)
+             vlx (j,k,ld,lv) = vlx (j,k,ld+1,lv)
+             vly (j,k,ld,lv) = vly (j,k,ld+1,lv)
+             vlz (j,k,ld,lv) =-vlz (j,k,ld+1,lv)
+          enddo
+       enddo
+       !$omp end do
+       !$omp end parallel
+    enddo
+    
+  end subroutine zboundary
+  
+  subroutine set_secondary
+    use module_eos
+    use unit
+
+    integer :: j,k,l,lv, irho,irho1,iye,iye1,itemp,itemp1
+    real(8) :: rhot,fyet,temt, ss,ssp,uu,uup,tt,ttp
+
+    do lv=lv_min,lv_max
+!       !$omp parallel private(j,k,l,rhot,fyet,temt,irho,irho1,uu,uup,iye,iye1,tt,ttp,itemp,itemp1,ss,ssp)
+!       !$omp do
+       do l=ld,lu
+          do k=kd,ku
+             do j=jd,ju
+
+                rhot = qrho(j,k,l,lv)
+                fyet = ye  (j,k,l,lv)
+                temt = tem (j,k,l,lv)
+
+                irho = max(1   , min(nrho-1, int((log10(rhot)-rho_e_min)*drhoi)+1))
+                irho1= irho+1
+                uu   = max(0.d0, min(1.d0, (log10(rhot)-rho_e(irho))*drhoi))
+                uup  = 1.d0-uu
+
+                iye  = max(1 , min(nye-1, int((fyet-ye_e_min  )*dyei) ))
+                iye1 = iye +1
+                tt   = max(0.d0, min(1.d0 ,     (fyet-ye_e(iye))*dyei))
+                ttp  = 1.d0-tt
+
+                itemp = max(1 , min(ntemp-1, int((log10(temt)-tem_e_min  )*dtemi)+1))
+                itemp1=itemp+1
+                ss    = max(0.d0, min(1.d0 ,     (log10(temt)-tem_e(itemp))*dtemi))
+                ssp   = 1.d0-ss
+
+                pres(j,k,l,lv) = ssp *ttp *uup *pres_e(itemp ,iye ,irho )   &
+                               + ss  *ttp *uup *pres_e(itemp1,iye ,irho )   &
+                               + ssp *tt  *uup *pres_e(itemp ,iye1,irho )   &
+                               + ssp *ttp *uu  *pres_e(itemp ,iye ,irho1)   &
+                               + ss  *tt  *uup *pres_e(itemp1,iye1,irho )   &
+                               + ss  *ttp *uu  *pres_e(itemp1,iye ,irho1)   &
+                               + ssp *tt  *uu  *pres_e(itemp ,iye1,irho1)   &
+                               + ss  *tt  *uu  *pres_e(itemp1,iye1,irho1)
+                eps (j,k,l,lv) = ssp *ttp *uup * eps_e(itemp ,iye ,irho )   &
+                               + ss  *ttp *uup * eps_e(itemp1,iye ,irho )   &
+                               + ssp *tt  *uup * eps_e(itemp ,iye1,irho )   &
+                               + ssp *ttp *uu  * eps_e(itemp ,iye ,irho1)   &
+                               + ss  *tt  *uup * eps_e(itemp1,iye1,irho )   &
+                               + ss  *ttp *uu  * eps_e(itemp1,iye ,irho1)   &
+                               + ssp *tt  *uu  * eps_e(itemp ,iye1,irho1)   &
+                               + ss  *tt  *uu  * eps_e(itemp1,iye1,irho1)
+
+                eps (j,k,l,lv) = 1.d1**eps (j,k,l,lv) - 1.d0
+                pres(j,k,l,lv) = 1.d1**pres(j,k,l,lv)
+                hhh (j,k,l,lv) = 1.d0 + eps(j,k,l,lv) + pres(j,k,l,lv)/rhot/v_uni**2
+             enddo
+          enddo
+       enddo
+!       !$omp end do
+!       !$omp end parallel
+    enddo
+
+    return
+  end subroutine set_secondary
+
+end module simdata3D
+
+

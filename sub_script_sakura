@@ -1,0 +1,34 @@
+#!/bin/bash -l
+# Standard output and error:
+#SBATCH -o ${dir_out}/ptr.out.%j 
+#SBATCH -e ${dir_err}/ptr.err.%j 
+# Initial working directory:
+#SBATCH -D ./
+# Job Name:
+#SBATCH -J ${nickname}-${job}
+# Queue (Partition):
+#SBATCH --partition=${queue}
+# Number of nodes and MPI tasks per node:
+#SBATCH --nodes=${nodes}
+#SBATCH --ntasks-per-node=${MPI_per_node}
+# Enable Hyperthreading:
+#SBATCH --ntasks-per-core=1
+
+# for OpenMP:
+#SBATCH --cpus-per-task=${CPUs_per_task}
+#
+#SBATCH --mail-type=none
+#SBATCH --mail-user=${mail}
+# Wall clock limit:
+#SBATCH --time=${hour}:${min}:${second}
+
+cd ${dir_job}
+cp ${work_dir}/bin/${prog} ${exe}
+
+export OMP_NUM_THREADS=${OMP_NUM_THREADS}
+# For pinning threads correctly:
+export OMP_PLACES=cores
+
+# Run the program:
+srun ${exe} > ptr_${model}_${info}_${job}.lst
+rm ${exe}
