@@ -9,8 +9,6 @@ program main
   use hdf5
   use h5lt
   
-  ! use eostab
-  ! use eos00
   use unit
 
   use module_rho_ye
@@ -156,9 +154,6 @@ program main
   write(*,'("result saved in : ",a)') trim(dir_out)
 
   write(6,'("it_skip, it_skip_out      : ",2i5)') it_skip,it_skip_out
-  ! if(it_skip/=1)then
-  !    write(6,*) "it_skip > 1 not supported yet. Sorry!"
-  ! endif
   write(6,'("r_out, r_in (cm)          : ",2es12.4)') rfl,rin
   write(6,'("mass_crit, mass_min (Msun): ",2es12.4)') mass_crit/msun,mass_min/msun
 
@@ -189,7 +184,6 @@ program main
      write(6,'("    n_theta                     : ",i5)') n_theta
   endif
 
-
   ! fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
 
   write(6,*)
@@ -214,8 +208,8 @@ program main
   !allocate(tsta_job(job_min:job_max),tend_job(job_min:job_max),dt_job(job_min:job_max))
   
   write(6,*)
-  ! set file name
 
+  ! set file name
   allocate(filename(job_min:job_max))
   do job = job_min,job_max
      write(str1,'(i10)') job
@@ -572,41 +566,23 @@ program main
 !!! set particle
 !!! set max number of particle at the first step
         if(first)then
-           if(mode_volbased)then
-              
-              call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
-              np = npv
-           elseif(.not.mode_volbased)then
-              npv = 0
-              
-              call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
-                 
-              ! call calc_particle_number(nstep_job,it_skip_pset,job_min,job_max,np_1snap,np_flux)
-              ! np_flux = (nsteps/it_skip_pset+1)*np_1snap
-              np = npv + np_flux
-              
-           endif
            
+           call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
+           np = npv
+
            write(*,*) "# of particles set in volume-based way : ",npv
            
            call allocate_particle_data(np)
-           
-        endif
-      
-        if(mode_volbased.and.first)then
-           
+
            call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
            ips=npv
            ipu=ips
+
+        endif ! procedure only in the first step end
+        
+        if(.not.first)then
            
-        elseif(mode_volbased==.false.)then
-           
-           if(first)then
-              call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
-              ips=npv
-           endif
-           
-           if( count_pset == 0 )then
+           if(.not.mode_volbased .and. count_pset == 0 )then
               
               if(ips+n_points>np)then
                  call reallocate_particle_data(np,ips+n_points)
@@ -624,11 +600,13 @@ program main
               
               ipu = ips
               
-           endif !particle set end
+           endif
            
-        endif
+        endif ! particle set end
         
+        ! output
         if( count_out==0)then
+           ! procedure before output
            call set_particle_data(ipu)
            
            if(count_pset == it_skip_pset)then
@@ -732,7 +710,8 @@ program main
         if(count_out == 0) count_out = it_skip_out
         
         count_out = count_out - 1
-        count_pset = count_pset - 1
+
+        if(.not.mode_volbased) count_pset = count_pset - 1
      
         it_save = it
      enddo !end of the iteration of this job
