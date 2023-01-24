@@ -42,6 +42,7 @@ main.f90\
 coorindex3D.f90\
 evolution_particle_3D.f90\
 set_ejecta_inside_3D_divide.f90\
+set_ejecta_uniform.f90\
 recursive_division.f90\
 condition_ejecta.f90\
 module_store.f90\
