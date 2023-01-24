@@ -22,7 +22,6 @@ program main
 
   real(8),parameter :: msun = 1.988d33
 
-  logical,parameter :: mode_test = .false.
   logical,parameter :: mode_backward = .true.
   logical,parameter :: mode_volbased = .true.
 
@@ -216,83 +215,77 @@ program main
   
   write(6,*)
   ! set file name
-  if(.not.mode_test)then
-     allocate(filename(job_min:job_max))
-     do job = job_min,job_max
-        write(str1,'(i10)') job
-        fn = trim(dir_read)//trim(adjustl(str1))//"/raw3d.h5"
-        write(*,'(i5,": ",a)') job,trim(fn)
-        filename(job) = fn
-     enddo
+
+  allocate(filename(job_min:job_max))
+  do job = job_min,job_max
+     write(str1,'(i10)') job
+     fn = trim(dir_read)//trim(adjustl(str1))//"/raw3d.h5"
+     write(*,'(i5,": ",a)') job,trim(fn)
+     filename(job) = fn
+  enddo
+  
+  do job = job_min,job_max
+
+     write(str1,'(i10)') job
+     fn = filename(job)
+
+     call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
+
+     it = 0
+     setnum: do
+        it = it + 1
+        write(str1,'(i10)') it
+        call h5lexists_f(file_id,"/level1/data"//trim(adjustl(str1)),link_exists,error)
+        if(.not. link_exists)then
+           nstep_job(job) = it - 1
+           exit setnum
+        endif
+     enddo setnum
+
+     tms(:)=0.d0
+     write(str2,'(i10)') 1
+     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+     tms_min = tms(1)
+     write(str2,'(i10)') nstep_job(job)
+     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+     tms_max = tms(1)
+
+     write(6,'("job, steps in job = ",2i4,2es12.4)') job,nstep_job(job),tms_min,tms_max
+     !tsta_job(job) = tms_min
+     !tend_job(job) = tms_max
+
+     call h5fclose_f(file_id, error)
+
+     !if(job==job_min) tms_glo_min = tms_min
+     !if(job==job_max) tms_glo_max = tms_max
      
-     do job = job_min,job_max
+     write(str1,'(i10)') job
+     open(11,file=trim(dir_out)//"/steps_"//trim(adjustl(str1))//".dat",status="replace",action="write")
+     write(11,*) nstep_job(job)
+     write(11,*) tms_min
+     write(11,*) tms_max
+     close(11)
+  enddo
 
-        write(str1,'(i10)') job
-        fn = filename(job)
+  ! dtms_snap = (tms_glo_max-tms_glo_min)/dble(sum(nstep_job(:)))
+  ! do job=job_min,job_max
+     
+  !    ! if(tend_job(job)<rfl/(0.1d0*v_uni)*1d3)then
+  !    !    it_skip_pset(job) = int(rfl*pi/2d0/dble(n_th)/(0.1d0*v_uni)*1d3/dtms_snap)
+  !    ! else
+  !    !    it_skip_pset(job) = (itt_max-itt_min+1)*n_pset/8000
+  !    ! endif
+  !    ! it_skip_pset(job) = 10
 
-        call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
-
-        it = 0
-        setnum: do
-           it = it + 1
-           write(str1,'(i10)') it
-           call h5lexists_f(file_id,"/level1/data"//trim(adjustl(str1)),link_exists,error)
-           if(.not. link_exists)then
-              nstep_job(job) = it - 1
-              exit setnum
-           endif
-        enddo setnum
-
-        tms(:)=0.d0
-        write(str2,'(i10)') 1
-        call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-        tms_min = tms(1)
-        write(str2,'(i10)') nstep_job(job)
-        call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-        tms_max = tms(1)
-
-        write(6,'("job, steps in job = ",2i4,2es12.4)') job,nstep_job(job),tms_min,tms_max
-        !tsta_job(job) = tms_min
-        !tend_job(job) = tms_max
-
-        call h5fclose_f(file_id, error)
-
-        !if(job==job_min) tms_glo_min = tms_min
-        !if(job==job_max) tms_glo_max = tms_max
-        
-        write(str1,'(i10)') job
-        open(11,file=trim(dir_out)//"/steps_"//trim(adjustl(str1))//".dat",status="replace",action="write")
-        write(11,*) nstep_job(job)
-        write(11,*) tms_min
-        write(11,*) tms_max
-        close(11)
-     enddo
-
-     ! dtms_snap = (tms_glo_max-tms_glo_min)/dble(sum(nstep_job(:)))
-     ! do job=job_min,job_max
-        
-     !    ! if(tend_job(job)<rfl/(0.1d0*v_uni)*1d3)then
-     !    !    it_skip_pset(job) = int(rfl*pi/2d0/dble(n_th)/(0.1d0*v_uni)*1d3/dtms_snap)
-     !    ! else
-     !    !    it_skip_pset(job) = (itt_max-itt_min+1)*n_pset/8000
-     !    ! endif
-     !    ! it_skip_pset(job) = 10
-
-     !    it_skip_pset(job) = int(rfl*pi/2d0/dble(n_th)/(0.05d0*v_uni)*1d3/dtms_snap)
-        
-     !    ! if(job<=10)then
-     !    !    it_skip_pset(job) = -1
-     !    ! endif
-     !    !it_skip_pset(job) = -1
-        
-     !    write(6,'("job, skip for particle set, dt_pset, dt_snap (ms): ",i4,i7,2es12.4,i5)') job, it_skip_pset(job), dble(it_skip_pset(job))*dtms_snap,dtms_snap!,nstep_job(job)/it_skip_pset(job)*n_pset
-     ! enddo
-
-  else
-     ! call set_test(nstep_job(job_min),dt)
-  endif
-
-
+  !    it_skip_pset(job) = int(rfl*pi/2d0/dble(n_th)/(0.05d0*v_uni)*1d3/dtms_snap)
+     
+  !    ! if(job<=10)then
+  !    !    it_skip_pset(job) = -1
+  !    ! endif
+  !    !it_skip_pset(job) = -1
+     
+  !    write(6,'("job, skip for particle set, dt_pset, dt_snap (ms): ",i4,i7,2es12.4,i5)') job, it_skip_pset(job), dble(it_skip_pset(job))*dtms_snap,dtms_snap!,nstep_job(job)/it_skip_pset(job)*n_pset
+  ! enddo
   
   np_flux=0
   npv = 0
@@ -393,39 +386,36 @@ program main
   ! endif
 
 !!! show initial time step and time  
-  if(.not.mode_test)then
 
-     fn = filename(job1)
-     call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
-     
-     write(str2,'(i10)') it_start
-     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-     call h5fclose_f(file_id, error)
-     
-     write(6,'("Initial time step: job, it = ",i3,i10, ", t = ",es13.5," ms")') job1,it_start,tms(1)
-     
-     fn = filename(job2)
-     call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
-     
-     write(str2,'(i10)') 1
-     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-     call h5fclose_f(file_id, error)
-     write(6,'("Last    time step: job, it = ",i3,i10, ", t = ",es13.5," ms")') job2,1,tms(1)
+  fn = filename(job1)
+  call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
+  
+  write(str2,'(i10)') it_start
+  call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+  call h5fclose_f(file_id, error)
+  
+  write(6,'("Initial time step: job, it = ",i3,i10, ", t = ",es13.5," ms")') job1,it_start,tms(1)
+  
+  fn = filename(job2)
+  call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
+  
+  write(str2,'(i10)') 1
+  call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+  call h5fclose_f(file_id, error)
+  write(6,'("Last    time step: job, it = ",i3,i10, ", t = ",es13.5," ms")') job2,1,tms(1)
 
 
-     fn = filename(job_start)
-     call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
+  fn = filename(job_start)
+  call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 
 !!! obtain information on the grid
-     call get_ngrid_info(file_id)
+  call get_ngrid_info(file_id)
 !!! allocate simulation data variables
-     call allocate_simdata
+  call allocate_simdata
 !!! set coordinate (x,z)
-     call get_coor(file_id)
-      
-     call h5fclose_f(file_id, error)
-  endif
-
+  call get_coor(file_id)
+  
+  call h5fclose_f(file_id, error)
 
   if (restart=='N')then
 !!! ips: accumulated number of particle. ipu: 
@@ -536,10 +526,8 @@ program main
 !!! LOOP !!!!
   do job = job1,job2, step
 
-     if(.not.mode_test)then
-        fn = filename(job)
-        call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
-     endif
+     fn = filename(job)
+     call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
      
      if(job==job_min)then
         it0 = 0
@@ -570,16 +558,12 @@ program main
         ! ittot = it0 + it
         
 !!! read profile
-        if(.not.mode_test)then
-           call read_simdata(file_id,it,time)
-           call set_secondary
-           if(first)then
-              dt = 0.d0
-           else
-              dt = time - time_prv
-           endif
+        call read_simdata(file_id,it,time)
+        call set_secondary
+        if(first)then
+           dt = 0.d0
         else
-           time = time + 1d-3
+           dt = time - time_prv
         endif
         
 !!! evolve particles
@@ -595,66 +579,53 @@ program main
            elseif(.not.mode_volbased)then
               npv = 0
               
-              if(.not.mode_test)then
+              call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
                  
-                 call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
-                 
-                 ! call calc_particle_number(nstep_job,it_skip_pset,job_min,job_max,np_1snap,np_flux)
-                 ! np_flux = (nsteps/it_skip_pset+1)*np_1snap
-                 np = npv + np_flux
-                 
-              else
-                 np=1
-              endif
+              ! call calc_particle_number(nstep_job,it_skip_pset,job_min,job_max,np_1snap,np_flux)
+              ! np_flux = (nsteps/it_skip_pset+1)*np_1snap
+              np = npv + np_flux
+              
            endif
            
            write(*,*) "# of particles set in volume-based way : ",npv
            
            call allocate_particle_data(np)
            
-           if(mode_test)then
-              ipu = 1
-              ips = 1
-              ip = 1
-              ! call set_particle_test(ittot,ip)
-           endif
-           
         endif
       
-        if(.not.mode_test)then
-           if(mode_volbased.and.first)then
-              
+        if(mode_volbased.and.first)then
+           
+           call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
+           ips=npv
+           ipu=ips
+           
+        elseif(mode_volbased==.false.)then
+           
+           if(first)then
               call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
               ips=npv
-              ipu=ips
-           elseif(mode_volbased==.false.)then
+           endif
+           
+           if( count_pset == 0 )then
               
-              if(first)then
-                 call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
-                 ips=npv
+              if(ips+n_points>np)then
+                 call reallocate_particle_data(np,ips+n_points)
+                 np = ips+n_points
+                 write(6,*) "np reset to", np
               endif
+                 
+              call set_new_particle(ips,rfl,dt,v_average,it_skip,it_skip_out,it_skip_pset,m_max,m_min,m_average,v_max,v_min,np_set)
               
-              if( count_pset == 0 )then
-                 
-                 if(ips+n_points>np)then
-                    call reallocate_particle_data(np,ips+n_points)
-                    np = ips+n_points
-                    write(6,*) "np reset to", np
-                 endif
-                 
-                 call set_new_particle(ips,rfl,dt,v_average,it_skip,it_skip_out,it_skip_pset,m_max,m_min,m_average,v_max,v_min,np_set)
-                 
-                 !itt_pset_next = ittot - it_skip_pset
-                 count_pset = it_skip_pset
-                 write(6,'("# of particles set = ",i5,", v/c(max,min,ave) = ",3es12.4,", m(max,min,ave) = ",3es12.4,". Next: dt (s), skip = ",es12.4,i5)') np_set, v_max,v_min,v_average, m_max,m_min,m_average, dt*dble(it_skip_pset), it_skip_pset
-                 
-                 write(unum,'(2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(dm_p(1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
-                 
-              endif
+              !itt_pset_next = ittot - it_skip_pset
+              count_pset = it_skip_pset
+              write(6,'("# of particles set = ",i5,", v/c(max,min,ave) = ",3es12.4,", m(max,min,ave) = ",3es12.4,". Next: dt (s), skip = ",es12.4,i5)') np_set, v_max,v_min,v_average, m_max,m_min,m_average, dt*dble(it_skip_pset), it_skip_pset
+              
+              write(unum,'(2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(dm_p(1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
               
               ipu = ips
               
            endif !particle set end
+           
         endif
         
         if( count_out==0)then
@@ -768,7 +739,7 @@ program main
 
      close(unum)
 
-     if(.not.mode_test) call h5fclose_f(file_id, error)
+     call h5fclose_f(file_id, error)
      
      write(6,'("Output restart data")')
      write(str1,'(i3.3)') job
