@@ -8,25 +8,27 @@ import utils
 
 if_cont=False
 
-#model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=2; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
+model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=10; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
-model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
+#model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
 
 # parameters #
 n_theta = 32
 #n_theta = 64
-it_start= 0
+it_start= 18
 it_skip = 1
 it_skip_out = 1 #it_skip
-rfl=5e9
+rfl=8e8
 rin=5e7
 mass_crit = 1e-6
 mass_min  = 1e-12
+backward="F"
 
 restart="N"
 
-info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
+#info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
 #info="bind_%ims%i" % (it_skip,n_theta)
+info = "forward"
 
 print(info)
 
@@ -102,8 +104,8 @@ else:
     cmd = "mkdir %s" % (dir_out)
     os.system(cmd)
 
-#dir_read = work_dir + "/" + model + "/hdf5"
-dir_read = "/sakura/ptmp/kiuchikn/" + model + "/hdf5"
+dir_read = work_dir + "/" + model + "/hdf5"
+#dir_read = "/sakura/ptmp/kiuchikn/" + model + "/hdf5"
 
 if dir_exists:
     run=input('Directory already exists. Overwrite parameter files? [y/n] :')
@@ -130,6 +132,9 @@ with open(dir_out + "/parameters.dat",mode="w") as f:
     f.write("%s\n" % (dir_read))
     f.write("# result saved in:\n")
     f.write("%s\n" % (dir_out))
+    
+    f.write("# Evolving backward?:\n")
+    f.write("%s\n" % (backward))
 
     f.write("# number of snapshort where the trace starts (from the first/last if it is 0):\n")
     f.write("%i\n" % (it_start))

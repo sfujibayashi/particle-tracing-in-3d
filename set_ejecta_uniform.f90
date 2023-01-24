@@ -18,47 +18,49 @@ subroutine set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
 
   real(8),allocatable :: r(:), theta(:), phi(:)
 
-
   integer :: ip
-  !ratio = 1.0863911099351702d0
-  !dr    = 6872233.929727673d0
   
-  n_r = 28
-  n_theta = 8
+  n_r = 15; n_theta = 8
+  !n_r = 28; n_theta = 16
   n_phi = n_theta*4
 
   npv = n_r * n_theta * n_phi
 
-  allocate(r(n_r), theta(n_theta), phi(n_phi))
+  dtheta = 0.5d0*pi/dble(n_theta)
+  dphi = 2d0*pi/dble(n_phi)
+  dr = dtheta*rin
 
-  dr = (rfl-rin)/dble(n_r-1)
+  !dr = (rfl-rin)/dble(n_r-1)
+  call find_ratio(rin,rfl,dr,n_r-1,ratio)
+
+  allocate(r(n_r), theta(n_theta), phi(n_phi))
+  
   do i_r = 1,n_r
-     !r(i_r) = rin + (ratio**(i_r-1) - 1d0) / (ratio - 1d0)*dr
-     r(i_r) = rin + dr*dble(i_r-1)
-     !write(6,*) i_r, r(i_r)
+     r(i_r) = rin + (ratio**(i_r-1) - 1d0) / (ratio - 1d0)*dr
+     !r(i_r) = rin + dr*dble(i_r-1)
+     write(6,*) i_r, r(i_r)
   enddo
 
-  dtheta = 0.5d0*pi/dble(n_theta)
   do i_theta = 1,n_theta
      theta(i_theta) = dtheta * (dble(i_theta-1)+0.5d0)
 
-     !write(6,*) i_theta, theta(i_theta)
+     write(6,*) i_theta, theta(i_theta)
   enddo
 
-  dphi = 2d0*pi/dble(n_phi)
+
   do i_phi = 1,n_phi
      phi(i_phi) = dphi * (dble(i_phi-1)+0.5d0)
      
-     !write(6,*) i_phi, phi(i_phi)
+     write(6,*) i_phi, phi(i_phi)
   enddo
   
 
   call allocate_particle_data(npv)
 
   ip = 1
-  do i_r = 1,n_r
-     do i_theta = 1,n_theta
-        do i_phi = 1,n_phi
+  do i_phi = 1,n_phi
+     do i_r = 1,n_r
+        do i_theta = 1,n_theta
            
            x_p(ip) = r(i_r)*sin(theta(i_theta))*cos(phi(i_phi))
            y_p(ip) = r(i_r)*sin(theta(i_theta))*sin(phi(i_phi))
@@ -164,3 +166,35 @@ subroutine set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
   end block
   
 end subroutine set_ejecta_uniform
+
+subroutine find_ratio(r_in,r_out,dr,n_r,ratio)
+  implicit none
+  
+  integer,intent(in) :: n_r
+  real(8),intent(in) :: r_in, r_out, dr
+  real(8),intent(out) :: ratio
+
+  integer,parameter :: itrlim = 30
+  integer :: itr
+  real(8),parameter :: ratio_min = 1d0 + 1d-5
+  real(8) :: dratio, f, df
+
+  ratio = 1.01d0
+
+  !write(6,*) r_in,r_out,dr,n_r
+  
+  do itr=1,itrlim
+     f  = r_out - r_in - dr*(ratio**n_r-1d0)/(ratio-1d0)
+     df = -dr*( dble(n_r)*ratio**(n_r-1)/(ratio-1d0) - (ratio**n_r-1d0)/(ratio-1d0)**2 )
+
+     dratio = -f/df
+     !write(6,'(i5,99es12.4)') itr, ratio, dratio, f, df, dr*(ratio**n_r-1d0)/(ratio-1d0)
+     dratio = max(min(dratio,1d-2),-1d-2)
+     
+     ratio = ratio + dratio
+     ratio = max(ratio, ratio_min)
+
+     if(abs(dratio/ratio) < 1d-10)exit
+     
+  enddo
+end subroutine find_ratio
