@@ -53,7 +53,7 @@ subroutine tr_analysis(model, dir_read)
        tem_max, tem_max_af3gk, t_tem_max_af3gk, t_tem_max, &
        t_5gk, s_5gk, ye_5gk, texp_5gk, &
        t_3gk, t_1gk, ye_10gk, t_10gk, &
-       time_50gk_25gk, rho_fin, vx_fin, vy_fin, vz_fin, r_ini
+       time_50gk_25gk, rho_fin, vx_fin, vy_fin, vz_fin, r_ini, v_max
   real(8) :: temp_gk, x_ini, y_ini, z_ini,r_fin, x_5gk, y_5gk, z_5gk, r_5gk, vx_5gk, vy_5gk, vz_5gk, vr_5gk, s_10gk, s_3gk, ye_3gk, s_1gk,ye_1gk
 
   real(8) :: s1,s0
@@ -173,7 +173,7 @@ subroutine tr_analysis(model, dir_read)
   !$omp   tem_max, tem_max_af3gk, t_tem_max_af3gk, t_tem_max, &
   !$omp   t_5gk, s_5gk, ye_5gk, texp_5gk, &
   !$omp   t_3gk, t_1gk, ye_10gk, t_10gk, &
-  !$omp   time_50gk_25gk, rho_fin, vx_fin, vy_fin, vz_fin, r_ini, &
+  !$omp   time_50gk_25gk, rho_fin, vx_fin, vy_fin, vz_fin, r_ini,v_max, &
   !$omp   my_thr,max_thr)
   my_thr  = omp_get_thread_num()
   max_thr = omp_get_max_threads()
@@ -240,7 +240,7 @@ subroutine tr_analysis(model, dir_read)
               it_tem_max = it
            endif
            
-           v_max = max(v_max, sqrt(sqrt(vx_p(it)**2 + vy_p(it)**2 + vz_p(it)**2)))
+           v_max = max(v_max, sqrt(sqrt(vlx_p(it)**2 + vly_p(it)**2 + vlz_p(it)**2)))
            
            ! max, minimum entropy values in 0 < T < 7
            if(0.d0 < temp_gk .and. temp_gk < 7.d9)then
