@@ -20,7 +20,7 @@ program main
 
   real(8),parameter :: msun = 1.988d33
 
-  logical,parameter :: mode_backward = .true.
+  !logical,parameter :: mode_backward = .true.
   logical,parameter :: mode_volbased = .true.
 
   ! skip the timestep
@@ -30,11 +30,12 @@ program main
   ! angular resolution
   integer :: n_theta
   ! for flux calculation
-  real(8) :: rfl
+  real(8) :: rfl, rin
   ! for mass
-  real(8) :: mass_crit, mass_min, rin
+  real(8) :: mass_crit, mass_min
   
   ! backward -> -1, forward -> 1
+  logical :: mode_backward
   integer :: step
 
   ! quantities for particles
@@ -105,6 +106,8 @@ program main
   read(10,*);read(10,*) job_max
   read(10,*);read(10,'(a)') dir_read
   read(10,*);read(10,'(a)') dir_out
+  read(10,*);read(10,*) mode_backward
+  
   read(10,*);read(10,*) it_start
   read(10,*);read(10,*) it_skip
   read(10,*);read(10,*) it_skip_out
@@ -143,16 +146,16 @@ program main
      endif
   endif
 
-! call ascii(model,dir_out,it_skip_out)
-! call tr_analysis(model,dir_out)
-! stop
+  ! call ascii(model,dir_out,it_skip_out)
+  ! call tr_analysis(model,dir_out)
+  ! stop
 
   write(*,'("model name      : ",a)') trim(model)
   write(*,'("job             : ",2i5)') job_min,job_max
   write(*,'("restart flag    : ",a)') restart
   write(*,'("data read from  : ",a)') trim(dir_read)
   write(*,'("result saved in : ",a)') trim(dir_out)
-
+  
   write(6,'("it_skip, it_skip_out      : ",2i5)') it_skip,it_skip_out
   write(6,'("r_out, r_in (cm)          : ",2es12.4)') rfl,rin
   write(6,'("mass_crit, mass_min (Msun): ",2es12.4)') mass_crit/msun,mass_min/msun
@@ -531,13 +534,27 @@ program main
      
      ! it1=it1_job(job)
      ! it2=it2_job(job)
-     if    (restart=="N".and.job==job1)then
-        it1 = it_start
+
+     if(mode_backward)then
+
+        if    (restart=="N".and.job==job1)then
+           it1 = it_start
+        else
+           it1 = nstep_job(job)-count_skip
+        endif
+        it2 = 1
+
      else
-        it1 = nstep_job(job)-count_skip
+
+        if    (restart=="N".and.job==job1)then
+           it1 = it_start
+        else
+           it1 = count_skip
+        endif
+        it2 = nstep_job(job)
+        
      endif
-     it2 = 1
-     
+
      write(6,'("job, it1,it2,step = ",i3,2i5,i3)') job,it1,it2,step*it_skip
 
      
@@ -566,15 +583,19 @@ program main
 !!! set particle
 !!! set max number of particle at the first step
         if(first)then
-           
-           call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
+
+           call set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
            np = npv
 
-           write(*,*) "# of particles set in volume-based way : ",npv
-           
-           call allocate_particle_data(np)
+           ! call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
+           ! np = npv
 
-           call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
+           ! write(*,*) "# of particles set in volume-based way : ",npv
+           
+           ! call allocate_particle_data(np)
+
+           ! call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
+           
            ips=npv
            ipu=ips
 
@@ -652,7 +673,7 @@ program main
            !    endif
            ! enddo
            ! close(11)
-
+           
            if    (it-it_skip==0)then
               count_skip = 0
            elseif(it-it_skip< 0)then
