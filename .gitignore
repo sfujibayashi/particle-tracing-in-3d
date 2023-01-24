@@ -4,9 +4,11 @@
 *~
 *.sh
 *.dat
+*.out
 log
 makefile
 analysis_particle
 connect_traj
 mapto2D
 reject_particle
+__pycache__
