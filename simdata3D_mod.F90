@@ -361,12 +361,9 @@ ld_read=ld
 
        if(1==0)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",qb(:,:,ld_read:lu,lv),dims3,error)
-
           qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
-          
        else
-          qb(:,:,:,lv) = qrho(:,:,:,lv)
-          
+          qb(:,:,:,lv) = qrho(:,:,:,lv)/sqrt(1d0 - ( vlx(:,:,:,lv)**2 + vly(:,:,:,lv)**2 + vlz(:,:,:,lv)**2 ) )
        endif
 
     enddo
