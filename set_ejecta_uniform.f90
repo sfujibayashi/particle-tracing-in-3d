@@ -20,10 +20,11 @@ subroutine set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
 
   integer :: ip
   
-  n_r = 15; n_theta = 8
+  !n_r = 15; n_theta = 8
   !n_r = 28; n_theta = 16
+  n_r = 41; n_theta = 16
   n_phi = n_theta*4
-
+  
   npv = n_r * n_theta * n_phi
 
   dtheta = 0.5d0*pi/dble(n_theta)
@@ -38,25 +39,29 @@ subroutine set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
   do i_r = 1,n_r
      r(i_r) = rin + (ratio**(i_r-1) - 1d0) / (ratio - 1d0)*dr
      !r(i_r) = rin + dr*dble(i_r-1)
-     write(6,*) i_r, r(i_r)
+     
+     !write(6,*) i_r, r(i_r)
   enddo
 
   do i_theta = 1,n_theta
      theta(i_theta) = dtheta * (dble(i_theta-1)+0.5d0)
 
-     write(6,*) i_theta, theta(i_theta)
+     !write(6,*) i_theta, theta(i_theta)
   enddo
 
 
   do i_phi = 1,n_phi
      phi(i_phi) = dphi * (dble(i_phi-1)+0.5d0)
      
-     write(6,*) i_phi, phi(i_phi)
+     !write(6,*) i_phi, phi(i_phi)
   enddo
   
 
   call allocate_particle_data(npv)
 
+  open(101,file=trim(dir_out)//'/setting.dat',status='replace')
+  !open(101,file="setting.dat",status='replace')
+  write(101,'(99i5)') n_r, n_theta, n_phi
   ip = 1
   do i_phi = 1,n_phi
      do i_r = 1,n_r
@@ -66,10 +71,17 @@ subroutine set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
            y_p(ip) = r(i_r)*sin(theta(i_theta))*sin(phi(i_phi))
            z_p(ip) = r(i_r)*cos(theta(i_theta))
 
+           write(101,'(4i5,99es15.7)') ip, i_r, i_theta, i_phi, &
+                r(i_r), theta(i_theta), phi(i_phi), &
+                x_p(ip),y_p(ip),z_p(ip)
+           
+
            ip = ip + 1
         enddo
      enddo
   enddo
+
+  close(101)
 
 
   block

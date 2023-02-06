@@ -47,7 +47,11 @@ recursive_division.f90\
 condition_ejecta.f90\
 module_store.f90\
 ascii.f90\
-subroutine_analysis.f90
+subroutine_analysis.f90\
+analysis.f90\
+print_data.f90\
+partial_output_hdf.f90
+
 
 SRC2= 
 
