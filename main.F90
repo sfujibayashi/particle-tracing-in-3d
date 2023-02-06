@@ -93,7 +93,7 @@ program main
     
   integer :: unum, unum2
   integer :: access
-
+  
   call h5open_f (error)
 
   open(10,file="para.dat",status="old",action="read")
@@ -147,9 +147,9 @@ program main
   endif
   
   ! call ascii(model,dir_out,it_skip_out)
-  ! call tr_analysis(model,dir_out)
-  ! stop
-
+  !call tr_analysis(model,dir_out)
+  !stop
+  
   write(*,'("model name      : ",a)') trim(model)
   write(*,'("job             : ",2i5)') job_min,job_max
   write(*,'("restart flag    : ",a)') restart
@@ -583,6 +583,10 @@ program main
 !!! set particle
 !!! set max number of particle at the first step
         if(first)then
+           !call analysisdir_out,time)
+           !call print_data(time,job,it)
+           call partial_output_hdf(dir_out, job, it, time)
+           stop
 
            call set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
            np = npv

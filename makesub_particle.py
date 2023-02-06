@@ -8,7 +8,8 @@ import utils
 
 if_cont=False
 
-model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=10; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
+model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=6; job_max=6; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
+#model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
 
@@ -18,17 +19,18 @@ n_theta = 32
 it_start= 18
 it_skip = 1
 it_skip_out = 1 #it_skip
-rfl=8e8
-rin=5e7
+rfl=5e8
+rin=1e7
 mass_crit = 1e-6
 mass_min  = 1e-12
-backward="F"
+backward="T"
 
 restart="N"
 
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
 #info="bind_%ims%i" % (it_skip,n_theta)
-info = "forward"
+#info = "forward_close"
+info = "ana"
 
 print(info)
 
@@ -222,6 +224,7 @@ elif if_compile=='y' or if_compile=='Y':
 
    cmd="make clean"
    stdout, stderr, return_code = utils.exec_subprocess(cmd)
+   
    print("Compiling...")
    cmd="make"
    stdout, stderr, return_code = utils.exec_subprocess(cmd)

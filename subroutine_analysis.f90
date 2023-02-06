@@ -47,6 +47,7 @@ subroutine tr_analysis(model, dir_read)
        t_5gk_traj(:), s_5gk_traj(:), ye_5gk_traj(:), texp_5gk_traj(:), &
        t_3gk_traj(:), t_1gk_traj(:), ye_10gk_traj(:), t_10gk_traj(:), &
        time_50gk_25gk_traj(:), rho_fin_traj(:), vx_fin_traj(:), vy_fin_traj(:), vz_fin_traj(:), r_ini_traj(:)
+  real(8),allocatable :: x_ini_traj(:), y_ini_traj(:), z_ini_traj(:), rho_ini_traj(:)
 
   real(8) :: &
        t_fin, x_fin, y_fin, z_fin, vr_fin, s_fin, ye_fin, &
@@ -54,7 +55,7 @@ subroutine tr_analysis(model, dir_read)
        t_5gk, s_5gk, ye_5gk, texp_5gk, &
        t_3gk, t_1gk, ye_10gk, t_10gk, &
        time_50gk_25gk, rho_fin, vx_fin, vy_fin, vz_fin, r_ini, v_max
-  real(8) :: temp_gk, x_ini, y_ini, z_ini,r_fin, x_5gk, y_5gk, z_5gk, r_5gk, vx_5gk, vy_5gk, vz_5gk, vr_5gk, s_10gk, s_3gk, ye_3gk, s_1gk,ye_1gk
+  real(8) :: temp_gk, x_ini, y_ini, z_ini,r_fin, x_5gk, y_5gk, z_5gk, r_5gk, vx_5gk, vy_5gk, vz_5gk, vr_5gk, s_10gk, s_3gk, ye_3gk, s_1gk,ye_1gk, rho_ini
 
   real(8) :: s1,s0
 
@@ -62,49 +63,72 @@ subroutine tr_analysis(model, dir_read)
 
   integer :: job, job_min, job_max, nsteps_job
 
+  logical :: old_format = .true.
+
   ! additional values
   real(8),allocatable :: &
        v_max_traj(:)
   !
   
   dir_out = dir_read
+  old_format = .false.
 
-  job_min = 0
-  job_max = 0
-  job = 1
-  jobs:do
-     write(str1,'(i10)') job
+  if(old_format)then
+     write(6,*) "itt_max from report file."
+  else
+     write(6,*) "counting itt_max..."
      
-     fn = trim(dir_read) // "/steps_"//trim(adjustl(str1))//".dat"
-     if(access(fn," ")==0)then
-        if(job_min==0) job_min = job
-        job_max=job
-     else
-        if(job_min/=0)exit jobs
-     endif
-     job=job+1
-  enddo jobs
-  write(6,'("job:",i5,"--",i5)') job_min,job_max
+     job_min = 0
+     job_max = 0
+     job = 1
+     jobs:do
+        write(str1,'(i10)') job
+        
+        fn = trim(dir_read) // "/steps_"//trim(adjustl(str1))//".dat"
+        write(6,'(a)') fn
+        if(access(fn," ")==0)then
+           if(job_min==0) job_min = job
+           job_max=job
+        else
+           if(job_min/=0)exit jobs
+        endif
+        job=job+1
+        if(job>100)then
+           write(6,*) "something is wrong"
+           stop
+        endif
+     enddo jobs
+     write(6,'("job:",i5,"--",i5)') job_min,job_max
+     
+     itt_min = 1
+     itt_max = 1
+     do job=job_min,job_max
+        write(str1,'(i10)') job
+        fn = trim(dir_read) // "/steps_"//trim(adjustl(str1))//".dat"
+        open(10,file=fn,status="old",action="read")
+        read(10,*) nsteps_job
+        close(10)
+        itt_max = itt_max + nsteps_job
+     enddo
+
+     itt_max = itt_max + 1
   
-  
-  itt_min = 1
-  itt_max = 1
-  do job=job_min,job_max
-     write(str1,'(i10)') job
-     fn = trim(dir_read) // "/steps_"//trim(adjustl(str1))//".dat"
-     open(10,file=fn,status="old",action="read")
-     read(10,*) nsteps_job
-     close(10)
-     itt_max = itt_max + nsteps_job
-  enddo
+  endif
   
   write(*,*) "model = ", trim(model)
   write(*,'(a)') trim(dir_read)//"/report_ptr.dat"
   open(10,file=trim(dir_read)//"/report_ptr.dat",status="old")
-  read(10,*)
-  read(10,*) np
-  
-  itt_max = itt_max + 1
+
+  if(old_format)then
+
+     read(10,*); read(10,*) itt_min
+     read(10,*); read(10,*) itt_max
+     read(10,*); read(10,*) np
+     
+  else
+     read(10,*); read(10,*) np
+  endif
+
   write(*,'("np, itt_min, itt_max=",3i7)') np,itt_min,itt_max
 
   ! allocate
@@ -138,7 +162,7 @@ subroutine tr_analysis(model, dir_read)
        time_50gk_25gk_traj(np), rho_fin_traj(np), vx_fin_traj(np), vy_fin_traj(np), vz_fin_traj(np), r_ini_traj(np) )
 
   allocate ( &
-       v_max_traj(np) )
+       v_max_traj(np),x_ini_traj(np),y_ini_traj(np),z_ini_traj(np),rho_ini_traj(np) )
 
   open(newunit=nunit,file=trim(dir_out)//"/condition_number.dat",status="replace")
   write(nunit,'("# number - condition correspondence")')
@@ -163,7 +187,7 @@ subroutine tr_analysis(model, dir_read)
   !$omp   t_5gk_traj, s_5gk_traj, ye_5gk_traj, texp_5gk_traj, &
   !$omp   t_3gk_traj, t_1gk_traj, ye_10gk_traj, t_10gk_traj, &
   !$omp   time_50gk_25gk_traj, rho_fin_traj, vx_fin_traj, vy_fin_traj, vz_fin_traj, r_ini_traj, &
-  !$omp   v_max_traj) &
+  !$omp   v_max_traj,x_ini_traj, y_ini_traj, z_ini_traj, rho_ini_traj) &
   !$omp private( fn,str1,nunit,it,time, x_p,y_p, z_p, vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, sen_p, rne_p, rae_p, &
   !$omp   it_max,it_tem_max,it_5gk,it_10gk,it_3gk,it_1gk, temp_gk, x_ini,y_ini,z_ini, &
   !$omp   smax_traj_7_0,smax_traj_7_4,smin_traj_7_0,smin_traj_7_4, r_fin, &
@@ -173,7 +197,7 @@ subroutine tr_analysis(model, dir_read)
   !$omp   tem_max, tem_max_af3gk, t_tem_max_af3gk, t_tem_max, &
   !$omp   t_5gk, s_5gk, ye_5gk, texp_5gk, &
   !$omp   t_3gk, t_1gk, ye_10gk, t_10gk, &
-  !$omp   time_50gk_25gk, rho_fin, vx_fin, vy_fin, vz_fin, r_ini,v_max, &
+  !$omp   time_50gk_25gk, rho_fin, vx_fin, vy_fin, vz_fin, r_ini,v_max, rho_ini, &
   !$omp   my_thr,max_thr)
   my_thr  = omp_get_thread_num()
   max_thr = omp_get_max_threads()
@@ -294,6 +318,8 @@ subroutine tr_analysis(model, dir_read)
         y_ini  = y_p(1)
         z_ini  = z_p(1)
         r_ini  = sqrt(x_ini**2 + y_ini**2 + z_ini**2)
+
+        rho_ini = qrho_p(1)
 
         ! values at final time
         t_fin  = time(it_max)
@@ -453,8 +479,13 @@ subroutine tr_analysis(model, dir_read)
         vy_fin_traj(ip)          = vy_fin
         vz_fin_traj(ip)          = vz_fin
         r_ini_traj(ip)           = r_ini
-        v_max_traj(ip) = v_max
 
+        v_max_traj(ip) = v_max
+        x_ini_traj(ip) = x_ini
+        y_ini_traj(ip) = y_ini
+        z_ini_traj(ip) = z_ini
+        rho_ini_traj(ip) = rho_ini
+        
      endif
 
      !if(mod(ip,100)==0) write(6,'("ip = ", i8)')  ip
@@ -481,12 +512,13 @@ subroutine tr_analysis(model, dir_read)
 
   open(newunit=nunit,file=trim(dir_out)//"/other_traj.dat",status="replace")  
   write(nunit,'("# model: ",a)') trim(model)
-  write(nunit,'("# 1:id, 2:mass, 3:v_max")')
-  
-  !write(nunit,'("#     id condition num.       mass [g]       Time [s]         x [cm]         y [cm]         z [cm]    Vrad [cm/s]    S [k_b/nuc]             Ye       Time [s]    S [k_b/nuc]             Ye      t_exp [s]       Tmax [K]           ut+1      hut+h_atm       Ye(10GK)      Time(3GK)      Time(1GK) Tmax(after3GK) Time(after3GK)  Time(5-2.5GK) rho (boundary)             vx             vy             vz     Time(10GK)     Time(Tmax)")')
+  write(nunit,'("#",99i15)') np
+  write(nunit,'("#",99i15)') (i,i=1,14)
+  write(nunit,'("#",99a15)') "id","mass","v_max", "x_initial", "y_initial", "z_initial", "x_final", "y_final", "z_final", "vx_final", "vy_final", "vz_final", "rho_initial", "rho_final"
+
   do ip=1,np
-     write(nunit,'(i8,99es15.7)') &
-          ip,mass_traj(ip),v_max_traj(ip)
+     write(nunit,'(" ",i15,99es15.7)') &
+          ip,mass_traj(ip),v_max_traj(ip),x_ini_traj(ip),y_ini_traj(ip),z_ini_traj(ip),x_fin_traj(ip),y_fin_traj(ip),z_fin_traj(ip),vx_fin_traj(ip),vy_fin_traj(ip),vz_fin_traj(ip),rho_ini_traj(ip),rho_fin_traj(ip)
   enddo
   
   close(nunit)

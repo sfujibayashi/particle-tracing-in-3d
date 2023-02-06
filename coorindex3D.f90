@@ -1,8 +1,8 @@
 subroutine coorindex3D(xx,yy,zz,j1,k1,l1,lv)
   use simdata3D
   implicit none
-  real(8) :: xx,yy,zz
-  integer :: lv,j1,k1,l1
+  real(8),intent(in) :: xx,yy,zz
+  integer,intent(out) :: lv,j1,k1,l1
 
   lv = lv_max
   do
