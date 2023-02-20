@@ -40,6 +40,11 @@ module simdata3D
        pres(:,:,:,:),&
        eps (:,:,:,:),&
        hhh (:,:,:,:)
+
+
+  integer,allocatable :: &
+       ip_ejecta_vol(:,:,:,:)
+
 contains
   subroutine get_ngrid_info(file_id)
     use hdf5
@@ -174,6 +179,11 @@ contains
        dy = y(1,lv) - y(0,lv)
        dz = z(1,lv) - z(0,lv)
 
+       !$omp parallel &
+       !$omp default(none) &
+       !$omp shared(ld,lu,kd,ku,jd,ju,vol3d,dx,dy,dz,lv_max,lv) &
+       !$omp private(vol,fac,fac1)
+       !$omp do 
        do l = ld,lu
           do k = kd,ku
              do j = jd,ju
@@ -234,7 +244,10 @@ contains
              end do
           end do
        end do
+       !$omp end do
+       !$omp end parallel
     end do
+
 
     vol_tot = 0.d0
     do lv = lv_min,lv_max
@@ -310,6 +323,10 @@ contains
          eps (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
          hhh (jd:ju,kd:ku,ld:lu,lv_min:lv_max) )
 
+    allocate( &
+         ip_ejecta_vol(jd:ju,kd:ku,ld:lu,lv_min:lv_max) )
+
+    
   end subroutine allocate_simdata
 
   subroutine read_simdata(file_id,it,t)
@@ -373,6 +390,18 @@ ld_read=ld
     call zboundary
 #endif
 #endif
+
+    ! block
+    !   integer :: j,k,l
+    !   lv=lv_max
+    !   l=ld+1
+    !   do k=kd,ku,3
+    !      do j=jd,ju,3
+    !         write(99,*) x(j,lv), y(k,lv), qrho(j,k,l,lv)
+    !      enddo
+    !   enddo
+    !   stop
+    ! end block
 
   end subroutine read_simdata
 
@@ -462,6 +491,32 @@ ld_read=ld
 
     return
   end subroutine set_secondary
+
+  subroutine all_proc(fn)
+    use hdf5
+    use h5lt
+    character(*),intent(in) :: fn
+    INTEGER        :: hdf_err     ! Error flag
+    INTEGER(HID_T) :: file_id     ! File identifier
+    integer(HSIZE_T) :: dims1(1),dims2(2),dims3(3)
+    real(4),allocatable :: buf1(:), buf2(:,:), buf3(:,:,:)
+    
+    real(8) :: t
+    integer :: it
+
+    it = 18
+    write(6,*) fn
+    call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, hdf_err)
+!!! obtain information on the grid
+    call get_ngrid_info(file_id)
+!!! allocate simulation data variables
+    call allocate_simdata
+!!! set coordinate (x,z)
+    call get_coor(file_id)
+stop    
+    call read_simdata(file_id,it,t)
+    call h5fclose_f(file_id, hdf_err)
+  end subroutine all_proc
 
 end module simdata3D
 

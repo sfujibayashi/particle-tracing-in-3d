@@ -69,10 +69,12 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
         llu=lu_divided8(i8)
         call recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin,hhh_crit,mass_crit,mass_min,mass_traj)
      enddo
-  elseif(mass > mass_min.and.rho_av > 1d0)then
-  !elseif(mass > mass_min)then
+  !elseif(mass > mass_min.and.rho_av > 0.2d0)then
+  elseif(mass > mass_min)then
      ip = ip + 1
      mass_traj = mass_traj + mass
+     
+     write(6,*) ip, mass, rho_av
      
      if(ib==1)then
         x_p(ip) = comx/mass
@@ -80,6 +82,16 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
         z_p(ip) = comz/mass
         dm_p(ip)= mass
      endif
+     
+     do l=lld,llu
+        do k=kkd,kku
+           do j=jjd,jju
+              if(condition_ejecta(j,k,l,lv,rfl,rin,hhh_crit).and.vol3D(j,k,l,lv)>0.d0)then
+                 ip_ejecta_vol(j,k,l,lv) = ip
+              endif
+           enddo
+        enddo
+     enddo
      
   endif
 

@@ -46,7 +46,7 @@ ld_print=ld
         do k=kd,ku
            do j=jd,ju
               write(unit_num,'(99es15.7)') x(j,lv)/r_unit_kkawa,y(k,lv)/r_unit_kkawa,z(l,lv)/r_unit_kkawa, &
-                   qb(j,k,l,lv)/rho_unit_kkawa,vlx(j,k,l,lv),vly(j,k,l,lv),vlz(j,k,l,lv),pres(j,k,l,lv)/r_unit_kkawa,qb(j,k,l,lv)/qrho(j,k,l,lv), &
+                   qb(j,k,l,lv)/rho_unit_kkawa,vlx(j,k,l,lv),vly(j,k,l,lv),vlz(j,k,l,lv),pres(j,k,l,lv)/e_unit_kkawa,qb(j,k,l,lv)/qrho(j,k,l,lv), &
                    0d0, 0d0, 0d0
               !bx(j,k,l,lv)/b_unit_kkawa,by(j,k,l,lv)/b_unit_kkawa,bz(j,k,l,lv)/b_unit_kkawa
            enddo

@@ -19,7 +19,7 @@ subroutine partial_output_hdf(dir_out,job,it,t)
 
   integer :: j,k,l,lv
 
-  fn = trim(dir_out)//"/test.h5"
+  fn = trim(dir_out)//"/map.h5"
   call h5fcreate_f(fn, H5F_ACC_TRUNC_F, file_id, hdf_err)
   
 #ifdef STAGGERED
@@ -31,6 +31,15 @@ subroutine partial_output_hdf(dir_out,job,it,t)
   jdat = ju-jd+1
   kdat = ku-kd+1
   ldat = lu-ld_write+1
+ 
+
+  lv=lv_max
+  l=ld+1
+  do k=kd,ku,3
+     do j=jd,ju,3
+        write(99,*) x(j,lv), y(k,lv), qrho(j,k,l,lv)
+     enddo
+  enddo
   
   do lv=lv_min,lv_max
      
@@ -46,7 +55,7 @@ subroutine partial_output_hdf(dir_out,job,it,t)
      
      ! t-dependent data
 
-     write(str2,'(i10)') it
+     write(str2,'(i10)') 1
      call h5gcreate_f(group_id, "data"//trim(adjustl(str2)) , group2_id, hdf_err)
      
      dims1(1) = 1
@@ -65,6 +74,8 @@ subroutine partial_output_hdf(dir_out,job,it,t)
      call h5ltmake_dataset_float_f(group2_id, "vx", 3, dims3, vlx(:,:,ld_write:lu,lv), hdf_err)
      call h5ltmake_dataset_float_f(group2_id, "vy", 3, dims3, vly(:,:,ld_write:lu,lv), hdf_err)
      call h5ltmake_dataset_float_f(group2_id, "vz", 3, dims3, vlz(:,:,ld_write:lu,lv), hdf_err)
+
+     call h5ltmake_dataset_int_f  (group2_id, "ip_ejecta", 3, dims3, ip_ejecta_vol(:,:,ld_write:lu,lv), hdf_err)
      
      call h5gclose_f(group_id, hdf_err)
      call h5gclose_f(group2_id, hdf_err)

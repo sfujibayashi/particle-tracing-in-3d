@@ -96,6 +96,12 @@ program main
   
   call h5open_f (error)
 
+
+  ! fn = "/sakura/ptmp/shofu/SFHoTim276_13_14_0025_150mstg_B0_HLLC/Analysis_ptr/data_ana/map.h5"
+  ! call all_proc(fn)
+  ! stop
+
+
   open(10,file="para.dat",status="old",action="read")
   read(10,*);read(10,'(a)') dir_out
   close(10)
@@ -225,7 +231,7 @@ program main
 
      write(str1,'(i10)') job
      fn = filename(job)
-
+     
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 
      it = 0
@@ -585,23 +591,26 @@ program main
         if(first)then
            !call analysisdir_out,time)
            !call print_data(time,job,it)
-           call partial_output_hdf(dir_out, job, it, time)
-           stop
+           !call partial_output_hdf(dir_out, job, it, time)
+           !stop
 
-           call set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
-           np = npv
-
-           ! call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
+           ! call set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
            ! np = npv
 
-           ! write(*,*) "# of particles set in volume-based way : ",npv
-           
-           ! call allocate_particle_data(np)
+           call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
+           np = npv
 
-           ! call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
+           write(*,*) "# of particles set in volume-based way : ",npv
+           
+           call allocate_particle_data(np)
+
+           call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
            
            ips=npv
            ipu=ips
+
+           !call partial_output_hdf(dir_out, job, it, time)
+           !stop
 
         endif ! procedure only in the first step end
         

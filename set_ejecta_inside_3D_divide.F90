@@ -49,24 +49,6 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
 
   real(8) :: mass_p_min,mass_p_max,mass_p_tot
 
-
-  !histogram
-  real(8),parameter :: dye=0.0025d0
-  real(8),parameter :: ye_max = 0.60d0+0.5d0*dye, ye_min = 0.01d0 - 0.5*dye
-  integer,parameter :: n_ye = nint((ye_max-ye_min)/dye)
-  
-  real(8),parameter :: dvel=0.005d0
-  real(8),parameter :: vel_max = 1.d0, vel_min = 0.0d0
-  integer,parameter :: n_vel = nint((vel_max-vel_min)/dvel)
-  
-  real(8),parameter :: logentr_max = log10(1d3), logentr_min = log10(0.1d0)
-  integer,parameter :: n_entr = 200
-  real(8),parameter :: dlogentr=(logentr_max-logentr_min)/dble(n_entr)
-  
-  real(8) :: histogram_ye_entr_total(n_ye,n_entr), histogram_ye_entr_vel_ejecta(n_ye,n_entr,n_vel), histogram_ye_entr_vel_ejectah(n_ye,n_entr,n_vel), histogram_ye_entr_vel_particles(n_ye,n_entr,n_vel), histogram_ye_entr_vel_particlesh(n_ye,n_entr,n_vel)
-  real(8) :: hist_v_ye(n_ye), hist_v_entr(n_entr), hist_v_vel(n_vel)
-  
-  integer :: i_ye, i_vel, i_entr
   
   real(8) :: dm, vel
   
@@ -121,6 +103,7 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
 #endif
   allocate(jd_divided(nzone),ju_divided(nzone),kd_divided(nzone),ku_divided(nzone),ld_divided(nzone),lu_divided(nzone))
 
+  ip_ejecta_vol(:,:,:,:) = 0
   mass_traj = 0.d0
   rp_max = 0d0
   ip = 0
@@ -291,231 +274,248 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
 
 
 !!!  histogram
-     histogram_ye_entr_vel_particlesh(:,:,:) = 0d0
-     histogram_ye_entr_vel_particles(:,:,:) = 0d0
-     histogram_ye_entr_vel_ejectah(:,:,:)=0d0
-     histogram_ye_entr_vel_ejecta(:,:,:)=0d0
-     histogram_ye_entr_total(:,:)=0d0
-     
-     do ip=1,npv
+     block
+       !histogram
+       real(8),parameter :: dye=0.0025d0
+       real(8),parameter :: ye_max = 0.60d0+0.5d0*dye, ye_min = 0.01d0 - 0.5*dye
+       integer,parameter :: n_ye = nint((ye_max-ye_min)/dye)
+       
+       real(8),parameter :: dvel=0.005d0
+       real(8),parameter :: vel_max = 1.d0, vel_min = 0.0d0
+       integer,parameter :: n_vel = nint((vel_max-vel_min)/dvel)
+       
+       real(8),parameter :: logentr_max = log10(1d3), logentr_min = log10(0.1d0)
+       integer,parameter :: n_entr = 200
+       real(8),parameter :: dlogentr=(logentr_max-logentr_min)/dble(n_entr)
+       
+       real(8) :: histogram_ye_entr_total(n_ye,n_entr), histogram_ye_entr_vel_ejecta(n_ye,n_entr,n_vel), histogram_ye_entr_vel_ejectah(n_ye,n_entr,n_vel), histogram_ye_entr_vel_particles(n_ye,n_entr,n_vel), histogram_ye_entr_vel_particlesh(n_ye,n_entr,n_vel)
+       real(8) :: hist_v_ye(n_ye), hist_v_entr(n_entr), hist_v_vel(n_vel)
+       
+       integer :: i_ye, i_vel, i_entr
 
-        xx=x_p(ip)
-        yy=y_p(ip)
-        zz=z_p(ip)
-  
-        call coorindex3D(xx,yy,zz,j1,k1,l1,lv0)
-        j0=j1-1
-        k0=k1-1
-        l0=l1-1
-        
-        x1 = (xx-x(j0,lv0))/(x(j1,lv0)-x(j0,lv0))
-        x0 = 1.d0-x1
-        y1 = (yy-y(k0,lv0))/(y(k1,lv0)-y(k0,lv0))
-        y0 = 1.d0-y1
-        z1 = (zz-z(l0,lv0))/(z(l1,lv0)-z(l0,lv0))
-        z0 = 1.d0-z1
-  
-        hhh_i = x1*y1*z1* hhh   (j1,k1,l1,lv0) &
-              + x0*y1*z1* hhh   (j0,k1,l1,lv0) &
-              + x1*y0*z1* hhh   (j1,k0,l1,lv0) &
-              + x0*y0*z1* hhh   (j0,k0,l1,lv0) &
-              + x1*y1*z0* hhh   (j1,k1,l0,lv0) &
-              + x0*y1*z0* hhh   (j0,k1,l0,lv0) &
-              + x1*y0*z0* hhh   (j1,k0,l0,lv0) &
-              + x0*y0*z0* hhh   (j0,k0,l0,lv0)
-        ut_i  = x1*y1*z1* ut    (j1,k1,l1,lv0) &
-              + x0*y1*z1* ut    (j0,k1,l1,lv0) &
-              + x1*y0*z1* ut    (j1,k0,l1,lv0) &
-              + x0*y0*z1* ut    (j0,k0,l1,lv0) &
-              + x1*y1*z0* ut    (j1,k1,l0,lv0) &
-              + x0*y1*z0* ut    (j0,k1,l0,lv0) &
-              + x1*y0*z0* ut    (j1,k0,l0,lv0) &
-              + x0*y0*z0* ut    (j0,k0,l0,lv0)
-        ye_i  = x1*y1*z1* ye    (j1,k1,l1,lv0) &
-              + x0*y1*z1* ye    (j0,k1,l1,lv0) &
-              + x1*y0*z1* ye    (j1,k0,l1,lv0) &
-              + x0*y0*z1* ye    (j0,k0,l1,lv0) &
-              + x1*y1*z0* ye    (j1,k1,l0,lv0) &
-              + x0*y1*z0* ye    (j0,k1,l0,lv0) &
-              + x1*y0*z0* ye    (j1,k0,l0,lv0) &
-              + x0*y0*z0* ye    (j0,k0,l0,lv0)
-        
-        vx_i  = x1*y1*z1* vlx    (j1,k1,l1,lv0) &
-              + x0*y1*z1* vlx    (j0,k1,l1,lv0) &
-              + x1*y0*z1* vlx    (j1,k0,l1,lv0) &
-              + x0*y0*z1* vlx    (j0,k0,l1,lv0) &
-              + x1*y1*z0* vlx    (j1,k1,l0,lv0) &
-              + x0*y1*z0* vlx    (j0,k1,l0,lv0) &
-              + x1*y0*z0* vlx    (j1,k0,l0,lv0) &
-              + x0*y0*z0* vlx    (j0,k0,l0,lv0)
-        vy_i  = x1*y1*z1* vly    (j1,k1,l1,lv0) &
-              + x0*y1*z1* vly    (j0,k1,l1,lv0) &
-              + x1*y0*z1* vly    (j1,k0,l1,lv0) &
-              + x0*y0*z1* vly    (j0,k0,l1,lv0) &
-              + x1*y1*z0* vly    (j1,k1,l0,lv0) &
-              + x0*y1*z0* vly    (j0,k1,l0,lv0) &
-              + x1*y0*z0* vly    (j1,k0,l0,lv0) &
-              + x0*y0*z0* vly    (j0,k0,l0,lv0)
-        vz_i  = x1*y1*z1* vlz    (j1,k1,l1,lv0) &
-              + x0*y1*z1* vlz    (j0,k1,l1,lv0) &
-              + x1*y0*z1* vlz    (j1,k0,l1,lv0) &
-              + x0*y0*z1* vlz    (j0,k0,l1,lv0) &
-              + x1*y1*z0* vlz    (j1,k1,l0,lv0) &
-              + x0*y1*z0* vlz    (j0,k1,l0,lv0) &
-              + x1*y0*z0* vlz    (j1,k0,l0,lv0) &
-              + x0*y0*z0* vlz    (j0,k0,l0,lv0)
-        
-        vr_i = (vx_i*xx + vy_i*yy + vz_i*zz)/sqrt(xx**2+yy**2+zz**2)
-        
-        ye_i  = x1*y1*z1* ye  (j1,k1,l1,lv0) &
-              + x0*y1*z1* ye  (j0,k1,l1,lv0) &
-              + x1*y0*z1* ye  (j1,k0,l1,lv0) &
-              + x0*y0*z1* ye  (j0,k0,l1,lv0) &
-              + x1*y1*z0* ye  (j1,k1,l0,lv0) &
-              + x0*y1*z0* ye  (j0,k1,l0,lv0) &
-              + x1*y0*z0* ye  (j1,k0,l0,lv0) &
-              + x0*y0*z0* ye  (j0,k0,l0,lv0)
-        sen_i = x1*y1*z1* sen  (j1,k1,l1,lv0) &
-              + x0*y1*z1* sen  (j0,k1,l1,lv0) &
-              + x1*y0*z1* sen  (j1,k0,l1,lv0) &
-              + x0*y0*z1* sen  (j0,k0,l1,lv0) &
-              + x1*y1*z0* sen  (j1,k1,l0,lv0) &
-              + x0*y1*z0* sen  (j0,k1,l0,lv0) &
-              + x1*y0*z0* sen  (j1,k0,l0,lv0) &
-              + x0*y0*z0* sen  (j0,k0,l0,lv0)
-        
-        i_ye = max(1,min(n_ye  ,int((ye_i-ye_min)/dye)+1))
-        i_entr=max(1,min(n_entr,int((log10(sen_i)-logentr_min)/dlogentr)+1))
-        
-        if( ut_i*hhh_i + hhh_min < 0d0)then
-           vel = sqrt(1d0-1d0/(-ut_i*hhh_i/hhh_min)**2)        
-           i_vel= max(1,min(n_vel,int((vel-vel_min)/dvel)+1))
-           histogram_ye_entr_vel_particlesh(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_particlesh(i_ye,i_entr,i_vel) + dm_p(ip)
-        endif
-        
-        if( ut_i+1d0<0d0)then
-           vel = sqrt(1d0-1d0/(-ut_i)**2)
-           i_vel= max(1,min(n_vel,int((vel-vel_min)/dvel)+1))
-           histogram_ye_entr_vel_particles(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_particles(i_ye,i_entr,i_vel) + dm_p(ip)
-        endif
+       histogram_ye_entr_vel_particlesh(:,:,:) = 0d0
+       histogram_ye_entr_vel_particles(:,:,:) = 0d0
+       histogram_ye_entr_vel_ejectah(:,:,:)=0d0
+       histogram_ye_entr_vel_ejecta(:,:,:)=0d0
+       histogram_ye_entr_total(:,:)=0d0
+       
+       do ip=1,npv
 
-     enddo
-     
-     do lv=lv_min_pset,lv_max
-        do l=ld,lu
-           do k=kd,ku
-              do j=jd,ju
-                 dm = vol3D(j,k,l,lv)*qb(j,k,l,lv)
-                 i_ye = max(1, min(n_ye  , int((ye(j,k,l,lv)-ye_min)/dye)+1))
-                 i_entr=max(1, min(n_entr, int((log10(sen(j,k,l,lv))-logentr_min)/dlogentr)+1))
-                 histogram_ye_entr_total(i_ye,i_entr) = histogram_ye_entr_total(i_ye,i_entr) + dm
+          xx=x_p(ip)
+          yy=y_p(ip)
+          zz=z_p(ip)
+    
+          call coorindex3D(xx,yy,zz,j1,k1,l1,lv0)
+          j0=j1-1
+          k0=k1-1
+          l0=l1-1
+          
+          x1 = (xx-x(j0,lv0))/(x(j1,lv0)-x(j0,lv0))
+          x0 = 1.d0-x1
+          y1 = (yy-y(k0,lv0))/(y(k1,lv0)-y(k0,lv0))
+          y0 = 1.d0-y1
+          z1 = (zz-z(l0,lv0))/(z(l1,lv0)-z(l0,lv0))
+          z0 = 1.d0-z1
+    
+          hhh_i = x1*y1*z1* hhh   (j1,k1,l1,lv0) &
+                + x0*y1*z1* hhh   (j0,k1,l1,lv0) &
+                + x1*y0*z1* hhh   (j1,k0,l1,lv0) &
+                + x0*y0*z1* hhh   (j0,k0,l1,lv0) &
+                + x1*y1*z0* hhh   (j1,k1,l0,lv0) &
+                + x0*y1*z0* hhh   (j0,k1,l0,lv0) &
+                + x1*y0*z0* hhh   (j1,k0,l0,lv0) &
+                + x0*y0*z0* hhh   (j0,k0,l0,lv0)
+          ut_i  = x1*y1*z1* ut    (j1,k1,l1,lv0) &
+                + x0*y1*z1* ut    (j0,k1,l1,lv0) &
+                + x1*y0*z1* ut    (j1,k0,l1,lv0) &
+                + x0*y0*z1* ut    (j0,k0,l1,lv0) &
+                + x1*y1*z0* ut    (j1,k1,l0,lv0) &
+                + x0*y1*z0* ut    (j0,k1,l0,lv0) &
+                + x1*y0*z0* ut    (j1,k0,l0,lv0) &
+                + x0*y0*z0* ut    (j0,k0,l0,lv0)
+          ye_i  = x1*y1*z1* ye    (j1,k1,l1,lv0) &
+                + x0*y1*z1* ye    (j0,k1,l1,lv0) &
+                + x1*y0*z1* ye    (j1,k0,l1,lv0) &
+                + x0*y0*z1* ye    (j0,k0,l1,lv0) &
+                + x1*y1*z0* ye    (j1,k1,l0,lv0) &
+                + x0*y1*z0* ye    (j0,k1,l0,lv0) &
+                + x1*y0*z0* ye    (j1,k0,l0,lv0) &
+                + x0*y0*z0* ye    (j0,k0,l0,lv0)
+          
+          vx_i  = x1*y1*z1* vlx    (j1,k1,l1,lv0) &
+                + x0*y1*z1* vlx    (j0,k1,l1,lv0) &
+                + x1*y0*z1* vlx    (j1,k0,l1,lv0) &
+                + x0*y0*z1* vlx    (j0,k0,l1,lv0) &
+                + x1*y1*z0* vlx    (j1,k1,l0,lv0) &
+                + x0*y1*z0* vlx    (j0,k1,l0,lv0) &
+                + x1*y0*z0* vlx    (j1,k0,l0,lv0) &
+                + x0*y0*z0* vlx    (j0,k0,l0,lv0)
+          vy_i  = x1*y1*z1* vly    (j1,k1,l1,lv0) &
+                + x0*y1*z1* vly    (j0,k1,l1,lv0) &
+                + x1*y0*z1* vly    (j1,k0,l1,lv0) &
+                + x0*y0*z1* vly    (j0,k0,l1,lv0) &
+                + x1*y1*z0* vly    (j1,k1,l0,lv0) &
+                + x0*y1*z0* vly    (j0,k1,l0,lv0) &
+                + x1*y0*z0* vly    (j1,k0,l0,lv0) &
+                + x0*y0*z0* vly    (j0,k0,l0,lv0)
+          vz_i  = x1*y1*z1* vlz    (j1,k1,l1,lv0) &
+                + x0*y1*z1* vlz    (j0,k1,l1,lv0) &
+                + x1*y0*z1* vlz    (j1,k0,l1,lv0) &
+                + x0*y0*z1* vlz    (j0,k0,l1,lv0) &
+                + x1*y1*z0* vlz    (j1,k1,l0,lv0) &
+                + x0*y1*z0* vlz    (j0,k1,l0,lv0) &
+                + x1*y0*z0* vlz    (j1,k0,l0,lv0) &
+                + x0*y0*z0* vlz    (j0,k0,l0,lv0)
+          
+          vr_i = (vx_i*xx + vy_i*yy + vz_i*zz)/sqrt(xx**2+yy**2+zz**2)
+          
+          ye_i  = x1*y1*z1* ye  (j1,k1,l1,lv0) &
+                + x0*y1*z1* ye  (j0,k1,l1,lv0) &
+                + x1*y0*z1* ye  (j1,k0,l1,lv0) &
+                + x0*y0*z1* ye  (j0,k0,l1,lv0) &
+                + x1*y1*z0* ye  (j1,k1,l0,lv0) &
+                + x0*y1*z0* ye  (j0,k1,l0,lv0) &
+                + x1*y0*z0* ye  (j1,k0,l0,lv0) &
+                + x0*y0*z0* ye  (j0,k0,l0,lv0)
+          sen_i = x1*y1*z1* sen  (j1,k1,l1,lv0) &
+                + x0*y1*z1* sen  (j0,k1,l1,lv0) &
+                + x1*y0*z1* sen  (j1,k0,l1,lv0) &
+                + x0*y0*z1* sen  (j0,k0,l1,lv0) &
+                + x1*y1*z0* sen  (j1,k1,l0,lv0) &
+                + x0*y1*z0* sen  (j0,k1,l0,lv0) &
+                + x1*y0*z0* sen  (j1,k0,l0,lv0) &
+                + x0*y0*z0* sen  (j0,k0,l0,lv0)
+          
+          i_ye = max(1,min(n_ye  ,int((ye_i-ye_min)/dye)+1))
+          i_entr=max(1,min(n_entr,int((log10(sen_i)-logentr_min)/dlogentr)+1))
+          
+          if( ut_i*hhh_i + hhh_min < 0d0)then
+             vel = sqrt(1d0-1d0/(-ut_i*hhh_i/hhh_min)**2)        
+             i_vel= max(1,min(n_vel,int((vel-vel_min)/dvel)+1))
+             histogram_ye_entr_vel_particlesh(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_particlesh(i_ye,i_entr,i_vel) + dm_p(ip)
+          endif
+          
+          if( ut_i+1d0<0d0)then
+             vel = sqrt(1d0-1d0/(-ut_i)**2)
+             i_vel= max(1,min(n_vel,int((vel-vel_min)/dvel)+1))
+             histogram_ye_entr_vel_particles(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_particles(i_ye,i_entr,i_vel) + dm_p(ip)
+          endif
+          
+       enddo
+       
+       do lv=lv_min_pset,lv_max
+          do l=ld,lu
+             do k=kd,ku
+                do j=jd,ju
+                   dm = vol3D(j,k,l,lv)*qb(j,k,l,lv)
+                   i_ye = max(1, min(n_ye  , int((ye(j,k,l,lv)-ye_min)/dye)+1))
+                   i_entr=max(1, min(n_entr, int((log10(sen(j,k,l,lv))-logentr_min)/dlogentr)+1))
+                   histogram_ye_entr_total(i_ye,i_entr) = histogram_ye_entr_total(i_ye,i_entr) + dm
 
-                 if(condition_ejecta(j,k,l,lv,rfl,rin,hhh_crit))then
-                    vel = sqrt(1d0-1d0/(-ut(j,k,l,lv)*hhh(j,k,l,lv)/hhh_min)**2)
-                    i_vel= max(1,min(n_vel,int((vel-vel_min)/dvel)+1))
-                    histogram_ye_entr_vel_ejectah(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_ejectah(i_ye,i_entr,i_vel) + dm
-                 endif
+                   if(condition_ejecta(j,k,l,lv,rfl,rin,hhh_crit))then
+                      vel = sqrt(1d0-1d0/(-ut(j,k,l,lv)*hhh(j,k,l,lv)/hhh_min)**2)
+                      i_vel= max(1,min(n_vel,int((vel-vel_min)/dvel)+1))
+                      histogram_ye_entr_vel_ejectah(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_ejectah(i_ye,i_entr,i_vel) + dm
+                   endif
 
-                 if(condition_ejecta_geo(j,k,l,lv,rfl,rin))then
-                    vel = sqrt(1d0-1d0/(-ut(j,k,l,lv))**2)
-                    i_vel= max(1,min(n_vel,int((vel-vel_min)/dvel)+1))
-                    histogram_ye_entr_vel_ejecta(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_ejecta(i_ye,i_entr,i_vel) + dm
-                 endif
+                   if(condition_ejecta_geo(j,k,l,lv,rfl,rin))then
+                      vel = sqrt(1d0-1d0/(-ut(j,k,l,lv))**2)
+                      i_vel= max(1,min(n_vel,int((vel-vel_min)/dvel)+1))
+                      histogram_ye_entr_vel_ejecta(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_ejecta(i_ye,i_entr,i_vel) + dm
+                   endif
 
-              enddo
-           enddo
-        enddo
-     enddo
+                enddo
+             enddo
+          enddo
+       enddo
 
-     
-     do i_ye=1,n_ye
-        hist_v_ye(i_ye) = ye_min + dye*dble(i_ye-1)
-        !write(6,*) i_ye, hist_v_ye(i_ye)
-     end do
 
-     do i_vel=1,n_vel
-        hist_v_vel(i_vel) = vel_min + dvel*dble(i_vel-1)
-        !write(6,*) i_vel, hist_v_vel(i_vel)
-     end do
+       do i_ye=1,n_ye
+          hist_v_ye(i_ye) = ye_min + dye*dble(i_ye-1)
+          !write(6,*) i_ye, hist_v_ye(i_ye)
+       end do
 
-     do i_entr=1,n_entr
-        hist_v_entr(i_entr) = 10d0**(logentr_min + dlogentr*dble(i_entr-1))
-        !write(6,*) i_entr, hist_v_entr(i_entr)
-     end do
+       do i_vel=1,n_vel
+          hist_v_vel(i_vel) = vel_min + dvel*dble(i_vel-1)
+          !write(6,*) i_vel, hist_v_vel(i_vel)
+       end do
 
-     open(newunit=unit_num,file=trim(dir_out)//"/ye_hist_inside.dat",status="replace")
-     write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
-     write(unit_num,'(a1,99a15)') "#", "Ye", "particle", "particles(geo)", "ejecta", "ejecta(geo)", "total"
-     do i_ye = 1,n_ye
-        write(unit_num,'(a1,99es15.7)') " ",hist_v_ye(i_ye), sum(histogram_ye_entr_vel_particlesh(i_ye,:,:)), sum(histogram_ye_entr_vel_particles(i_ye,:,:)), sum(histogram_ye_entr_vel_ejectah(i_ye,:,:)), sum(histogram_ye_entr_vel_ejecta(i_ye,:,:)), sum(histogram_ye_entr_total(i_ye,:))
-     enddo
-     close(unit_num)
+       do i_entr=1,n_entr
+          hist_v_entr(i_entr) = 10d0**(logentr_min + dlogentr*dble(i_entr-1))
+          !write(6,*) i_entr, hist_v_entr(i_entr)
+       end do
 
-     open(newunit=unit_num,file=trim(dir_out)//"/sen_hist_inside.dat",status="replace")
-     write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
-     write(unit_num,'(a1,99a15)') "#", "entropy", "particle", "particles(geo)", "ejecta", "ejecta(geo)", "total"
-     do i_entr = 1,n_entr
-        write(unit_num,'(a1,99es15.7)') " ",hist_v_entr(i_entr), sum(histogram_ye_entr_vel_particlesh(:,i_entr,:)), sum(histogram_ye_entr_vel_particles(:,i_entr,:)), sum(histogram_ye_entr_vel_ejectah(:,i_entr,:)), sum(histogram_ye_entr_vel_ejecta(:,i_entr,:)), sum(histogram_ye_entr_total(:,i_entr))
-     enddo
-     close(unit_num)
+       open(newunit=unit_num,file=trim(dir_out)//"/ye_hist_inside.dat",status="replace")
+       write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
+       write(unit_num,'(a1,99a15)') "#", "Ye", "particle", "particles(geo)", "ejecta", "ejecta(geo)", "total"
+       do i_ye = 1,n_ye
+          write(unit_num,'(a1,99es15.7)') " ",hist_v_ye(i_ye), sum(histogram_ye_entr_vel_particlesh(i_ye,:,:)), sum(histogram_ye_entr_vel_particles(i_ye,:,:)), sum(histogram_ye_entr_vel_ejectah(i_ye,:,:)), sum(histogram_ye_entr_vel_ejecta(i_ye,:,:)), sum(histogram_ye_entr_total(i_ye,:))
+       enddo
+       close(unit_num)
 
-     open(newunit=unit_num,file=trim(dir_out)//"/vel_hist_inside.dat",status="replace")
-     write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
-     write(unit_num,'(a1,99a15)') "#", "vel_inf", "particle", "particles(geo)", "ejecta", "ejecta(geo)", "total"
-     do i_vel = 1,n_vel
-        write(unit_num,'(a1,99es15.7)') " ",hist_v_vel(i_vel), sum(histogram_ye_entr_vel_particlesh(:,:,i_vel)), sum(histogram_ye_entr_vel_particles(:,:,i_vel)), sum(histogram_ye_entr_vel_ejectah(:,:,i_vel)), sum(histogram_ye_entr_vel_ejecta(:,:,i_vel))
-     enddo
-     close(unit_num)
+       open(newunit=unit_num,file=trim(dir_out)//"/sen_hist_inside.dat",status="replace")
+       write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
+       write(unit_num,'(a1,99a15)') "#", "entropy", "particle", "particles(geo)", "ejecta", "ejecta(geo)", "total"
+       do i_entr = 1,n_entr
+          write(unit_num,'(a1,99es15.7)') " ",hist_v_entr(i_entr), sum(histogram_ye_entr_vel_particlesh(:,i_entr,:)), sum(histogram_ye_entr_vel_particles(:,i_entr,:)), sum(histogram_ye_entr_vel_ejectah(:,i_entr,:)), sum(histogram_ye_entr_vel_ejecta(:,i_entr,:)), sum(histogram_ye_entr_total(:,i_entr))
+       enddo
+       close(unit_num)
 
-     open(newunit=unit_num,file=trim(dir_out)//"/ye_sen_hist_inside.dat",status="replace")
-     write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
-     write(unit_num,'(a1,99a15)') "#", "Ye", "entropy", "particle", "particles(geo)", "ejecta", "ejecta(geo)", "total"
-     do i_entr = 1,n_entr
-        write(unit_num,*)
-        do i_ye = 1,n_ye
-           write(unit_num,'(a1,99es15.7)') " ",hist_v_ye(i_ye), hist_v_entr(i_entr), sum(histogram_ye_entr_vel_particlesh(i_ye,i_entr,:)), sum(histogram_ye_entr_vel_particles(i_ye,i_entr,:)), sum(histogram_ye_entr_vel_ejectah(i_ye,i_entr,:)), sum(histogram_ye_entr_vel_ejecta(i_ye,i_entr,:)), histogram_ye_entr_total(i_ye,i_entr)
-        enddo
-     enddo
-     close(unit_num)
+       open(newunit=unit_num,file=trim(dir_out)//"/vel_hist_inside.dat",status="replace")
+       write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
+       write(unit_num,'(a1,99a15)') "#", "vel_inf", "particle", "particles(geo)", "ejecta", "ejecta(geo)", "total"
+       do i_vel = 1,n_vel
+          write(unit_num,'(a1,99es15.7)') " ",hist_v_vel(i_vel), sum(histogram_ye_entr_vel_particlesh(:,:,i_vel)), sum(histogram_ye_entr_vel_particles(:,:,i_vel)), sum(histogram_ye_entr_vel_ejectah(:,:,i_vel)), sum(histogram_ye_entr_vel_ejecta(:,:,i_vel))
+       enddo
+       close(unit_num)
 
-     open(newunit=unit_num,file=trim(dir_out)//"/ye_vel_hist_inside.dat",status="replace")
-     write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
-     write(unit_num,'(a1,99a15)') "#", "Ye", "vel_inf", "particle", "particles(geo)", "ejecta", "ejecta(geo)"
-     do i_vel = 1,n_vel
-        write(unit_num,*)
-        do i_ye = 1,n_ye
-           write(unit_num,'(a1,99es15.7)') " ",hist_v_ye(i_ye), hist_v_vel(i_vel), sum(histogram_ye_entr_vel_particlesh(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_particles(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejectah(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejecta(i_ye,:,i_vel))
-        enddo
-     enddo
-     close(unit_num)
+       open(newunit=unit_num,file=trim(dir_out)//"/ye_sen_hist_inside.dat",status="replace")
+       write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
+       write(unit_num,'(a1,99a15)') "#", "Ye", "entropy", "particle", "particles(geo)", "ejecta", "ejecta(geo)", "total"
+       do i_entr = 1,n_entr
+          write(unit_num,*)
+          do i_ye = 1,n_ye
+             write(unit_num,'(a1,99es15.7)') " ",hist_v_ye(i_ye), hist_v_entr(i_entr), sum(histogram_ye_entr_vel_particlesh(i_ye,i_entr,:)), sum(histogram_ye_entr_vel_particles(i_ye,i_entr,:)), sum(histogram_ye_entr_vel_ejectah(i_ye,i_entr,:)), sum(histogram_ye_entr_vel_ejecta(i_ye,i_entr,:)), histogram_ye_entr_total(i_ye,i_entr)
+          enddo
+       enddo
+       close(unit_num)
 
-     open(newunit=unit_num,file=trim(dir_out)//"/sen_vel_hist_inside.dat",status="replace")
-     write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
-     write(unit_num,'(a1,99a15)') "#", "Ye", "entropy", "particle", "particles(geo)", "ejecta", "ejecta(geo)"
-     do i_vel = 1,n_vel
-        write(unit_num,*)
-        do i_entr = 1,n_entr
-           write(unit_num,'(a1,99es15.7)') " ",hist_v_entr(i_entr), hist_v_vel(i_vel), sum(histogram_ye_entr_vel_particlesh(:,i_entr,i_vel)), sum(histogram_ye_entr_vel_particles(:,i_entr,i_vel)), sum(histogram_ye_entr_vel_ejectah(:,i_entr,i_vel)), sum(histogram_ye_entr_vel_ejecta(:,i_entr,i_vel))
-        enddo
-     enddo
-     close(unit_num)
+       open(newunit=unit_num,file=trim(dir_out)//"/ye_vel_hist_inside.dat",status="replace")
+       write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
+       write(unit_num,'(a1,99a15)') "#", "Ye", "vel_inf", "particle", "particles(geo)", "ejecta", "ejecta(geo)"
+       do i_vel = 1,n_vel
+          write(unit_num,*)
+          do i_ye = 1,n_ye
+             write(unit_num,'(a1,99es15.7)') " ",hist_v_ye(i_ye), hist_v_vel(i_vel), sum(histogram_ye_entr_vel_particlesh(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_particles(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejectah(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejecta(i_ye,:,i_vel))
+          enddo
+       enddo
+       close(unit_num)
 
-     open(newunit=unit_num,file=trim(dir_out)//"/ye_sen_vel_hist_inside.dat",status="replace")
-     write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
-     write(unit_num,'(a1,99a15)') "#", "Ye", "entropy", "vel_inf", "particle", "particles(geo)", "ejecta", "ejecta(geo)"
-     do i_vel = 1,n_vel
-        write(unit_num,*)
-        do i_entr = 1,n_entr
-           write(unit_num,*)
-           do i_ye = 1,n_ye
-              write(unit_num,'(a1,99es15.7)') " ",hist_v_ye(i_ye), hist_v_entr(i_entr), hist_v_vel(i_vel), sum(histogram_ye_entr_vel_particlesh(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_particles(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejectah(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejecta(i_ye,:,i_vel))
-           enddo
-        enddo
-     enddo
-     close(unit_num)
-     
-     stop
-     
+       open(newunit=unit_num,file=trim(dir_out)//"/sen_vel_hist_inside.dat",status="replace")
+       write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
+       write(unit_num,'(a1,99a15)') "#", "Ye", "entropy", "particle", "particles(geo)", "ejecta", "ejecta(geo)"
+       do i_vel = 1,n_vel
+          write(unit_num,*)
+          do i_entr = 1,n_entr
+             write(unit_num,'(a1,99es15.7)') " ",hist_v_entr(i_entr), hist_v_vel(i_vel), sum(histogram_ye_entr_vel_particlesh(:,i_entr,i_vel)), sum(histogram_ye_entr_vel_particles(:,i_entr,i_vel)), sum(histogram_ye_entr_vel_ejectah(:,i_entr,i_vel)), sum(histogram_ye_entr_vel_ejecta(:,i_entr,i_vel))
+          enddo
+       enddo
+       close(unit_num)
+
+       open(newunit=unit_num,file=trim(dir_out)//"/ye_sen_vel_hist_inside.dat",status="replace")
+       write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
+       write(unit_num,'(a1,99a15)') "#", "Ye", "entropy", "vel_inf", "particle", "particles(geo)", "ejecta", "ejecta(geo)"
+       do i_vel = 1,n_vel
+          write(unit_num,*)
+          do i_entr = 1,n_entr
+             write(unit_num,*)
+             do i_ye = 1,n_ye
+                write(unit_num,'(a1,99es15.7)') " ",hist_v_ye(i_ye), hist_v_entr(i_entr), hist_v_vel(i_vel), sum(histogram_ye_entr_vel_particlesh(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_particles(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejectah(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejecta(i_ye,:,i_vel))
+             enddo
+          enddo
+       enddo
+       close(unit_num)
+     end block
   endif
 
   return
