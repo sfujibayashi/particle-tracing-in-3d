@@ -41,6 +41,7 @@ subroutine evolution_particle_3D(ipu,time,time_prv,substep_max)
         ztmp =  z_p(ip)
 
         call coorindex3D(xtmp,ytmp,ztmp,j1,k1,l1,lv)
+        
         j=j1-1
         k=k1-1
         l=l1-1

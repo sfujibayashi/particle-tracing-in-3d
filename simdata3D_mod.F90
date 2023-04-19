@@ -337,7 +337,7 @@ contains
     INTEGER(HID_T),intent(in) :: file_id
     integer,intent(in)  :: it
     real(8),intent(out) :: t
-    integer :: error
+    integer :: error, sum_err
     integer(HSIZE_T) :: dims1(1),dims3(3)
 
     integer :: lv,jdat,kdat,ldat,ld_read
@@ -366,21 +366,26 @@ ld_read=ld
     do lv=lv_min,lv_max
 
        write(str1,'(i10)') lv
-
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density",qrho(:,:,ld_read:lu,lv),dims3,error)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/u_t"    ,ut  (:,:,ld_read:lu,lv),dims3,error)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ye"     ,ye  (:,:,ld_read:lu,lv),dims3,error)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/entropy",sen (:,:,ld_read:lu,lv),dims3,error)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/temperature",tem (:,:,ld_read:lu,lv),dims3,error)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vx"     ,vlx (:,:,ld_read:lu,lv),dims3,error)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vy"     ,vly (:,:,ld_read:lu,lv),dims3,error)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,vlz (:,:,ld_read:lu,lv),dims3,error)
+       sum_err = 0
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density",qrho(:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/u_t"    ,ut  (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ye"     ,ye  (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/entropy",sen (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/temperature",tem (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vx"     ,vlx (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vy"     ,vly (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,vlz (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
 
        if(1==0)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",qb(:,:,ld_read:lu,lv),dims3,error)
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",qb(:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
           qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
        else
           qb(:,:,:,lv) = qrho(:,:,:,lv)/sqrt(1d0 - ( vlx(:,:,:,lv)**2 + vly(:,:,:,lv)**2 + vlz(:,:,:,lv)**2 ) )
+       endif
+
+       if(sum_err>0)then
+          write(6,*) "Error in reading hdf5 file. STOP.",lv,sum_err
+          stop
        endif
 
     enddo
@@ -462,6 +467,14 @@ ld_read=ld
                 ss    = max(0.d0, min(1.d0 ,     (log10(temt)-tem_e(itemp))*dtemi))
                 ssp   = 1.d0-ss
 
+                if(irho<1.or.nrho-1<irho.or. &
+                     iye<1.or.nye-1<iye.or. &
+                     itemp<1.or.ntemp-1<itemp)then
+                   write(6,'(4i5)') j,k,l,lv
+                   write(6,'(3i5)') irho,itemp,iye
+                   write(6,'(99es12.4)') rhot, fyet, temt
+                endif
+                
                 pres(j,k,l,lv) = ssp *ttp *uup *pres_e(itemp ,iye ,irho )   &
                                + ss  *ttp *uup *pres_e(itemp1,iye ,irho )   &
                                + ssp *tt  *uup *pres_e(itemp ,iye1,irho )   &
