@@ -100,11 +100,11 @@ program main
   ! fn = "/sakura/ptmp/shofu/SFHoTim276_13_14_0025_150mstg_B0_HLLC/Analysis_ptr/data_ana/map.h5"
   ! call all_proc(fn)
   ! stop
+  dir_out = "."
 
-
-  open(10,file="para.dat",status="old",action="read")
-  read(10,*);read(10,'(a)') dir_out
-  close(10)
+  ! open(10,file="para.dat",status="old",action="read")
+  ! read(10,*);read(10,'(a)') dir_out
+  ! close(10)
 
   open(10,file=trim(dir_out)//"/parameters.dat",status="old",action="read")
   read(10,*);read(10,'(a)') model
@@ -152,15 +152,17 @@ program main
      endif
   endif
   
-  ! call ascii(model,dir_out,it_skip_out)
-  !call tr_analysis(model,dir_out)
-  !stop
   
   write(*,'("model name      : ",a)') trim(model)
   write(*,'("job             : ",2i5)') job_min,job_max
   write(*,'("restart flag    : ",a)') restart
   write(*,'("data read from  : ",a)') trim(dir_read)
   write(*,'("result saved in : ",a)') trim(dir_out)
+  
+  ! call ascii(model,dir_out,it_skip_out)
+  ! call tr_analysis(model,dir_out)
+  ! stop
+
   
   write(6,'("it_skip, it_skip_out      : ",2i5)') it_skip,it_skip_out
   write(6,'("r_out, r_in (cm)          : ",2es12.4)') rfl,rin
@@ -575,7 +577,9 @@ program main
         ! ittot = it0 + it
         
 !!! read profile
+        ! write(6,*) "read 3D data"
         call read_simdata(file_id,it,time)
+        ! write(6,*) "set secondary"
         call set_secondary
         if(first)then
            dt = 0.d0
@@ -584,6 +588,7 @@ program main
         endif
         
 !!! evolve particles
+        ! write(6,*) "evolve particles"
         call evolution_particle_3D(ipu,time,time_prv,substep_max)
         
 !!! set particle
@@ -710,15 +715,15 @@ program main
                    ! tem_p(ip,ittot)>5.d0.or. &
                    ! ittot==itt_min.or. &
                    time*1.d3<tms_end) )then
-
+                 
                  flag_evol(ip) = 0
-
+                 
               endif
            enddo
-
+           
         endif
 
-
+        
         if(.not.mode_backward .and. count_out==0)then
 
            do ip = 1,ipu
@@ -744,7 +749,7 @@ program main
         if(count_out == 0) count_out = it_skip_out
         
         count_out = count_out - 1
-
+        
         if(.not.mode_volbased) count_pset = count_pset - 1
      
         it_save = it

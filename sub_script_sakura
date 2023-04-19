@@ -22,7 +22,7 @@
 # Wall clock limit:
 #SBATCH --time=${hour}:${min}:${second}
 
-cd ${dir_job}
+cd ${dir_out}
 cp ${work_dir}/bin/${prog} ${exe}
 
 export OMP_NUM_THREADS=${OMP_NUM_THREADS}

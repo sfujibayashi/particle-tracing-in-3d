@@ -27,12 +27,15 @@ backward="T"
 
 restart="N"
 
+info=""
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
 #info="bind_%ims%i" % (it_skip,n_theta)
 #info = "forward_close"
-info = "ana"
+#info = "ana"
 
-print(info)
+print("sub info = ",info)
+if info!="":
+   info = "_"+info
 
 #fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
 fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
@@ -98,7 +101,7 @@ if not os.path.exists(dir_std):
     os.system(cmd)
 
 dir_exists=False
-dir_out  = work_dir + "/" + model + "/Analysis_ptr/data_" + info
+dir_out  = work_dir + "/" + model + "/Analysis_ptr/data" + info
 if os.path.exists(dir_out):
     print("directory exists :",dir_out)
     dir_exists=True
@@ -118,9 +121,9 @@ if dir_exists:
     else:
        print("not specified. stop.")
 
-with open(dir_job + "/para.dat",mode="w") as f:
-    f.write("# result saved in:\n")
-    f.write("%s\n" % (dir_out))
+# with open(dir_job + "/para.dat",mode="w") as f:
+#     f.write("# result saved in:\n")
+#     f.write("%s\n" % (dir_out))
 
 with open(dir_out + "/parameters.dat",mode="w") as f:
     f.write("# model name:\n")
@@ -191,7 +194,7 @@ list_replace=[
 ["${min}","%02i" % (wmin)],
 ["${second}","%02i" % (wsecond)],
 ["${second}","%02i" % (wsecond)],
-["${dir_job}",dir_job],
+# ["${dir_job}",dir_job],
 ["${work_dir}",work_dir],
 ["${prog}",prog],
 ["${exe}","a2.out"],
