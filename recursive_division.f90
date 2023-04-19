@@ -74,7 +74,7 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
      ip = ip + 1
      mass_traj = mass_traj + mass
      
-     write(6,*) ip, mass, rho_av
+     ! write(6,*) ip, mass, rho_av
      
      if(ib==1)then
         x_p(ip) = comx/mass
