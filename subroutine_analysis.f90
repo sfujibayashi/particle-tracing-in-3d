@@ -71,6 +71,7 @@ subroutine tr_analysis(model, dir_read)
   !
   
   dir_out = dir_read
+  ! dir_out = "."
   old_format = .false.
 
   if(old_format)then
@@ -85,7 +86,7 @@ subroutine tr_analysis(model, dir_read)
         write(str1,'(i10)') job
         
         fn = trim(dir_read) // "/steps_"//trim(adjustl(str1))//".dat"
-        write(6,'(a)') fn
+        ! write(6,'(a)') fn
         if(access(fn," ")==0)then
            if(job_min==0) job_min = job
            job_max=job
@@ -93,7 +94,7 @@ subroutine tr_analysis(model, dir_read)
            if(job_min/=0)exit jobs
         endif
         job=job+1
-        if(job>100)then
+        if(job>1000)then
            write(6,*) "something is wrong"
            stop
         endif
@@ -181,7 +182,8 @@ subroutine tr_analysis(model, dir_read)
   close(nunit)
 
   !$omp parallel default(none) &
-  !$omp shared(np,dir_out,n_cond,mass_traj, &
+  !$omp num_threads(1) &
+  !$omp shared(np,dir_out,dir_read, n_cond,mass_traj, &
   !$omp   t_fin_traj, x_fin_traj, y_fin_traj, z_fin_traj, vr_fin_traj, s_fin_traj, ye_fin_traj, ut1_fin_traj, hut_fin_traj, &
   !$omp   tem_max_traj, tem_max_af3gk_traj, t_tem_max_traj, t_tem_max_af3gk_traj, &
   !$omp   t_5gk_traj, s_5gk_traj, ye_5gk_traj, texp_5gk_traj, &
@@ -203,10 +205,10 @@ subroutine tr_analysis(model, dir_read)
   max_thr = omp_get_max_threads()
   if(my_thr==0)write(6,*) "max thread = ",max_thr
   !$omp do
-  do ip =1,np
+  do ip = 2318, np
 
      write(str1,'(i8.8)') ip
-     fn=trim(dir_out)//"/traj_"//trim(str1)//".dat"
+     fn=trim(dir_read)//"/traj_"//trim(str1)//".dat"
 
      if(access(fn," ") == 0)then
         open(newunit=nunit,file=fn,status="old")
@@ -232,6 +234,8 @@ subroutine tr_analysis(model, dir_read)
                 sen_p(it), &
                 rne_p(it), &
                 rae_p(it)
+
+           ! write(6,'(i5,99es12.4)') it, time(it), tem_p(it),ye_p(it)
            
            it = it + 1
         enddo
@@ -278,6 +282,7 @@ subroutine tr_analysis(model, dir_read)
            endif
            ! time at which the particle crosses T = 5 GK
            if( it < it_max )then
+
               if( 5.d9 <= tem_p(it) .and. 5.d9 > tem_p(it+1) ) then
                  if(it_5gk==0)it_5gk=it
               endif
@@ -291,9 +296,9 @@ subroutine tr_analysis(model, dir_read)
               ! 10GK
               if( 10.d9 <= tem_p(it) .and. 10.d9 > tem_p(it+1) ) then
                  it_10gk = it
-                 it_5gk=0
-                 it_3gk = 0
-                 it_1gk = 0
+                 if(it_5gk/=it_10gk)it_5gk = 0
+                 if(it_3gk/=it_10gk)it_3gk = 0
+                 if(it_1gk/=it_10gk)it_1gk = 0
 
                  tem_max_af3gk = 0.d0
                  time_50gk_25gk = 0.d0
@@ -313,6 +318,7 @@ subroutine tr_analysis(model, dir_read)
 
         enddo
 
+        ! write(6,*) it_5gk, it_10gk
         ! values at initial time
         x_ini  = x_p(1)
         y_ini  = y_p(1)
@@ -359,7 +365,7 @@ subroutine tr_analysis(model, dir_read)
            texp_5gk = 0.d0
            t_5gk    = 0.d0
         endif
-
+        
         it = it_10gk
         if(it>0)then
            s1 = (10.d9-tem_p(it))/(tem_p(it+1)-tem_p(it))
@@ -452,7 +458,7 @@ subroutine tr_analysis(model, dir_read)
         do i=1,nflag
            if(iflag_cond(i)==1) n_cond(ip) = n_cond(ip) + 2**(i-1)
         enddo
-        
+
         
         t_fin_traj(ip)           = t_fin
         x_fin_traj(ip)           = x_fin
@@ -490,6 +496,7 @@ subroutine tr_analysis(model, dir_read)
 
      !if(mod(ip,100)==0) write(6,'("ip = ", i8)')  ip
      if(my_thr==0) write(6,*) "ip=",ip,np/max_thr
+     ! stop
   enddo
   !$omp end do
   !$omp end parallel
