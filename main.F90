@@ -21,7 +21,7 @@ program main
   real(8),parameter :: msun = 1.988d33
 
   !logical,parameter :: mode_backward = .true.
-  logical,parameter :: mode_volbased = .true.
+  !logical,parameter :: mode_volbased = .true.
 
   ! skip the timestep
   integer :: it_skip
@@ -34,8 +34,11 @@ program main
   ! for mass
   real(8) :: mass_crit, mass_min
   
-  ! backward -> -1, forward -> 1
+  ! backward -> True, forward -> False
   logical :: mode_backward
+  ! volume-based or flux-based. if flux-based (mode_volbased=False), particles are distributed in volme-based way at the last snapshot.
+  logical :: mode_volbased
+
   integer :: step
 
   ! quantities for particles
@@ -113,6 +116,7 @@ program main
   read(10,*);read(10,'(a)') dir_read
   read(10,*);read(10,'(a)') dir_out
   read(10,*);read(10,*) mode_backward
+  read(10,*);read(10,*) mode_volbased
   
   read(10,*);read(10,*) it_start
   read(10,*);read(10,*) it_skip

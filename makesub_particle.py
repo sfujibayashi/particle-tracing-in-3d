@@ -8,7 +8,7 @@ import utils
 
 if_cont=False
 
-model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=6; job_max=6; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
+model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=1; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
@@ -16,7 +16,7 @@ model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=6; job_max=6; nickname="1
 # parameters #
 n_theta = 32
 #n_theta = 64
-it_start= 18
+it_start= 1
 it_skip = 1
 it_skip_out = 1 #it_skip
 rfl=5e8
@@ -24,10 +24,11 @@ rin=1e7
 mass_crit = 1e-6
 mass_min  = 1e-12
 backward="T"
+volumebased="T"
 
 restart="N"
 
-info=""
+info="test2"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
 #info="bind_%ims%i" % (it_skip,n_theta)
 #info = "forward_close"
@@ -51,9 +52,10 @@ if not os.path.exists(fn_eos):
 
 machine="sakura"
 username="shofu"
-work_dir="/sakura/ptmp/"+username
 
+work_dir="/%s/ptmp/" % (machine) +username
 queue="p.sakura"
+misc=""
 nodes=1
 MPI=1
 MPI_per_node=1
@@ -140,6 +142,8 @@ with open(dir_out + "/parameters.dat",mode="w") as f:
     
     f.write("# Evolving backward?:\n")
     f.write("%s\n" % (backward))
+    f.write("# Particles are set in a volume-based way?:\n")
+    f.write("%s\n" % (volumebased))
 
     f.write("# number of snapshort where the trace starts (from the first/last if it is 0):\n")
     f.write("%i\n" % (it_start))
@@ -181,7 +185,7 @@ with open("sub_script_sakura",mode="r") as f:
     
 
 list_replace=[
-["${dir_out}",dir_std],
+["${dir_std}",dir_std],
 ["${dir_err}",dir_err],
 ["${nickname}",nickname],
 ["${cjob}","ptr"],
@@ -194,13 +198,14 @@ list_replace=[
 ["${min}","%02i" % (wmin)],
 ["${second}","%02i" % (wsecond)],
 ["${second}","%02i" % (wsecond)],
-# ["${dir_job}",dir_job],
+["${dir_out}",dir_out],
 ["${work_dir}",work_dir],
 ["${prog}",prog],
-["${exe}","a2.out"],
+["${exe}","a.out"],
 ["${OMP_NUM_THREADS}","%i" % (OMP_NUM_THREADS)],
 ["${model}",model],
-["${info}",info]
+["${info}",info],
+["${misc}",misc]
 ]
 
 
@@ -208,7 +213,7 @@ list_job = [job for job in range(job_min,job_max+1)]
 njob = job_max-job_min+1
 
 for job in list_job:
-   with open("sub_ptr_%s_%s_%i.sh" % (model,info,job) ,mode="w") as f:
+   with open("sub_ptr_%s%s_%i.sh" % (model,info,job) ,mode="w") as f:
       for line in lines:
          line1=line
          for rep_pair in list_replace:
@@ -274,7 +279,7 @@ elif run=='y' or run=='Y':
    #for job in list_job:
    for job in range(job_max,job_min-1,-1):
       
-      fn_sub = "sub_ptr_%s_%s_%i.sh" % (model,info,job)
+      fn_sub = "sub_ptr_%s%s_%i.sh" % (model,info,job)
 
       if if_cont or job!=job_max:
          pid = utils.find_id(username, nickname, job+1)
