@@ -280,6 +280,10 @@ contains
 #else
 
     lv=lv_min
+    dx = x(1,lv) - x(0,lv)
+    dy = y(1,lv) - y(0,lv)
+    dz = z(1,lv) - z(0,lv)
+
 #ifdef FULL
     vol_tot_analytic =  (x(ju,lv)-x(jd,lv))*(y(ku,lv)-y(kd,lv))*(z(lu,lv)-z(ld,lv))
     vol_tot_analytic2= dx*dy*dz*dble(ju-jd+1)*dble(ku-kd+1)*dble(lu-ld+1)
