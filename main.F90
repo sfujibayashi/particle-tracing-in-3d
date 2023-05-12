@@ -33,11 +33,12 @@ program main
   real(8) :: rfl, rin
   ! for mass
   real(8) :: mass_crit, mass_min
-  
   ! backward -> True, forward -> False
   logical :: mode_backward
   ! volume-based or flux-based. if flux-based (mode_volbased=False), particles are distributed in volme-based way at the last snapshot.
   logical :: mode_volbased
+  ! incrementation in the next job
+  integer :: incr_next
 
   integer :: step
 
@@ -128,6 +129,7 @@ program main
   read(10,*);read(10,*) mass_min; mass_min = mass_min*msun
   read(10,*);read(10,'(a)') fn_eos
   read(10,*);read(10,*) nrho_in, nye_in, ntemp_in
+  read(10,*);read(10,*) incr_next
 
   read(10,*);read(10,*) restart
   if(restart=="Y")then
@@ -842,10 +844,10 @@ program main
   open(10,file=fn,status="replace",action="write")
   if(mode_backward)then
      job_max = job2-1
-     job_min = job_max
+     job_min = max(1,job2-incr_next)
   else
      job_min = job2+1
-     job_max = job_min
+     job_max = job2+incr_next
   endif
   write(10,*) job_min
   write(10,*) job_max

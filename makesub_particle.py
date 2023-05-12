@@ -8,27 +8,30 @@ import utils
 
 if_cont=False
 
-model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=1; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
+#model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=1; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
+model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"
 
 # parameters #
-n_theta = 32
+n_theta = 16
 #n_theta = 64
-it_start= 1
+it_start= 0
 it_skip = 1
 it_skip_out = 1 #it_skip
-rfl=5e8
+rfl=3e8
 rin=1e7
 mass_crit = 1e-6
 mass_min  = 1e-12
 backward="T"
-volumebased="T"
+volumebased="F"
 
 restart="N"
 
-info="test2"
+incr_next=10
+
+info="3e8km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
 #info="bind_%ims%i" % (it_skip,n_theta)
 #info = "forward_close"
@@ -111,8 +114,8 @@ else:
     cmd = "mkdir %s" % (dir_out)
     os.system(cmd)
 
-dir_read = work_dir + "/" + model + "/hdf5"
-#dir_read = "/sakura/ptmp/kiuchikn/" + model + "/hdf5"
+#dir_read = work_dir + "/" + model + "/hdf5"
+dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
 
 if dir_exists:
     run=input('Directory already exists. Overwrite parameter files? [y/n] :')
@@ -166,6 +169,8 @@ with open(dir_out + "/parameters.dat",mode="w") as f:
     f.write("%s\n" % (fn_eos))
     f.write("# index of rho, ye, temp:\n")
     f.write("%i %i %i\n" % (nrho,nye,ntemp))
+    f.write("# incrementation in the next job:\n")
+    f.write("%i\n" % (incr_next))
 
     f.write("# Restart flag:\n")
     f.write("%s\n" % (restart))
@@ -209,10 +214,11 @@ list_replace=[
 ]
 
 
-list_job = [job for job in range(job_min,job_max+1)]
-njob = job_max-job_min+1
+#list_job = [job for job in range(job_min,job_max+1)]
+njob = int((job_max-job_min+1)/incr_next)
 
-for job in list_job:
+
+for job in range(1,njob+1):
    with open("sub_ptr_%s%s_%i.sh" % (model,info,job) ,mode="w") as f:
       for line in lines:
          line1=line
@@ -221,7 +227,6 @@ for job in list_job:
             line1=line1.replace(rep_pair[0],rep_pair[1])
          line1=line1.replace("${job}","%i" %(job))
          f.write(line1)
-         
 
 # Ask compile or not
 
