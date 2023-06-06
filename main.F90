@@ -166,8 +166,8 @@ program main
   write(*,'("result saved in : ",a)') trim(dir_out)
   
   ! call ascii(model,dir_out,it_skip_out)
-  ! call tr_analysis(model,dir_out)
-  ! stop
+  call tr_analysis(model,dir_out)
+  stop
 
   
   write(6,'("it_skip, it_skip_out      : ",2i5)') it_skip,it_skip_out
@@ -701,7 +701,7 @@ program main
            if    (it-it_skip==0)then
               count_skip = 0
            elseif(it-it_skip< 0)then
-              count_skip = it
+              count_skip = it_skip - it
            else
               count_skip = nstep_job(job)-it+it_skip
            endif

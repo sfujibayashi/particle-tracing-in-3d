@@ -253,7 +253,7 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
         gam_inf_r = - hhh_i*ut_i/hhh_r * (1d0-floss)
         
         ut1_p(ip) = ut_i + 1.d0
-        hut_p(ip) = ut_i*hhh_i! + hhh_at
+        hut_p(ip) = ut_i*hhh_i + hhh_at
         
         write(101,'(a1,i14,99es14.6)') " ",ip, dm_p(ip), ut1_p(ip), hut_p(ip), x_p(ip), y_p(ip), z_p(ip), vx_i, vy_i, vz_i, ye_i, gam_inf_r
      enddo

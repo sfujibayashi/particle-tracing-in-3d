@@ -182,7 +182,7 @@ subroutine tr_analysis(model, dir_read)
   close(nunit)
 
   !$omp parallel default(none) &
-  !$omp num_threads(1) &
+!  !$omp num_threads(1) &
   !$omp shared(np,dir_out,dir_read, n_cond,mass_traj, &
   !$omp   t_fin_traj, x_fin_traj, y_fin_traj, z_fin_traj, vr_fin_traj, s_fin_traj, ye_fin_traj, ut1_fin_traj, hut_fin_traj, &
   !$omp   tem_max_traj, tem_max_af3gk_traj, t_tem_max_traj, t_tem_max_af3gk_traj, &
@@ -205,7 +205,7 @@ subroutine tr_analysis(model, dir_read)
   max_thr = omp_get_max_threads()
   if(my_thr==0)write(6,*) "max thread = ",max_thr
   !$omp do
-  do ip = 2318, np
+  do ip = 1, np
 
      write(str1,'(i8.8)') ip
      fn=trim(dir_read)//"/traj_"//trim(str1)//".dat"
