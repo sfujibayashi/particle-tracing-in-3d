@@ -8,11 +8,15 @@ import utils
 
 if_cont=False
 
+system="yamazaki"
+
 #model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=1; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
-model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"
+#model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"
+
+model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
 # parameters #
 n_theta = 16
@@ -20,18 +24,20 @@ n_theta = 16
 it_start= 0
 it_skip = 1
 it_skip_out = 1 #it_skip
-rfl=3e8
+rfl=1e10
 rin=1e7
-mass_crit = 1e-6
+mass_crit = 1e-4
 mass_min  = 1e-12
 backward="T"
-volumebased="F"
+volumebased="T"
 
 restart="N"
 
-incr_next=10
+incr_next=1
 
-info="3e8km"
+info=""
+
+#info="3e8km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
 #info="bind_%ims%i" % (it_skip,n_theta)
 #info = "forward_close"
@@ -42,21 +48,25 @@ if info!="":
    info = "_"+info
 
 #fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
-fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
+#fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
+
+fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
 
 
 with open("macro.h",mode="w") as f:
    f.write("#define %s\n" % (coord))
    f.write("#define %s\n" % (sym))
+   f.write("#define %s\n" % (dformat))
 
 if not os.path.exists(fn_eos):
     print("EOS file does not exists!")
     sys.exit()
 
-machine="sakura"
-username="shofu"
+system="yamazaki"
+username="sfujibayashi"
 
-work_dir="/%s/ptmp/" % (machine) +username
+# work_dir="/%s/ptmp/" % (system) +username
+work_dir="/scratch/" + username
 queue="p.sakura"
 misc=""
 nodes=1
@@ -67,8 +77,8 @@ OMP_NUM_THREADS=CPUs_per_task
 whour=24
 wmin=00
 wsecond=00
-compf="h5pfc"
-compc="h5pcc"
+compf="h5fc"
+compc="h5cc"
 option="-convert big_endian -mcmodel=large -shared-intel -fpic -qopenmp -xCORE-AVX512 -qopt-zmm-usage=high"
 
 prog="ptr_"+model+".out"
@@ -81,7 +91,6 @@ with open("makefile",mode="w") as f:
     for line in lines:
         line_rep = line.replace("XXXXX",prog).replace("YYYYY",option).replace("COMPF",compf).replace("COMPC",compc)
         f.write(line_rep)
-
 
 print( "queue :", queue)
 print( "model :", model)
@@ -115,7 +124,8 @@ else:
     os.system(cmd)
 
 #dir_read = work_dir + "/" + model + "/hdf5"
-dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
+#dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
+dir_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS/hdf5_"
 
 if dir_exists:
     run=input('Directory already exists. Overwrite parameter files? [y/n] :')
