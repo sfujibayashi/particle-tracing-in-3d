@@ -1,5 +1,6 @@
 module simdata3D
 #include "macro.h"
+  use unit
   implicit none
 
   integer :: ld,lu,kd,ku,jd,ju,lv_min,lv_max
@@ -9,6 +10,14 @@ module simdata3D
        vol3D(:,:,:,:)
 
   real(4) :: tms(1)
+  
+#ifdef FUGAKU
+  real(8),parameter :: time_unit_h5= 1d0 ! in second
+  real(8),parameter :: vel_unit_h5 = 2.99792458d10
+#else
+  real(8),parameter :: time_unit_h5= 1d-3 ! in millisecond
+  real(8),parameter :: vel_unit_h5 = 1d0
+#endif
   
   real(4),allocatable :: &
        qrho(:,:,:,:),&
@@ -343,6 +352,7 @@ contains
     real(8),intent(out) :: t
     integer :: error, sum_err
     integer(HSIZE_T) :: dims1(1),dims3(3)
+    real(4),allocatable :: buf3d_real4_1(:,:,:), buf3d_real4_2(:,:,:), buf3d_real4_3(:,:,:), buf3d_real4_4(:,:,:), buf3d_real4_5(:,:,:), buf3d_real4_6(:,:,:), buf3d_real4_7(:,:,:), buf3d_real4_8(:,:,:)
 
     integer :: lv,jdat,kdat,ldat,ld_read
     character(10) :: str1,str2
@@ -357,7 +367,7 @@ ld_read=ld
     write(str2,'(i10)') it
 
     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-    t = tms(1)/1.d3
+    t = tms(1)*time_unit_h5
     
     ldat = (lu-ld+1)
     kdat = (ku-kd+1)
@@ -366,23 +376,40 @@ ld_read=ld
     dims3(1) = jdat
     dims3(2) = kdat
     dims3(3) = ldat
-    
+
+    allocate(buf3d_real4_1(jdat,kdat,ldat), buf3d_real4_2(jdat,kdat,ldat), buf3d_real4_3(jdat,kdat,ldat), buf3d_real4_4(jdat,kdat,ldat), buf3d_real4_5(jdat,kdat,ldat), buf3d_real4_6(jdat,kdat,ldat), buf3d_real4_7(jdat,kdat,ldat), buf3d_real4_8(jdat,kdat,ldat))
+
+    ! !$omp parallel default(none) &
+    ! !$omp num_threads(1) &
+    ! !$omp shared(lv_max,lv_min,ld_read,lu,file_id,str2,dims3,qrho,ut,ye,sen,tem,qb,vlx,vly,vlz) &
+    ! !$omp private(rbuf3,error,sum_err,str1)
+    ! !$omp do
     do lv=lv_min,lv_max
 
        write(str1,'(i10)') lv
+       !write(6,*) "/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density"
        sum_err = 0
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density",qrho(:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/u_t"    ,ut  (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ye"     ,ye  (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/entropy",sen (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/temperature",tem (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vx"     ,vlx (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vy"     ,vly (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,vlz (:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density",buf3d_real4_1,dims3,error); sum_err = sum_err + error
+       qrho(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/u_t"    ,buf3d_real4_2,dims3,error); sum_err = sum_err + error
+       ut  (:,:,ld_read:lu,lv) = buf3d_real4_2(:,:,:)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Ye"     ,buf3d_real4_3,dims3,error); sum_err = sum_err + error
+       ye  (:,:,ld_read:lu,lv) = buf3d_real4_3(:,:,:)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/entropy",buf3d_real4_4,dims3,error); sum_err = sum_err + error
+       sen (:,:,ld_read:lu,lv) = buf3d_real4_4(:,:,:)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/temperature",buf3d_real4_5,dims3,error); sum_err = sum_err + error
+       tem (:,:,ld_read:lu,lv) = buf3d_real4_5(:,:,:)
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vx"     ,buf3d_real4_6,dims3,error); sum_err = sum_err + error
+       vlx (:,:,ld_read:lu,lv) = buf3d_real4_6(:,:,:)/vel_unit_h5
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vy"     ,buf3d_real4_7,dims3,error); sum_err = sum_err + error
+       vly (:,:,ld_read:lu,lv) = buf3d_real4_7(:,:,:)/vel_unit_h5
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,buf3d_real4_8,dims3,error); sum_err = sum_err + error
+       vlz (:,:,ld_read:lu,lv) = buf3d_real4_8(:,:,:)/vel_unit_h5
 
        if(1==0)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",qb(:,:,ld_read:lu,lv),dims3,error); sum_err = sum_err + error
-          qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",buf3d_real4_1,dims3,error); sum_err = sum_err + error
+          qb(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)*rho_uni
+          ! qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
        else
           qb(:,:,:,lv) = qrho(:,:,:,lv)/sqrt(1d0 - ( vlx(:,:,:,lv)**2 + vly(:,:,:,lv)**2 + vlz(:,:,:,lv)**2 ) )
        endif
@@ -392,8 +419,14 @@ ld_read=ld
           stop
        endif
 
-    enddo
+       write(6,*) lv
 
+    enddo
+    ! !$omp end do
+    ! !$omp end parallel
+
+    deallocate(buf3d_real4_1, buf3d_real4_2, buf3d_real4_3, buf3d_real4_4, buf3d_real4_5, buf3d_real4_6, buf3d_real4_7, buf3d_real4_8)
+    
 #ifdef STAGGERED
 #ifndef FULL
     call zboundary
@@ -406,10 +439,9 @@ ld_read=ld
     !   l=ld+1
     !   do k=kd,ku,3
     !      do j=jd,ju,3
-    !         write(99,*) x(j,lv), y(k,lv), qrho(j,k,l,lv)
+    !         write(99,'(99es12.4)') x(j,lv), y(k,lv), qb(j,k,l,lv), qrho(j,k,l,lv), ut(j,k,l,lv)
     !      enddo
     !   enddo
-    !   stop
     ! end block
 
   end subroutine read_simdata
@@ -418,7 +450,8 @@ ld_read=ld
     integer :: j,k,l,lv
 
     do lv=lv_min,lv_max
-       !$omp parallel private(j,k)
+       !$omp parallel default(none) &
+       !$omp shared(kd,ku,jd,ju,ld,lv,qrho,qb,ut,ye,sen,tem,vlx,vly,vlz)
        !$omp do
        do k=kd,ku
           do j=jd,ju
@@ -426,6 +459,7 @@ ld_read=ld
              qb  (j,k,ld,lv) = qb  (j,k,ld+1,lv)
              ut  (j,k,ld,lv) = ut  (j,k,ld+1,lv)
              ye  (j,k,ld,lv) = ye  (j,k,ld+1,lv)
+             tem (j,k,ld,lv) = tem (j,k,ld+1,lv)
              sen (j,k,ld,lv) = sen (j,k,ld+1,lv)
              vlx (j,k,ld,lv) = vlx (j,k,ld+1,lv)
              vly (j,k,ld,lv) = vly (j,k,ld+1,lv)
@@ -446,8 +480,11 @@ ld_read=ld
     real(8) :: rhot,fyet,temt, ss,ssp,uu,uup,tt,ttp
 
     do lv=lv_min,lv_max
-!       !$omp parallel private(j,k,l,rhot,fyet,temt,irho,irho1,uu,uup,iye,iye1,tt,ttp,itemp,itemp1,ss,ssp)
-!       !$omp do
+       !$omp parallel default(none) &
+       !$omp shared(lv,ld,lu,kd,ku,jd,ju,qrho,ye,tem,rho_e_min,rho_e,nrho,drhoi,ye_e_min,ye_e,nye,dyei,tem_e_min,tem_e,ntemp,dtemi, &
+       !$omp     pres_e, eps_e,pres,eps,hhh) &
+       !$omp private(j,k,l,rhot,fyet,temt,irho,irho1,uu,uup,iye,iye1,tt,ttp,itemp,itemp1,ss,ssp)
+       !$omp do
        do l=ld,lu
           do k=kd,ku
              do j=jd,ju
@@ -502,9 +539,10 @@ ld_read=ld
              enddo
           enddo
        enddo
-!       !$omp end do
-!       !$omp end parallel
+       !$omp end do
+       !$omp end parallel
     enddo
+
 
     return
   end subroutine set_secondary

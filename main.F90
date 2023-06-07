@@ -39,6 +39,8 @@ program main
   logical :: mode_volbased
   ! incrementation in the next job
   integer :: incr_next
+  ! whether reading file for pset timing
+  logical :: read_pset_file = .false.
 
   integer :: step
 
@@ -89,11 +91,11 @@ program main
   character(200) :: fn_read
 
   !!! 3D
-  real(8) :: tms_start,tms_end,tms_min,tms_max!,tms_glo_min,tms_glo_max
+  real(8) :: tms_start,tms_end,t_min,t_max!,tms_glo_min,tms_glo_max
   integer :: n_pset
   logical :: link_exists
   !real(8),allocatable :: tsta_job(:),tend_job(:),dt_job(:)
-  real(8) :: dtms_pset, dtms_snap
+  !real(8) :: dtms_pset, dtms_snap
     
   integer :: unum, unum2
   integer :: access
@@ -166,8 +168,8 @@ program main
   write(*,'("result saved in : ",a)') trim(dir_out)
   
   ! call ascii(model,dir_out,it_skip_out)
-  call tr_analysis(model,dir_out)
-  stop
+  ! call tr_analysis(model,dir_out)
+  ! stop
 
   
   write(6,'("it_skip, it_skip_out      : ",2i5)') it_skip,it_skip_out
@@ -236,7 +238,7 @@ program main
   enddo
   
   do job = job_min,job_max
-
+     
      write(str1,'(i10)') job
      fn = filename(job)
      
@@ -256,25 +258,25 @@ program main
      tms(:)=0.d0
      write(str2,'(i10)') 1
      call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-     tms_min = tms(1)
+     t_min = tms(1)*time_unit_h5
      write(str2,'(i10)') nstep_job(job)
      call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-     tms_max = tms(1)
+     t_max = tms(1)*time_unit_h5
 
-     write(6,'("job, steps in job = ",2i4,2es12.4)') job,nstep_job(job),tms_min,tms_max
-     !tsta_job(job) = tms_min
-     !tend_job(job) = tms_max
+     write(6,'("job, steps in job, time(min,max) = ",2i4,2es12.4)') job,nstep_job(job),t_min,t_max
+     !tsta_job(job) = t_min
+     !tend_job(job) = t_max
 
      call h5fclose_f(file_id, error)
 
-     !if(job==job_min) tms_glo_min = tms_min
-     !if(job==job_max) tms_glo_max = tms_max
+     !if(job==job_min) tms_glo_min = t_min
+     !if(job==job_max) tms_glo_max = t_max
      
      write(str1,'(i10)') job
      open(11,file=trim(dir_out)//"/steps_"//trim(adjustl(str1))//".dat",status="replace",action="write")
      write(11,*) nstep_job(job)
-     write(11,*) tms_min
-     write(11,*) tms_max
+     write(11,*) t_min
+     write(11,*) t_max
      close(11)
   enddo
 
@@ -405,7 +407,7 @@ program main
   call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
   call h5fclose_f(file_id, error)
   
-  write(6,'("Initial time step: job, it = ",i3,i10, ", t = ",es13.5," ms")') job1,it_start,tms(1)
+  write(6,'("Initial time step: job, it = ",i3,i10, ", t = ",es13.5," s")') job1,it_start,tms(1)*time_unit_h5
   
   fn = filename(job2)
   call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
@@ -413,7 +415,7 @@ program main
   write(str2,'(i10)') 1
   call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
   call h5fclose_f(file_id, error)
-  write(6,'("Last    time step: job, it = ",i3,i10, ", t = ",es13.5," ms")') job2,1,tms(1)
+  write(6,'("Last    time step: job, it = ",i3,i10, ", t = ",es13.5," s")') job2,1,tms(1)*time_unit_h5
 
 
   fn = filename(job_start)
@@ -537,6 +539,46 @@ program main
 !!! LOOP !!!!
   do job = job1,job2, step
 
+     ! write(str1,'(i3.3)') job
+     ! fn = trim(dir_out)//"/pset_"//trim(str1)//".h5"
+
+     ! if(read_pset_file)then
+     !    call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_pset_id, error)
+        
+     !    count_pset_max = 0
+     !    count_pset = 0
+     !    set_count_pset: do
+     !       count_pset = count_pset + 1
+     !       write(str1,'(i10)') count_pset
+     !       call h5lexists_f(file_pset_id,"/"//trim(adjustl(str1)),link_exists,error)
+     !       if(.not. link_exists)then
+     !          count_pset_max = count_pset - 1
+     !          exit set_count_pset
+     !       endif
+     !    enddo set_count_pset
+        
+     !    count_pset = 1
+        
+     !    if(count_pset <= count_pset_max)then
+     !       write(str1,'(i10)') count_pset
+     !       dims1(1) = 1
+     !       allocate(ibuf1(1))
+     !       call H5LTread_dataset_int_f(file_pset_id,"/"//trim(adjustl(str1))//"/it",ibuf1,dims1,error)
+     !       it_pset_next=ibuf1(1)
+     !       deallocate(ibuf1)
+     !    else
+     !       it_pset_next=-1
+     !    endif
+
+     !    write(6,'("particles are set ",i5," times in this job.")') count_pset_max
+     !    write(6,*) "next : ",it_pset_next
+
+     ! else
+     !    count_pset = 0
+     !    call h5fcreate_f(fn, H5F_ACC_TRUNC_F, file_pset_id, error)
+     ! endif
+
+
      fn = filename(job)
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
      
@@ -583,9 +625,9 @@ program main
         ! ittot = it0 + it
         
 !!! read profile
-        ! write(6,*) "read 3D data"
+        write(6,*) "read 3D data"
         call read_simdata(file_id,it,time)
-        ! write(6,*) "set secondary"
+        write(6,*) "set secondary"
         call set_secondary
         if(first)then
            dt = 0.d0
@@ -594,20 +636,20 @@ program main
         endif
         
 !!! evolve particles
-        ! write(6,*) "evolve particles"
+        write(6,*) "evolve particles"
         call evolution_particle_3D(ipu,time,time_prv,substep_max)
         
 !!! set particle
 !!! set max number of particle at the first step
         if(first)then
-           !call analysisdir_out,time)
+           write(6,*) "first-time task"
+           call analysis(dir_out,time)
            !call print_data(time,job,it)
-           !call partial_output_hdf(dir_out, job, it, time)
+           call partial_output_hdf(dir_out, job, it, time)
            !stop
 
            ! call set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
            ! np = npv
-
            call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
            np = npv
 
