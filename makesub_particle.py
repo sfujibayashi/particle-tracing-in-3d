@@ -8,15 +8,17 @@ import utils
 
 if_cont=False
 
-system="yamazaki"
+# system="yamazaki"
+system="sakura"
+username="shofu"
 
 #model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=1; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
-#model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"
+model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
 
-model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+#model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
 # parameters #
 n_theta = 16
@@ -24,18 +26,18 @@ n_theta = 16
 it_start= 0
 it_skip = 1
 it_skip_out = 1 #it_skip
-rfl=1e10
+rfl=3e8
 rin=1e7
-mass_crit = 1e-4
+mass_crit = 1e-5
 mass_min  = 1e-12
 backward="T"
 volumebased="T"
 
 restart="N"
 
-incr_next=1
+incr_next=10
 
-info=""
+info="3e8cm_posv"
 
 #info="3e8km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
@@ -47,10 +49,9 @@ print("sub info = ",info)
 if info!="":
    info = "_"+info
 
-#fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
+fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
 #fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
-
-fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
+#fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
 
 
 with open("macro.h",mode="w") as f:
@@ -62,11 +63,11 @@ if not os.path.exists(fn_eos):
     print("EOS file does not exists!")
     sys.exit()
 
-system="yamazaki"
-username="sfujibayashi"
+# system="yamazaki"
+# username="sfujibayashi"
 
-# work_dir="/%s/ptmp/" % (system) +username
-work_dir="/scratch/" + username
+work_dir="/%s/ptmp/" % (system) +username
+# work_dir="/scratch/" + username
 queue="p.sakura"
 misc=""
 nodes=1
@@ -77,8 +78,8 @@ OMP_NUM_THREADS=CPUs_per_task
 whour=24
 wmin=00
 wsecond=00
-compf="h5fc"
-compc="h5cc"
+compf="h5pfc"
+compc="h5pcc"
 option="-convert big_endian -mcmodel=large -shared-intel -fpic -qopenmp -xCORE-AVX512 -qopt-zmm-usage=high"
 
 prog="ptr_"+model+".out"
@@ -124,8 +125,8 @@ else:
     os.system(cmd)
 
 #dir_read = work_dir + "/" + model + "/hdf5"
-#dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
-dir_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS/hdf5_"
+dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
+#dir_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS/hdf5_"
 
 if dir_exists:
     run=input('Directory already exists. Overwrite parameter files? [y/n] :')
@@ -292,12 +293,12 @@ if run=='n' or run=='N':
    print("will not be submitted")
 elif run=='y' or run=='Y':
    #for job in list_job:
-   for job in range(job_max,job_min-1,-1):
+   for job in range(1,njob+1):
       
       fn_sub = "sub_ptr_%s%s_%i.sh" % (model,info,job)
-
-      if if_cont or job!=job_max:
-         pid = utils.find_id(username, nickname, job+1)
+      
+      if if_cont or job>1:
+         pid = utils.find_id(username, nickname, job-1)
          if pid==0:
             print("running job not found. stop")
             sys.exit()
