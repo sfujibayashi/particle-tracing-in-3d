@@ -59,8 +59,8 @@ contains
          t_3gk_traj(:), t_1gk_traj(:), ye_10gk_traj(:), t_10gk_traj(:), &
          time_50gk_25gk_traj(:), rho_fin_traj(:), vx_fin_traj(:), vy_fin_traj(:), vz_fin_traj(:), r_ini_traj(:)
     real(8),allocatable :: x_ini_traj(:), y_ini_traj(:), z_ini_traj(:), rho_ini_traj(:), t_ini_traj(:), rho_max_traj(:), &
-         s_rho_max_traj(:), texp_rho_max_traj(:), ye_rho_max_traj(:), &
-         s_drip_traj(:), texp_drip_traj(:), ye_drip_traj(:), &
+         t_rho_max_traj(:), s_rho_max_traj(:), texp_rho_max_traj(:), ye_rho_max_traj(:), &
+         t_drip_traj(:), s_drip_traj(:), texp_drip_traj(:), ye_drip_traj(:), &
          s_tem_max_traj(:), texp_tem_max_traj(:), ye_tem_max_traj(:)
 
     real(8) :: &
@@ -70,8 +70,8 @@ contains
          t_3gk, t_1gk, ye_10gk, t_10gk, &
          time_50gk_25gk, rho_fin, vx_fin, vy_fin, vz_fin, r_ini, v_max
     real(8) :: temp_gk, x_ini, y_ini, z_ini,r_fin, x_5gk, y_5gk, z_5gk, r_5gk, vx_5gk, vy_5gk, vz_5gk, vr_5gk, s_10gk, s_3gk, ye_3gk, s_1gk,ye_1gk, rho_ini, t_ini, rho_max
-    real(8) :: x_drip,y_drip,z_drip,r_drip,vx_drip,vy_drip,vz_drip,vr_drip,texp_drip,s_drip,ye_drip
-    real(8) :: x_dmax,y_dmax,z_dmax,r_dmax,vx_dmax,vy_dmax,vz_dmax,vr_dmax,texp_rho_max,s_rho_max,ye_rho_max
+    real(8) :: x_drip,y_drip,z_drip,r_drip,vx_drip,vy_drip,vz_drip,vr_drip,texp_drip,t_drip,s_drip,ye_drip
+    real(8) :: x_dmax,y_dmax,z_dmax,r_dmax,vx_dmax,vy_dmax,vz_dmax,vr_dmax,texp_rho_max,t_rho_max,s_rho_max,ye_rho_max
     real(8) :: x_tmax,y_tmax,z_tmax,r_tmax,vx_tmax,vy_tmax,vz_tmax,vr_tmax,texp_tem_max,s_tem_max,ye_tem_max
 
     real(8) :: s1,s0
@@ -189,8 +189,8 @@ contains
 
     allocate ( &
          v_max_traj(np),x_ini_traj(np),y_ini_traj(np),z_ini_traj(np),rho_ini_traj(np),t_ini_traj(np),rho_max_traj(np), &
-         s_rho_max_traj(np), texp_rho_max_traj(np), ye_rho_max_traj(np), &
-         s_drip_traj(np), texp_drip_traj(np), ye_drip_traj(np), &
+         t_rho_max_traj(np),s_rho_max_traj(np), texp_rho_max_traj(np), ye_rho_max_traj(np), &
+         t_drip_traj(np), s_drip_traj(np), texp_drip_traj(np), ye_drip_traj(np), &
          s_tem_max_traj(np), texp_tem_max_traj(np), ye_tem_max_traj(np) )
 
     open(newunit=nunit,file=trim(dir_out)//"/condition_number.dat",status="replace")
@@ -224,8 +224,8 @@ contains
     !$omp   t_3gk_traj, t_1gk_traj, ye_10gk_traj, t_10gk_traj, &
     !$omp   time_50gk_25gk_traj, rho_fin_traj, vx_fin_traj, vy_fin_traj, vz_fin_traj, r_ini_traj, &
     !$omp   v_max_traj,x_ini_traj, y_ini_traj, z_ini_traj, rho_ini_traj, t_ini_traj, time_init, rho_max_traj, &
-    !$omp   s_rho_max_traj, texp_rho_max_traj, ye_rho_max_traj, &
-    !$omp   s_drip_traj, texp_drip_traj, ye_drip_traj, &
+    !$omp   t_rho_max_traj, s_rho_max_traj, texp_rho_max_traj, ye_rho_max_traj, &
+    !$omp   t_drip_traj, s_drip_traj, texp_drip_traj, ye_drip_traj, &
     !$omp   s_tem_max_traj, texp_tem_max_traj, ye_tem_max_traj) &
     !$omp private( fn,str1,nunit,it,time, x_p,y_p, z_p, vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, sen_p, rne_p, rae_p, &
     !$omp   it_max,it_tem_max,it_5gk,it_10gk,it_3gk,it_1gk, temp_gk, x_ini,y_ini,z_ini, &
@@ -237,8 +237,8 @@ contains
     !$omp   t_5gk, s_5gk, ye_5gk, texp_5gk, &
     !$omp   t_3gk, t_1gk, ye_10gk, t_10gk, &
     !$omp   time_50gk_25gk, rho_fin, vx_fin, vy_fin, vz_fin, r_ini,v_max, rho_ini, t_ini, it_init,  rho_max, &
-    !$omp   x_drip,y_drip,z_drip,r_drip,vx_drip,vy_drip,vz_drip,vr_drip,texp_drip, s_drip, ye_drip, it_drip, &
-    !$omp   x_dmax,y_dmax,z_dmax,r_dmax,vx_dmax,vy_dmax,vz_dmax,vr_dmax,texp_rho_max,s_rho_max,ye_rho_max, it_rho_max, &
+    !$omp   x_drip,y_drip,z_drip,r_drip,vx_drip,vy_drip,vz_drip,vr_drip,texp_drip, t_drip, s_drip, ye_drip, it_drip, &
+    !$omp   x_dmax,y_dmax,z_dmax,r_dmax,vx_dmax,vy_dmax,vz_dmax,vr_dmax,texp_rho_max,t_rho_max,s_rho_max,ye_rho_max, it_rho_max, &
     !$omp   x_tmax,y_tmax,z_tmax,r_tmax,vx_tmax,vy_tmax,vz_tmax,vr_tmax,texp_tem_max,s_tem_max,ye_tem_max, &
     !$omp   my_thr,max_thr)
     my_thr  = omp_get_thread_num()
@@ -501,8 +501,9 @@ contains
              s1 = (rho_drip-qrho_p(it))/(qrho_p(it+1)-qrho_p(it))
              s0 = 1.d0-s1
 
+             t_drip = s1*time (it+1) + s0*time (it)
              s_drip = s1*sen_p(it+1) + s0*sen_p(it)
-             ye_drip = s1*ye_p(it+1) + s0*ye_p(it)
+             ye_drip = s1*ye_p(it+1) + s0*ye_p (it)
 
              x_drip = s1*  x_p(it+1) + s0*  x_p(it)
              y_drip = s1*  y_p(it+1) + s0*  y_p(it)
@@ -514,6 +515,8 @@ contains
              vr_drip= vx_drip *x_drip/r_drip + vy_drip *y_drip/r_drip + vz_drip *z_drip/r_drip
              texp_drip = r_drip/vr_drip
           else
+             t_drip    = 0.d0
+             ye_drip   = 0.d0
              s_drip    = 0.d0
              texp_drip = 0.d0
           endif
@@ -521,6 +524,7 @@ contains
           ! at maximum density
           it = it_rho_max
           if(it>0)then
+             t_rho_max = time(it)
              s_rho_max = sen_p(it)
              ye_rho_max = ye_p(it)
              
@@ -535,6 +539,8 @@ contains
              vr_dmax= vx_dmax *x_dmax/r_dmax + vy_dmax *y_dmax/r_dmax + vz_dmax *z_dmax/r_dmax
              texp_rho_max = r_dmax/vr_dmax
           else
+             t_rho_max    = 0.d0
+             ye_rho_max   = 0.d0
              s_rho_max    = 0.d0
              texp_rho_max = 0.d0
           endif
@@ -592,7 +598,6 @@ contains
           ye_fin_traj(ip)          = ye_fin
           tem_max_traj(ip)         = tem_max
           tem_max_af3gk_traj(ip)   = tem_max_af3gk
-          t_tem_max_traj(ip)       = t_tem_max
           t_tem_max_af3gk_traj(ip) = t_tem_max_af3gk
           t_5gk_traj(ip)           = t_5gk
           s_5gk_traj(ip)           = s_5gk
@@ -618,14 +623,17 @@ contains
 
           rho_max_traj(ip) = rho_max
           
+          t_drip_traj(ip) = t_drip
           s_drip_traj(ip) = s_drip
           texp_drip_traj(ip) = texp_drip
           ye_drip_traj(ip) = ye_drip
 
+          t_rho_max_traj(ip) = t_rho_max
           s_rho_max_traj(ip) = s_rho_max
           texp_rho_max_traj(ip) = texp_rho_max
           ye_rho_max_traj(ip) = ye_rho_max
 
+          t_tem_max_traj(ip) = t_tem_max
           s_tem_max_traj(ip) = s_tem_max
           texp_tem_max_traj(ip) = texp_tem_max
           ye_tem_max_traj(ip) = ye_tem_max
@@ -643,11 +651,11 @@ contains
     open(newunit=nunit,file=trim(dir_out)//"/stat_traj.dat",status="replace")  
     write(nunit,'("# model: ",a)') trim(model)
     write(nunit,'("# ntraj,ntraj_inside: ",99i15)') np, np_inside
-    write(nunit,'("#",99i20)') (i,i=1,33)
+    write(nunit,'("#",99i20)') (i,i=1,35)
     write(nunit,'("#",99a20)') "id",  "mass [g]",  "time_fin [s]",  "x_fin [cm]", "y_fin [cm]", "z_fin [cm]", "v^r_fin [cm/s]", "v^x_fin", "v^y_fin", "v^z_fin", &
                           "s_fin [k_b/nuc]", "Ye_fin", "time_5GK [s]", "s_5GK [k_b/nuc]", "Ye_5GK", "t_exp_5GK [s]", "Tmax [K]", "ut+1", "hut+h_at", "Ye(10GK)", &
                           "t(T=10GK)", "t(T=Tmax)", "(r/v)_5GK [s]", "rho_max [g/cm^3]", "s_drip [k_b/nuc]", "(r/v)_drip [s]", "Ye_drip", "s_dmax [k_b/nuc]", "(r/v)_dmax [s]", "Ye_dmax", &
-                          "s_Tmax [kb/nuc]", "(r/v)_Tmax [s]", "Ye_Tmax"
+                          "s_Tmax [kb/nuc]", "(r/v)_Tmax [s]", "Ye_Tmax", "t(dmax)", "t(drip)"
     do ip=1,np
        write(nunit,'(" ",i20,99es20.7)') &
             ip, &
@@ -655,7 +663,8 @@ contains
             tem_max_traj(ip),ut1_fin_traj(ip),hut_fin_traj(ip),ye_10gk_traj(ip), t_10gk_traj(ip), t_tem_max_traj(ip), texp_5gk_traj(ip), rho_max_traj(ip), &
             s_drip_traj(ip),texp_drip_traj(ip),ye_drip_traj(ip), &
             s_rho_max_traj(ip), texp_rho_max_traj(ip), ye_rho_max_traj(ip), &
-            s_tem_max_traj(ip), texp_tem_max_traj(ip), ye_tem_max_traj(ip)
+            s_tem_max_traj(ip), texp_tem_max_traj(ip), ye_tem_max_traj(ip), &
+            t_rho_max_traj(ip), t_drip_traj(ip)
     enddo
 
     close(nunit)
