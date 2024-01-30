@@ -182,7 +182,8 @@ contains
              + vlz_i*cos(th(ipnt))
 
        ! if( -ut_i-1.d0 > 0.d0 .and. vlr_i > 0.d0)then
-       if( -ut_i*hhh_i - hhh_min > 0.d0 .and. vlr_i > 0.d0)then
+       ! if( -ut_i*hhh_i - hhh_min > 0.d0 .and. vlr_i > 0.d0)then
+       if( vlr_i > 0.d0)then
 
           ips = ips + 1
           ip = ips

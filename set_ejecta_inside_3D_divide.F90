@@ -14,8 +14,13 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
   real(8),intent(in) :: rfl
   real(8),intent(in) :: mass_crit, mass_min, rin
   integer,intent(inout) :: npv
-    
-  real(8),parameter :: v_uni = 2.99792458d10
+
+  ! real(8) :: rfl
+  ! real(8) :: mass_crit, mass_min, rin
+  ! integer :: npv
+
+  
+  ! real(8),parameter :: v_uni = 2.99792458d10
   integer :: ip,j,k,l,lv,lv0,j1,j0,k1,k0,l1,l0,jj,kk,ll,jjd,jju,kkd,kku,lld,llu
   real(8) :: dx,dy,dz,vr,xx,yy,zz,x0,y0,z0,x1,y1,z1
   integer :: i_wing,i_skip
@@ -54,6 +59,7 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
   
   integer :: unit_num
 
+
   ld_read=ld
 #ifdef STAGGERED
 #ifndef FULL
@@ -67,7 +73,7 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
 
   hhh_r = 1d0
 
-  !write(6,*) "test",ld_read,rin,rfl,hhh_crit
+  ! write(6,*) "test",ld_read,rin,rfl,hhh_crit
 
   lv=lv_max
   setlevel: do
@@ -81,6 +87,11 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
 
      mass_total = 0.d0
      do lv=lv_min_pset,lv_max
+        !$omp parallel default(none) &
+        !$omp shared(lv,ld,lu,kd,ku,jd,ju,rfl,rin,hhh_crit,vol3D,qb) &
+        !$omp private(dm) &
+        !$omp reduction(+:mass_total)
+        !$omp do
         do l=ld,lu
            do k=kd,ku
               do j=jd,ju
@@ -91,11 +102,13 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
               enddo
            enddo
         enddo
+        !$omp end do
+        !$omp end parallel
      enddo
      
      write(*,*) "ejecta mass (total integration) =", mass_total
   endif
-  
+!  return
 #ifdef FULL
   nzone = 8
 #else
@@ -253,7 +266,7 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
         gam_inf_r = - hhh_i*ut_i/hhh_r * (1d0-floss)
         
         ut1_p(ip) = ut_i + 1.d0
-        hut_p(ip) = ut_i*hhh_i! + hhh_at
+        hut_p(ip) = ut_i*hhh_i + hhh_min
         
         write(101,'(a1,i14,99es14.6)') " ",ip, dm_p(ip), ut1_p(ip), hut_p(ip), x_p(ip), y_p(ip), z_p(ip), vx_i, vy_i, vz_i, ye_i, gam_inf_r
      enddo
@@ -276,16 +289,16 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
 !!!  histogram
      block
        !histogram
-       real(8),parameter :: dye=0.0025d0
+       real(8),parameter :: dye=0.01d0
        real(8),parameter :: ye_max = 0.60d0+0.5d0*dye, ye_min = 0.01d0 - 0.5*dye
        integer,parameter :: n_ye = nint((ye_max-ye_min)/dye)
        
-       real(8),parameter :: dvel=0.005d0
+       real(8),parameter :: dvel=0.01d0
        real(8),parameter :: vel_max = 1.d0, vel_min = 0.0d0
        integer,parameter :: n_vel = nint((vel_max-vel_min)/dvel)
        
        real(8),parameter :: logentr_max = log10(1d3), logentr_min = log10(0.1d0)
-       integer,parameter :: n_entr = 200
+       integer,parameter :: n_entr = 100
        real(8),parameter :: dlogentr=(logentr_max-logentr_min)/dble(n_entr)
        
        real(8) :: histogram_ye_entr_total(n_ye,n_entr), histogram_ye_entr_vel_ejecta(n_ye,n_entr,n_vel), histogram_ye_entr_vel_ejectah(n_ye,n_entr,n_vel), histogram_ye_entr_vel_particles(n_ye,n_entr,n_vel), histogram_ye_entr_vel_particlesh(n_ye,n_entr,n_vel)
@@ -402,8 +415,14 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
           endif
           
        enddo
-       
+
        do lv=lv_min_pset,lv_max
+!          !$omp parallel default(none) &
+!          !$omp num_threads(1) &
+!          !$omp shared(lv,ld,lu,kd,ku,jd,ju,rfl,rin,hhh_crit,hhh_min,vol3D,qb,ye,ut,hhh,sen) &
+!          !$omp private(dm,vel,i_ye,i_entr,i_vel) &
+!          !$omp reduction(+: histogram_ye_entr_total, histogram_ye_entr_vel_ejectah, histogram_ye_entr_vel_ejecta)
+!          !$omp do
           do l=ld,lu
              do k=kd,ku
                 do j=jd,ju
@@ -427,6 +446,8 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
                 enddo
              enddo
           enddo
+!          !$omp end do
+!          !$omp end parallel
        enddo
 
 
@@ -502,19 +523,20 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
        enddo
        close(unit_num)
 
-       open(newunit=unit_num,file=trim(dir_out)//"/ye_sen_vel_hist_inside.dat",status="replace")
-       write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
-       write(unit_num,'(a1,99a15)') "#", "Ye", "entropy", "vel_inf", "particle", "particles(geo)", "ejecta", "ejecta(geo)"
-       do i_vel = 1,n_vel
-          write(unit_num,*)
-          do i_entr = 1,n_entr
-             write(unit_num,*)
-             do i_ye = 1,n_ye
-                write(unit_num,'(a1,99es15.7)') " ",hist_v_ye(i_ye), hist_v_entr(i_entr), hist_v_vel(i_vel), sum(histogram_ye_entr_vel_particlesh(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_particles(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejectah(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejecta(i_ye,:,i_vel))
-             enddo
-          enddo
-       enddo
-       close(unit_num)
+       ! open(newunit=unit_num,file=trim(dir_out)//"/ye_sen_vel_hist_inside.dat",status="replace")
+       ! write(unit_num,'(a1,15x,99es15.7)') "#",sum(histogram_ye_entr_vel_particlesh(:,:,:)), sum(histogram_ye_entr_vel_particles(:,:,:)), sum(histogram_ye_entr_vel_ejectah(:,:,:)), sum(histogram_ye_entr_vel_ejecta(:,:,:)),sum(histogram_ye_entr_total(:,:))
+       ! write(unit_num,'(a1,99a15)') "#", "Ye", "entropy", "vel_inf", "particle", "particles(geo)", "ejecta", "ejecta(geo)"
+       ! do i_vel = 1,n_vel
+       !    write(unit_num,*)
+       !    do i_entr = 1,n_entr
+       !       write(unit_num,*)
+       !       do i_ye = 1,n_ye
+       !          write(unit_num,'(a1,99es15.7)') " ",hist_v_ye(i_ye), hist_v_entr(i_entr), hist_v_vel(i_vel), sum(histogram_ye_entr_vel_particlesh(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_particles(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejectah(i_ye,:,i_vel)), sum(histogram_ye_entr_vel_ejecta(i_ye,:,i_vel))
+       !       enddo
+       !    enddo
+       ! enddo
+       ! close(unit_num)
+
      end block
   endif
 

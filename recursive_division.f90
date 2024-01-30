@@ -24,7 +24,12 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
   
   vr_av = 0.d0
   vr2_av= 0.d0
-  
+
+  !$omp parallel default(none) &
+  !$omp shared(lld,llu,kkd,kku,jjd,jju,lv,rfl,rin,hhh_crit,vol3D,qb,x,y,z,vlx,vly,vlz) &
+  !$omp private(vr) &
+  !$omp reduction(+: mass,comx,comy,comz,vol,vr_av,vr2_av)
+  !$omp do
   do l=lld,llu
      do k=kkd,kku
         do j=jjd,jju
@@ -43,6 +48,8 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
         enddo
      enddo
   enddo
+  !$omp end do
+  !$omp end parallel
 
   if(mass > 0.d0)then
      vr_av  = vr_av /mass

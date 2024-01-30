@@ -30,7 +30,7 @@ subroutine analysis(dir_out,time)
   write(6,*) "enter analysis routine"
 
   nr = 100
-  r_min = 1d7; r_max = 3d8
+  r_min = 1d7; r_max = 1d10
   allocate(r(nr))
   do ir=1,nr
      r(ir) = 10d0**(log10(r_min) + (log10(r_max)-log10(r_min))*dble(ir-1)/dble(nr-1))
@@ -58,7 +58,7 @@ subroutine analysis(dir_out,time)
   
   do idir=1,ndir
      write(fn,'(a,"/profile_along_dir_",i3.3,".dat")') trim(dir_out), idir
-     write(6,'(a)') trim(fn)
+     !write(6,'(a)') trim(fn)
 
      open(newunit=unum,file=fn,status="replace",action="write")
      

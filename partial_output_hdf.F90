@@ -19,7 +19,7 @@ subroutine partial_output_hdf(dir_out,job,it,t)
 
   integer :: j,k,l,lv
 
-  fn = trim(dir_out)//"/map.h5"
+  fn = trim(dir_out)//"/first.h5"
   call h5fcreate_f(fn, H5F_ACC_TRUNC_F, file_id, hdf_err)
   
 #ifdef STAGGERED
