@@ -6,7 +6,7 @@ import glob
 args = sys.argv
 model_dir = args[1]
 
-list_hdf = sorted(glob.glob('%s/hdf5?'%(model_dir))) + sorted(glob.glob('%s/hdf5??'%(model_dir)))
+list_hdf = sorted(glob.glob('%s/hdf5/?'%(model_dir))) + sorted(glob.glob('%s/hdf5/??'%(model_dir))) + sorted(glob.glob('%s/hdf5/???'%(model_dir)))
 
 itt = 0
 for dir_hdf in list_hdf:
@@ -26,8 +26,10 @@ for dir_hdf in list_hdf:
             nstep = nstep + 1
     print("Nstep=",nstep)
 
-    for it in range(1,nstep+1):
-        itt += 1
-        t=np.asarray(f1['level1/data%s/time' % (it)])[0]
-        print(it,itt,t)
+    t=np.asarray(f1['level1/data%s/time' % (nstep)])[0]
+    print(t)
+    # for it in range(1,nstep+1):
+    #     itt += 1
+    #     t=np.asarray(f1['level1/data%s/time' % (it)])[0]
+    #     print(it,itt,t)
         
