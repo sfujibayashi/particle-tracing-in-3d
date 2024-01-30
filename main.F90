@@ -96,6 +96,8 @@ program main
     
   integer :: unum, unum2
   integer :: access
+
+  integer,parameter :: incl_next=20
   
   call h5open_f (error)
 
@@ -842,10 +844,10 @@ program main
   open(10,file=fn,status="replace",action="write")
   if(mode_backward)then
      job_max = job2-1
-     job_min = job_max
+     job_min = max(1,job_max-incl_next)
   else
      job_min = job2+1
-     job_max = job_min
+     job_max = job_min+incl_next
   endif
   write(10,*) job_min
   write(10,*) job_max
