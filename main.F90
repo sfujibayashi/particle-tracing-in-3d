@@ -627,9 +627,9 @@ program main
         ! ittot = it0 + it
         
 !!! read profile
-        write(6,*) "read 3D data"
+        ! write(6,*) "read 3D data"
         call read_simdata(file_id,it,time)
-        write(6,*) "set secondary"
+        ! write(6,*) "set secondary"
         call set_secondary
         if(first)then
            dt = 0.d0
@@ -638,7 +638,7 @@ program main
         endif
         
 !!! evolve particles
-        write(6,*) "evolve particles"
+        ! write(6,*) "evolve particles"
         call evolution_particle_3D(ipu,time,time_prv,substep_max)
         
 !!! set particle
