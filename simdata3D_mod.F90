@@ -357,7 +357,10 @@ contains
     integer :: lv,jdat,kdat,ldat,ld_read
     character(10) :: str1,str2
 
-ld_read=ld
+    logical :: link_exists
+    integer :: j,k,l
+
+    ld_read=ld
 #ifdef STAGGERED
 #ifndef FULL
     ld_read=ld+1
@@ -393,7 +396,7 @@ ld_read=ld
        qrho(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/u_t"    ,buf3d_real4_2,dims3,error); sum_err = sum_err + error
        ut  (:,:,ld_read:lu,lv) = buf3d_real4_2(:,:,:)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Ye"     ,buf3d_real4_3,dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ye"     ,buf3d_real4_3,dims3,error); sum_err = sum_err + error
        ye  (:,:,ld_read:lu,lv) = buf3d_real4_3(:,:,:)
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/entropy",buf3d_real4_4,dims3,error); sum_err = sum_err + error
        sen (:,:,ld_read:lu,lv) = buf3d_real4_4(:,:,:)
@@ -406,20 +409,29 @@ ld_read=ld
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,buf3d_real4_8,dims3,error); sum_err = sum_err + error
        vlz (:,:,ld_read:lu,lv) = buf3d_real4_8(:,:,:)/vel_unit_h5
 
-       if(1==0)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          qb(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)*rho_uni
-          ! qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",link_exists,error)
+       if(link_exists)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",qb  (:,:,:,lv),dims3,error)
        else
-          qb(:,:,:,lv) = qrho(:,:,:,lv)/sqrt(1d0 - ( vlx(:,:,:,lv)**2 + vly(:,:,:,lv)**2 + vlz(:,:,:,lv)**2 ) )
+          !$omp parallel
+          !$omp do
+          do l=ld,lu
+             do k=kd,ku
+                do j=jd,ju
+                   qb(j,k,l,lv) = qrho(j,k,l,lv)/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
+                enddo
+             enddo
+          enddo
+          !$omp end do
+          !$omp end parallel
        endif
-
+       
        if(sum_err>0)then
           write(6,*) "Error in reading hdf5 file. STOP.",lv,sum_err
           stop
        endif
-
-       write(6,*) lv
+       
+       ! write(6,*) lv
 
     enddo
     ! !$omp end do
