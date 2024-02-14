@@ -16,8 +16,9 @@ contains
     integer :: ith,iph,ip,n_th, n_ph, ip_prev_th
     real(8) :: th1,th2
     real(8) :: dph,dom_min,dph_prev
-    real(8) :: dcos_prev,dcos
+    real(8) :: dcos_prev,dcos,phi_0
     integer :: unit
+
 
     n_th = nth_pset
 #ifdef FULL
@@ -27,7 +28,7 @@ contains
 #endif
 
     dom_min = 4.d0*pi/dble(n_th**2)
-    n_ph=2
+    ! n_ph=2
     ! dcos_prev=0.d0
     n_points = 0
     do ith=1,n_th
@@ -57,16 +58,33 @@ contains
     ip = 1
     do ith=1,n_th
       
-       
        th1 = dth*dble(ith-1)
        th2 = dth*dble(ith  )
+       
+       if(ip==1)then
+          phi_0 = pi
+       elseif(n_ph==1)then
+          phi_0 = ph(ip-1)+pi/2d0
+       else
+          phi_0 = 0.5d0*(ph(ip-1)+ph(ip-2))
+       endif
        
        !n_ph = max(n_ph+1,int(2.d0*pi*(cos(th1)-cos(th2))/dom_min)+1)
        n_ph = int(2.d0*pi*(cos(th1)-cos(th2))/dom_min)+1
        dph = 2.d0*pi/dble(n_ph)
+       
+       write(6,*) ith, phi_0
+
        do iph=1,n_ph
           th(ip) = dth*(dble(ith-1)+0.5d0)
-          ph(ip) = dph*dble(iph-1)
+          ! ph(ip) = dph*(dble(iph-1)+0.5d0) + phi_0
+          ph(ip) = dph*(dble(iph-1)) + phi_0
+          do while(ph(ip)>2d0*pi)
+             ph(ip) = ph(ip)-2d0*pi
+          enddo
+          
+          write(6,*) th(ip), ph(ip)
+
 #ifdef FULL
           dom(ip)=dph*(cos(th1)-cos(th2))
 #else
@@ -83,6 +101,8 @@ contains
        write(unit,'(i5,99es12.4)') ip,th(ip),ph(ip),sin(th(ip))*cos(ph(ip)),sin(th(ip))*sin(ph(ip)),cos(th(ip)),dom(ip)
     enddo
     close(unit)
+
+    stop
 
   end subroutine init_angle
 
