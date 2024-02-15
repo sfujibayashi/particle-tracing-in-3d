@@ -1,5 +1,19 @@
 # Makefile
 
+# HEALPix
+HEALPIX	:= /u/shofu/libs/Healpix_3.82
+FITSDIR	= /u/shofu/libs/cfitsio-4.3.1
+LIBFITS	= cfitsio
+SHARPLDIR=/u/shofu/libs/Healpix_3.82/lib
+
+F90_LIBSUFFIX = .a
+F90_LIBDIR := $(HEALPIX)/lib
+F90_INCDIR := $(HEALPIX)/include
+# F90_LDFLAGS_HEALPIX := -L$(F90_LIBDIR) -L$(FITSDIR) -L$(SHARPLDIR) -lhealpix -lhpxgif -lsharp -l$(LIBFITS) -Wl,-R$(FITSDIR) -Wl,-R$(SHARPLDIR) -Wl,-R$(F90_LIBDIR) -lcurl
+F90_LDFLAGS_HEALPIX := -L$(F90_LIBDIR) -L$(FITSDIR) -lhealpix -lhpxgif -l$(LIBFITS) -Wl,-R$(FITSDIR) -Wl,-R$(F90_LIBDIR) -lcurl
+LIB_HEALPIX:=$(F90_LIBDIR)/libhealpix$(F90_LIBSUFFIX)
+#
+
 EXE_DIR := bin/
 SRC_DIR := src/
 OBJ_DIR := obj/
@@ -15,12 +29,13 @@ FCC := h5pcc
 # compiler option
 
 FFLAGS:=-convert big_endian -mcmodel=large -shared-intel -fpic -qopenmp -xCORE-AVX512 -qopt-zmm-usage=high
+FFLAGS += -I$(F90_INCDIR)
 # FFLAGS += -O0 -CB -traceback -g -fpe0 -check uninit # -warn unused
 FFLAGS += -diag-disable=10121 #-z noexecstack #-h ipafrom=vis_fcn.f90:atm_fnc.f90
 FFLAGS += -module $(OBJ_DIR)
 
 # library link
-LIBS :=
+LIBS :=$(F90_LDFLAGS_HEALPIX)
 
 # suffix rule
 .SUFFIXES: .f90 .F90 .o .mod

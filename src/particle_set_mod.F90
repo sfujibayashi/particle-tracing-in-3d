@@ -9,6 +9,8 @@ contains
   
   subroutine init_angle(nside,n_pset)
 #include "macro.h"
+    USE pix_tools, ONLY : pix2ang_ring
+    
     use const
     use io
     integer,intent(in) :: nside
@@ -18,6 +20,14 @@ contains
     integer :: p,i,j,pp
     real(8) :: z,phi,s,phh
     integer :: npix, nnorth, neq, nring
+
+    integer :: ipring
+    real(8) :: theta
+
+    ipring = 0
+    call pix2ang_ring  (nside, ipring, theta, phi)
+    write(6,*) theta, phi
+    stop
 
     npix = 12*nside**2
     neq = 4*nside
