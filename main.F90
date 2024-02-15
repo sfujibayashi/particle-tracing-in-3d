@@ -218,8 +218,8 @@ program main
 
 !!! give division number of polar angle, then it calculates total number on a sphere
   call init_angle(n_theta,n_pset)
-  call init_angle_sample(10*n_theta)
-  
+  call init_angle_sample(3*n_theta)
+
   write(6,*)
   write(6,*) "### particle set based on the flux"
   write(6,*) "n_theta, # of particles set in single step = ", n_theta,n_pset

@@ -23,48 +23,85 @@ module module_flux_sample
 contains
 
 
-  subroutine init_angle_sample(nth_sample)
+  subroutine init_angle_sample(nside)
 #include "macro.h"
     use const
     use io
-    integer,intent(in) :: nth_sample
-    integer :: ith,iph,ip,n_th, n_ph, ip_prev_th
-    real(8) :: th1,th2
-    real(8) :: dph,dom_min,dph_prev
-    real(8) :: dcos_prev,dcos
-    integer :: unit
+    integer,intent(in) :: nside
+    
+    integer :: ip
+    integer :: p,i,j,pp
+    real(8) :: z,phi,s,phh
+    integer :: npix, nnorth, neq, nring
 
-    n_th = nth_sample
-#ifdef FULL
-    dth = pi/dble(n_th)
+    npix = 12*nside**2
+    neq = 4*nside
+    nnorth = int((npix - neq)/2) + neq
+    nring = 4*nside - 1
+    write(6,*) "Npix, Nnorth = ", npix, nnorth
+
+    dth = 2d0*pi/dble(neq)
+    write(6,*) "dth/pi = ", dth/pi
+    
+#ifdef MIRROR
+    n_points = nnorth
 #else
-    dth = pi/2.d0/dble(n_th)
+    n_points = npix
 #endif
 
-    dom_min = 4.d0*pi/dble(n_th**2)
-    n_ph=2
-    ! dcos_prev=0.d0
-    n_points = 0
-    do ith=1,n_th
-       th1 = dth*dble(ith-1)
-       th2 = dth*dble(ith  )
+    allocate(th(n_points),ph(n_points),dom(n_points))
+    
+    do ip=1,nnorth
        
-       dcos= cos(th1)-cos(th2)
-       ! if ( dcos_prev/dble(n_ph) < dcos/dble(n_ph+1) )then
-       !n_ph = max(n_ph+1,int(2.d0*pi*(cos(th1)-cos(th2))/dom_min)+1)
-       ! else
-       !    n_ph = n_ph
-       ! endif
-       n_ph = int(2.d0*pi*(cos(th1)-cos(th2))/dom_min)+1
+       p = ip-1
        
-       dph = 2.d0*pi/dble(n_ph)
-       ! write(6,'(2i5,99es12.4)') ith,n_ph,dph,dcos*dph
-       n_points = n_points + n_ph
+       phh = dble(p+1)/2d0
+       i = int(sqrt(phh - sqrt(dble(int(phh))) )) + 1
 
-       !dcos_prev=dcos
+       if(i<nside)then
+
+          j = p + 1 - 2*i*(i-1)
+
+          z = 1d0 -dble(i)**2/(3d0*dble(nside)**2)
+          s = 1d0
+          phi = pi/(2d0*dble(i)) * (dble(j) - s/2d0)
+          ! write(6,'(3i5,2es12.4," ",a)') p,i,j,z,phi, "north-pole"
+       else
+
+          pp = p - 2*nside*(nside-1)
+          i = int( dble(pp)/dble(4*nside) ) + nside
+
+          if(nside <= i .and. i <= 2*nside)then
+
+             j = mod(pp, (4*nside)) + 1
+             
+             z=4d0/3d0 - 2d0*dble(i)/(3d0*dble(nside))
+             s = dble(mod((i-nside+1), 2))
+             phi = pi/(2d0*dble(nside)) * (dble(j) - s/2d0)
+
+             !write(6,'(3i5,2es12.4," ",a)') p,i,j,z,phi,"equatorial"
+          else
+        
+             write(6,*) "Something is wrong, stop."
+             stop
+             
+          endif
+       endif
+       
+       th(ip) = acos(z)
+       ph(ip) = phi
     enddo
 
-    allocate(th(n_points),ph(n_points), dom(n_points))
+    do ip = 1,n_points
+       dom(ip) = 4d0*pi/dble(npix)
+    enddo
+
+#ifdef MIRROR
+    do ip = 1,nnorth-neq
+       dom(ip) = dom(ip) * 2d0
+    enddo
+#endif
+
 
     allocate(ut_sample(n_points), &
        hhh_sample(n_points), &
@@ -74,37 +111,15 @@ contains
        sen_sample(n_points), &
        dm_sample(n_points) )
     
-    n_ph=2
-    dph_prev=0.d0
-    ip = 1
-    do ith=1,n_th
-      
-       
-       th1 = dth*dble(ith-1)
-       th2 = dth*dble(ith  )
-       
-       !n_ph = max(n_ph+1,int(2.d0*pi*(cos(th1)-cos(th2))/dom_min)+1)
-       n_ph = int(2.d0*pi*(cos(th1)-cos(th2))/dom_min)+1
-       dph = 2.d0*pi/dble(n_ph)
-       do iph=1,n_ph
-          th(ip) = dth*(dble(ith-1)+0.5d0)
-          ph(ip) = dph*dble(iph-1)
-#ifdef FULL
-          dom(ip)=dph*(cos(th1)-cos(th2))
-#else
-          dom(ip)=dph*(cos(th1)-cos(th2))*2.d0
-#endif
-          ip = ip + 1
-       enddo
-       dph_prev = dph
-    enddo
-
-    open(newunit=unit,file=trim(dir_out)//"/angle_info_sampling.dat",status="replace")
-    write(unit,*) "#",sum(dom(:))/4.d0/pi,n_points
-    do ip=1,n_points
-       write(unit,'(i5,99es12.4)') ip,th(ip),ph(ip),sin(th(ip))*cos(ph(ip)),sin(th(ip))*sin(ph(ip)),cos(th(ip)),dom(ip)
-    enddo
-    close(unit)
+    block
+      integer :: unit
+      open(newunit=unit,file=trim(dir_out)//"/angle_info_sampling.dat",status="replace")
+      write(unit,*) "#",sum(dom(:))/4.d0/pi,n_points
+      do ip=1,n_points
+         write(unit,'(i5,99es12.4)') ip,th(ip),ph(ip),sin(th(ip))*cos(ph(ip)),sin(th(ip))*sin(ph(ip)),cos(th(ip)),dom(ip)
+      enddo
+      close(unit)
+    end block
     
   end subroutine init_angle_sample
 
