@@ -6,7 +6,6 @@
 *.dat
 *.out
 log
-makefile
 connect_traj
 mapto2D
 reject_particle

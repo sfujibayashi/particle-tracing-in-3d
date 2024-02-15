@@ -54,7 +54,7 @@ fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; nte
 #fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
 
 
-with open("macro.h",mode="w") as f:
+with open("src/macro.h",mode="w") as f:
    f.write("#define %s\n" % (coord))
    f.write("#define %s\n" % (sym))
    f.write("#define %s\n" % (dformat))
@@ -82,16 +82,16 @@ compf="h5pfc"
 compc="h5pcc"
 option="-convert big_endian -mcmodel=large -shared-intel -fpic -qopenmp -xCORE-AVX512 -qopt-zmm-usage=high"
 
-prog="ptr_"+model+".out"
+prog="ptr.out"
 
-fn_makefile = "makefile_raw"
-with open(fn_makefile,mode="r") as f:
-    lines = f.readlines()
+# fn_makefile = "makefile_raw"
+# with open(fn_makefile,mode="r") as f:
+#     lines = f.readlines()
 
-with open("makefile",mode="w") as f:
-    for line in lines:
-        line_rep = line.replace("XXXXX",prog).replace("YYYYY",option).replace("COMPF",compf).replace("COMPC",compc)
-        f.write(line_rep)
+# with open("makefile",mode="w") as f:
+#     for line in lines:
+#         line_rep = line.replace("XXXXX",prog).replace("YYYYY",option).replace("COMPF",compf).replace("COMPC",compc)
+#         f.write(line_rep)
 
 print( "queue :", queue)
 print( "model :", model)
