@@ -82,7 +82,7 @@ compf="h5pfc"
 compc="h5pcc"
 option="-convert big_endian -mcmodel=large -shared-intel -fpic -qopenmp -xCORE-AVX512 -qopt-zmm-usage=high"
 
-prog="ptr.out"
+prog="bin/ptr.out"
 
 # fn_makefile = "makefile_raw"
 # with open(fn_makefile,mode="r") as f:
