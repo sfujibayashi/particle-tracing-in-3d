@@ -22,6 +22,10 @@ module particle_data
        dm_p  (:), &
        ut1_p (:), &
        hut_p(:)
+
+  integer,allocatable :: remain(:)
+  real(8),allocatable :: t_p(:)
+
   
 contains
   
@@ -50,6 +54,8 @@ contains
          dm_p  (np), &
          ut1_p (np), &
          hut_p (np)  )
+
+       allocate(remain(np), t_p(np))
     endif
     
     ! initialize
@@ -153,6 +159,8 @@ contains
          ut1_p , &
          hut_p   )
 
+    deallocate(remain, t_p)
+
     call allocate_particle_data(np_new)
 
     do ip=1,np_old
@@ -227,6 +235,8 @@ contains
          dm_p  , &
          ut1_p , &
          hut_p   )
+
+       deallocate(remain, t_p)
     else
        write(6,*) "particle data not allocated yet."
     endif

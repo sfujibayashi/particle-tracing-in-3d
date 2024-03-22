@@ -16,7 +16,8 @@ username="shofu"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
-model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
+#model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
+model="DD2Tim626_135_135_44km_150mstg_B0_HLLC_FUKA"; job_min=6; job_max=6; nickname="DD2-135135-FMR"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
 #model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
@@ -35,9 +36,9 @@ volumebased="T"
 
 restart="N"
 
-incr_next=10
+incr_next=1
 
-info="3e8cm_posv"
+info=""
 
 #info="3e8km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
@@ -238,6 +239,7 @@ for job in range(1,njob+1):
             line1=line1.replace(rep_pair[0],rep_pair[1])
          line1=line1.replace("${job}","%i" %(job))
          f.write(line1)
+sys.exit()
 
 # Ask compile or not
 

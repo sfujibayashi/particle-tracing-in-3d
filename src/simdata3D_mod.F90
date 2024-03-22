@@ -5,6 +5,7 @@ module simdata3D
 
   integer :: ld,lu,kd,ku,jd,ju,lv_min,lv_max
   
+  real(8),allocatable :: time_level(:)
 
   real(4),allocatable :: x(:,:),y(:,:),z(:,:),&
        vol3D(:,:,:,:)
@@ -309,6 +310,8 @@ contains
   end subroutine get_coor
 
   subroutine allocate_simdata
+
+    allocate(time_level(lv_min:lv_max))
     
     allocate(x(jd:ju,lv_min:lv_max),y(kd:ku,lv_min:lv_max),z(ld:lu,lv_min:lv_max),&
          qrho(jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
@@ -354,11 +357,11 @@ contains
     integer(HSIZE_T) :: dims1(1),dims3(3)
     real(4),allocatable :: buf3d_real4_1(:,:,:), buf3d_real4_2(:,:,:), buf3d_real4_3(:,:,:), buf3d_real4_4(:,:,:), buf3d_real4_5(:,:,:), buf3d_real4_6(:,:,:), buf3d_real4_7(:,:,:), buf3d_real4_8(:,:,:)
 
-    integer :: lv,jdat,kdat,ldat,ld_read
+    integer :: jdat,kdat,ldat,ld_read
     character(10) :: str1,str2
 
     logical :: link_exists
-    integer :: j,k,l
+    integer :: j,k,l,lv
 
     ld_read=ld
 #ifdef STAGGERED
@@ -370,7 +373,9 @@ contains
     write(str2,'(i10)') it
 
     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-    t = tms(1)*time_unit_h5
+    t = dble(tms(1)*time_unit_h5)
+    
+    time_level(:) = t
     
     ldat = (lu-ld+1)
     kdat = (ku-kd+1)
@@ -381,22 +386,17 @@ contains
     dims3(3) = ldat
 
     allocate(buf3d_real4_1(jdat,kdat,ldat), buf3d_real4_2(jdat,kdat,ldat), buf3d_real4_3(jdat,kdat,ldat), buf3d_real4_4(jdat,kdat,ldat), buf3d_real4_5(jdat,kdat,ldat), buf3d_real4_6(jdat,kdat,ldat), buf3d_real4_7(jdat,kdat,ldat), buf3d_real4_8(jdat,kdat,ldat))
-
-    ! !$omp parallel default(none) &
-    ! !$omp num_threads(1) &
-    ! !$omp shared(lv_max,lv_min,ld_read,lu,file_id,str2,dims3,qrho,ut,ye,sen,tem,qb,vlx,vly,vlz) &
-    ! !$omp private(rbuf3,error,sum_err,str1)
-    ! !$omp do
+    
     do lv=lv_min,lv_max
-
        write(str1,'(i10)') lv
-       !write(6,*) "/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density"
+
        sum_err = 0
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density",buf3d_real4_1,dims3,error); sum_err = sum_err + error
        qrho(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/u_t"    ,buf3d_real4_2,dims3,error); sum_err = sum_err + error
        ut  (:,:,ld_read:lu,lv) = buf3d_real4_2(:,:,:)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ye"     ,buf3d_real4_3,dims3,error); sum_err = sum_err + error
+       ! call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ye"     ,buf3d_real4_3,dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Ye"     ,buf3d_real4_3,dims3,error); sum_err = sum_err + error
        ye  (:,:,ld_read:lu,lv) = buf3d_real4_3(:,:,:)
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/entropy",buf3d_real4_4,dims3,error); sum_err = sum_err + error
        sen (:,:,ld_read:lu,lv) = buf3d_real4_4(:,:,:)
@@ -425,17 +425,12 @@ contains
           !$omp end do
           !$omp end parallel
        endif
-       
+
        if(sum_err>0)then
           write(6,*) "Error in reading hdf5 file. STOP.",lv,sum_err
           stop
        endif
-       
-       ! write(6,*) lv
-
     enddo
-    ! !$omp end do
-    ! !$omp end parallel
 
     deallocate(buf3d_real4_1, buf3d_real4_2, buf3d_real4_3, buf3d_real4_4, buf3d_real4_5, buf3d_real4_6, buf3d_real4_7, buf3d_real4_8)
     
@@ -444,17 +439,15 @@ contains
     call zboundary
 #endif
 #endif
-
-    ! block
-    !   integer :: j,k,l
-    !   lv=lv_max
-    !   l=ld+1
-    !   do k=kd,ku,3
-    !      do j=jd,ju,3
-    !         write(99,'(99es12.4)') x(j,lv), y(k,lv), qb(j,k,l,lv), qrho(j,k,l,lv), ut(j,k,l,lv)
-    !      enddo
-    !   enddo
-    ! end block
+    
+    ! l=ld+1
+    ! do lv=lv_max-4,lv_max
+    !    do k=kd,ku,4
+    !       do j=jd,ju,4
+    !          write(100+lv,'(2i4,99es12.4)') j,k,x(j,lv),y(k,lv),qb(j,k,l,lv),ut(j,k,l,lv),ye(j,k,l,lv)
+    !       enddo
+    !    enddo
+    ! enddo
 
   end subroutine read_simdata
 
@@ -481,8 +474,83 @@ contains
        !$omp end do
        !$omp end parallel
     enddo
-    
+
   end subroutine zboundary
+
+  subroutine read_velocity(file_id,it,lv)
+    use hdf5
+    use h5lt
+    use unit
+
+    INTEGER(HID_T),intent(in) :: file_id
+    integer,intent(in)  :: it,lv
+    ! real(8),intent(out) :: t
+    integer :: sum_err
+    integer :: error
+    integer(HSIZE_T) :: dims1(1),dims3(3)
+    real(4),allocatable :: buf3d_real4_1(:,:,:), buf3d_real4_2(:,:,:), buf3d_real4_3(:,:,:)
+    
+    integer :: jdat,kdat,ldat,ld_read
+    character(10) :: str1,str2
+    integer :: j,k,l
+
+    ld_read=ld
+#ifdef STAGGERED
+#ifndef FULL
+    ld_read=ld+1
+#endif
+#endif
+
+    write(str1,'(i10)') lv
+    write(str2,'(i10)') it
+
+    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+    time_level(lv) = dble(tms(1)*time_unit_h5)
+    
+    ldat = (lu-ld+1)
+    kdat = (ku-kd+1)
+    jdat = (ju-jd+1)
+
+    dims3(1) = jdat
+    dims3(2) = kdat
+    dims3(3) = ldat
+
+    allocate(buf3d_real4_1(jdat,kdat,ldat), buf3d_real4_2(jdat,kdat,ldat), buf3d_real4_3(jdat,kdat,ldat))
+    
+    sum_err = 0
+    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vx", buf3d_real4_1, dims3, error); sum_err = sum_err + error
+    vlx (:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)/vel_unit_h5
+    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vy", buf3d_real4_2, dims3, error); sum_err = sum_err + error
+    vly (:,:,ld_read:lu,lv) = buf3d_real4_2(:,:,:)/vel_unit_h5
+    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz", buf3d_real4_3, dims3, error); sum_err = sum_err + error
+    vlz (:,:,ld_read:lu,lv) = buf3d_real4_3(:,:,:)/vel_unit_h5
+    
+    if(sum_err>0)then
+       write(6,*) "Error in reading hdf5 file. STOP.",lv,sum_err
+       stop
+    endif
+
+    deallocate(buf3d_real4_1, buf3d_real4_2, buf3d_real4_3)
+    
+#ifdef STAGGERED
+#ifndef FULL
+    !$omp parallel default(none) &
+    !$omp shared(kd,ku,jd,ju,ld,lv,vlx,vly,vlz)
+    !$omp do
+    do k=kd,ku
+       do j=jd,ju
+          vlx (j,k,ld,lv) = vlx (j,k,ld+1,lv)
+          vly (j,k,ld,lv) = vly (j,k,ld+1,lv)
+          vlz (j,k,ld,lv) =-vlz (j,k,ld+1,lv)
+       enddo
+    enddo
+    !$omp end do
+    !$omp end parallel
+#endif
+#endif
+
+  end subroutine read_velocity
+
   
   subroutine set_secondary
     use module_eos

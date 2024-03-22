@@ -49,14 +49,15 @@ program main
 
   character(200) :: model,fn,str1,str2,str3,dir_base
   
-  character(200),allocatable :: filename(:)
+  character(256),allocatable :: fn_data3d(:), fn_vel3d(:)
   
   ! for hdf5 I/O
   INTEGER        :: error         ! Error flag
   INTEGER(HID_T) :: file_id,file2_id       ! File identifier
   integer(HSIZE_T) :: dims1(1),dims2(2),dims3(3)
   real(4),allocatable :: buf1(:), buf2(:,:), buf3(:,:,:)
-
+  
+       
   ! computational time
   real(8) :: time0,time1
 
@@ -101,7 +102,12 @@ program main
   integer :: access
 
   integer,parameter :: incl_next=20
-  
+
+  ! AMR substep
+  INTEGER(HID_T) :: fvel_id
+  integer :: it_v,it_v_1,it_v_2
+  integer :: lvf1,lvf2
+  INTEGER(HID_T) :: famr_id
   call h5open_f (error)
 
 
@@ -110,7 +116,7 @@ program main
   ! stop
   dir_out = "."
 
-  ! open(10,file="para.dat",status="old",action="read")
+ ! open(10,file="para.dat",status="old",action="read")
   ! read(10,*);read(10,'(a)') dir_out
   ! close(10)
 
@@ -231,18 +237,23 @@ program main
   write(6,*)
 
   ! set file name
-  allocate(filename(job_min:job_max))
+  allocate(fn_data3d(job_min:job_max))
+  allocate(fn_vel3d(job_min:job_max))
   do job = job_min,job_max
      write(str1,'(i10)') job
      fn = trim(dir_read)//trim(adjustl(str1))//"/raw3d.h5"
      write(*,'(i5,": ",a)') job,trim(fn)
-     filename(job) = fn
+     fn_data3d(job) = fn
+
+     fn = trim(dir_read)//trim(adjustl(str1))//"/vel3d.h5"
+     fn_vel3d(job) = fn
+     
   enddo
   
   do job = job_min,job_max
      
      write(str1,'(i10)') job
-     fn = filename(job)
+     fn = fn_data3d(job)
      
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 
@@ -265,7 +276,7 @@ program main
      call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
      t_max = tms(1)*time_unit_h5
 
-     write(6,'("job, steps in job, time(min,max) = ",2i4,2es12.4)') job,nstep_job(job),t_min,t_max
+     write(6,'("job, steps(lv=1) in the job, time(min,max) = ",2i4,2es12.4)') job,nstep_job(job),t_min,t_max
      !tsta_job(job) = t_min
      !tend_job(job) = t_max
 
@@ -282,35 +293,14 @@ program main
      close(11)
   enddo
 
-  ! dtms_snap = (tms_glo_max-tms_glo_min)/dble(sum(nstep_job(:)))
-  ! do job=job_min,job_max
-     
-  !    ! if(tend_job(job)<rfl/(0.1d0*v_uni)*1d3)then
-  !    !    it_skip_pset(job) = int(rfl*pi/2d0/dble(n_th)/(0.1d0*v_uni)*1d3/dtms_snap)
-  !    ! else
-  !    !    it_skip_pset(job) = (itt_max-itt_min+1)*n_pset/8000
-  !    ! endif
-  !    ! it_skip_pset(job) = 10
-
-  !    it_skip_pset(job) = int(rfl*pi/2d0/dble(n_th)/(0.05d0*v_uni)*1d3/dtms_snap)
-     
-  !    ! if(job<=10)then
-  !    !    it_skip_pset(job) = -1
-  !    ! endif
-  !    !it_skip_pset(job) = -1
-     
-  !    write(6,'("job, skip for particle set, dt_pset, dt_snap (ms): ",i4,i7,2es12.4,i5)') job, it_skip_pset(job), dble(it_skip_pset(job))*dtms_snap,dtms_snap!,nstep_job(job)/it_skip_pset(job)*n_pset
-  ! enddo
   
   np_flux=0
   npv = 0
-  !call calc_particle_number(nstep_job,it_skip_pset,job_min,job_max,n_pset,np_flux)
-  !write(6,*) "# of particles set during evolution", np_flux
-
+  
   if    (mode_backward)then
      job1 = job_max
      job2 = job_min
-
+     
      job_start = job_max
      
      if(it_start==0.or.restart=="Y")it_start = nstep_job(job_start)
@@ -322,13 +312,13 @@ program main
      job_start = job_min
      
      if(it_start==0)it_start = 1
-
+     
   endif
   
 !!! if you want to specify the start time...
   !t_start = 2.926d-2
   ! write(6,'("Searching for initial time....")')
-  !call it_from_time(job_min,job_max,filename,nstep_job,t_start,step,job_start,it_start)
+  !call it_from_time(job_min,job_max,fn_data3d,nstep_job,t_start,step,job_start,it_start)
 
   ! if(job_start == job_min)then
   !    itt_start = it_start
@@ -350,59 +340,10 @@ program main
   ! nsteps = itt_max-itt_min+1
   
   write(6,'("# job_min,job_max,job_start,it_start = ",4i3)') job_min,job_max,job_start,it_start
-  !write(6,'("# itt_min,itt_max,itt_start = ",3i10)') itt_min,itt_max,itt_start
-
-!!! set particle data to be stored
-
-!!! set start and end step in each job
-  ! it1_job(:)=0
-  ! it2_job(:)=0
-  
-  ! if(mode_backward)then
-
-  !    job = job_start! job_max
-  !    ittot=itt_start! sum(nstep_job(job_min:job-1)) + it_start
-  !    do while(job>=job_min)
-        
-  !       do while(ittot > sum(nstep_job(job_min:job+step)))
-  !          it = ittot-sum(nstep_job(job_min:job+step))
-           
-  !          if(it2_job(job)==0) it1_job(job) = it
-  !          it2_job(job) = min(it1_job(job),it)
-  !          ittot = ittot - it_skip
-  !       enddo
-  !       if(it2_job(job) == 0) it2_job(job) = +step
-  !       write(6,'("job, Nstep, step, it1, it2",99i5)') job,nstep_job(job),it_skip*step,it1_job(job),it2_job(job)
-  !       job = job - 1
-  !    enddo
-
-  ! else
-
-  !    job  = job_start
-  !    ittot= itt_start
-  !    do while(job<=job_max)
-        
-  !       do while(ittot <= sum(nstep_job(job_min:job)))
-  !          if(job==job_min)then
-  !             it = ittot
-  !          else
-  !             it = ittot-sum(nstep_job(job_min:job-1))
-  !          endif
-
-  !          if(it2_job(job)==0) it1_job(job) = it
-  !          it2_job(job) = max(it1_job(job),it)
-  !          ittot = ittot + it_skip*step
-  !       enddo
-  !       if(it2_job(job) == 0) it2_job(job) = -1
-  !       write(6,'("job, Nstep, step, it1, it2",99i5)') job,nstep_job(job),it_skip*step,it1_job(job),it2_job(job)
-  !       job = job + step
-  !    enddo
-     
-  ! endif
 
 !!! show initial time step and time  
-
-  fn = filename(job1)
+  
+  fn = fn_data3d(job1)
   call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
   
   write(str2,'(i10)') it_start
@@ -411,7 +352,7 @@ program main
   
   write(6,'("Initial time step: job, it = ",i3,i10, ", t = ",es13.5," s")') job1,it_start,tms(1)*time_unit_h5
   
-  fn = filename(job2)
+  fn = fn_data3d(job2)
   call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
   
   write(str2,'(i10)') 1
@@ -420,7 +361,7 @@ program main
   write(6,'("Last    time step: job, it = ",i3,i10, ", t = ",es13.5," s")') job2,1,tms(1)*time_unit_h5
 
 
-  fn = filename(job_start)
+  fn = fn_data3d(job_start)
   call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 
 !!! obtain information on the grid
@@ -450,33 +391,7 @@ program main
         job1 = job_start
         job2 = job_max
      endif
-
-! !!! save total steps job, it
-!      open(11,file=trim(dir_out)//"/steps.dat",status="replace")
-!      do job = job1,job2, step
-        
-!         it1=it1_job(job)
-!         it2=it2_job(job)
-        
-!         ! write(11,'("# job, it1,it2,step = ",i3,2i5,i3)') job,it1,it2,step*it_skip
-    
-!         if(job==job_min)then
-!            it0 = 0
-!         else
-!            it0 = sum(nstep_job(job_min:job-1))
-!         endif
-    
-!         do it = it1, it2, step*it_skip
-!            ittot = it0 + it
-      
-!            write(11,'(99i8)') job, it, ittot
-!         enddo
-
-!      enddo
-!      close(11)
-! !!!
-
-
+     
   elseif(restart=='Y')then
 
      first = .false.
@@ -534,6 +449,10 @@ program main
      stop
   endif
 
+  fn = trim(dir_out)//"/timesteps.dat"
+  open(newunit=nunit_timestep, file=fn, status="replace", action="write")
+
+
   write(*,'("Tracing start...")')
   call cpu_time(time0)
 
@@ -580,18 +499,92 @@ program main
      !    call h5fcreate_f(fn, H5F_ACC_TRUNC_F, file_pset_id, error)
      ! endif
 
-
-     fn = filename(job)
+     fn = fn_data3d(job)
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
+
+     call h5fopen_f(fn_vel3d(job), H5F_ACC_RDONLY_F, fvel_id, error)
+
+     write(str1,'(i10)') job
+     fn = trim(dir_out)//"/amr_steps_"//trim(adjustl(str1))//".h5"
+     create_amr_step_file:block
+       integer :: hdf_err
+       integer :: lv
+       integer :: jdat,ldat,kdat
+       INTEGER(HID_T) :: group_id
+
+       jdat = ju-jd+1
+       kdat = ku-kd+1
+       ldat = lu-ld+1
+
+       call h5fcreate_f(fn, H5F_ACC_TRUNC_F, famr_id, hdf_err)
+       do lv=lv_min,lv_max
+
+          write(str1,'(i10)') lv
+          call h5gcreate_f(famr_id, "level"//trim(adjustl(str1)) , group_id, hdf_err)
+
+          dims1(1) = jdat
+          call h5ltmake_dataset_float_f(group_id, "x", 1, dims1, x(:,lv), hdf_err)
+          dims1(1) = kdat
+          call h5ltmake_dataset_float_f(group_id, "y", 1, dims1, y(:,lv), hdf_err)
+          dims1(1) = ldat
+          call h5ltmake_dataset_float_f(group_id, "z", 1, dims1, z(:,lv), hdf_err)
+          
+          call h5gclose_f(group_id, hdf_err)
+       enddo
+     end block create_amr_step_file
+  
+
+     ! count the steps in each level and calculate lvf1,lvf2
+     block
+       integer,allocatable :: nstep_level(:)
+       integer :: lv
+
+       allocate(nstep_level(lv_min:lv_max))
+  
+       write(6,*)
+       
+       
+       do lv=lv_min,lv_max
+          write(str2,'(i10)') lv
+          
+          it = 0
+          setstep_level: do
+             it = it + 1
+             write(str1,'(i10)') it
+             call h5lexists_f(fvel_id,"/level"//trim(adjustl(str2))//"/data"//trim(adjustl(str1)),link_exists,error)
+             if(.not. link_exists)then
+                nstep_level(lv) = it - 1
+                exit setstep_level
+             endif
+          enddo setstep_level
+          write(6,*) lv, nstep_level(lv)
+       enddo
+
+       search_lvf1:do lv=lv_min,lv_max-1
+          if(nstep_level(lv) < nstep_level(lv+1))then
+             lvf1 = lv
+             exit search_lvf1
+          endif
+       enddo search_lvf1
+
+       search_lvf2:do lv=lv_max,lv_min,-1
+          if(nstep_level(lv) > nstep_level(lv-1))then
+             lvf2 = lv
+             exit search_lvf2
+          endif
+       enddo search_lvf2
+       
+       write(6,*) "lvf1,lvf2 = ",lvf1,lvf2
+
+       deallocate(nstep_level)
+     end block
+     !
      
      if(job==job_min)then
         it0 = 0
      else
         it0 = sum(nstep_job(job_min:job-1))
      endif
-     
-     ! it1=it1_job(job)
-     ! it2=it2_job(job)
 
      if(mode_backward)then
 
@@ -603,7 +596,7 @@ program main
         it2 = 1
 
      else
-
+        
         if    (restart=="N".and.job==job1)then
            it1 = it_start
         else
@@ -614,38 +607,25 @@ program main
      endif
 
      write(6,'("job, it1,it2,step = ",i3,2i5,i3)') job,it1,it2,step*it_skip
-
      
      write(str1,'(i10)') job
      fn = trim(dir_out)//"/flux_"//trim(adjustl(str1))//".dat"
      open(newunit=unum,file=fn,status="replace",action="write")
      
      do it = it1, it2, step*it_skip
-        
+           
         time_prv = time
-        ! itt_prv = ittot
-        ! ittot = it0 + it
         
-!!! read profile
-        ! write(6,*) "read 3D data"
+        ! read profile
         call read_simdata(file_id,it,time)
-        ! write(6,*) "set secondary"
         call set_secondary
-        if(first)then
-           dt = 0.d0
-        else
-           dt = time - time_prv
-        endif
-        
-!!! evolve particles
-        ! write(6,*) "evolve particles"
-        call evolution_particle_3D(ipu,time,time_prv,substep_max)
-        
-!!! set particle
-!!! set max number of particle at the first step
+        write(6,*) "read data for all levels from raw3d.h5",it,time
+
+        ! set particle
+        ! set max number of particle at the first step
         if(first)then
            write(6,*) "first-time task"
-           call analysis(dir_out,time)
+           !call analysis(dir_out,time)
            !call print_data(time,job,it)
            call partial_output_hdf(dir_out, job, it, time)
            !stop
@@ -656,11 +636,11 @@ program main
            np = npv
 
            write(*,*) "# of particles set in volume-based way : ",npv
-           
+
            call allocate_particle_data(np)
 
            call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
-           
+
            ips=npv
            ipu=ips
 
@@ -668,52 +648,21 @@ program main
            !stop
 
         endif ! procedure only in the first step end
-        
-        if(.not.first)then
-           
-           if(.not.mode_volbased .and. count_pset == 0 )then
-              
-              if(ips+n_points>np)then
-                 call reallocate_particle_data(np,ips+n_points)
-                 np = ips+n_points
-                 write(6,*) "np reset to", np
-              endif
-                 
-              call set_new_particle(ips,rfl,dt,v_average,it_skip,it_skip_out,it_skip_pset,m_max,m_min,m_average,v_max,v_min,np_set)
-              
-              !itt_pset_next = ittot - it_skip_pset
-              count_pset = it_skip_pset
-              write(6,'("# of particles set = ",i5,", v/c(max,min,ave) = ",3es12.4,", m(max,min,ave) = ",3es12.4,". Next: dt (s), skip = ",es12.4,i5)') np_set, v_max,v_min,v_average, m_max,m_min,m_average, dt*dble(it_skip_pset), it_skip_pset
-              
-              write(unum,'(2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(dm_p(1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
-              
-              ipu = ips
-              
-           endif
-           
-        endif ! particle set end
-        
+
         ! output
         if( count_out==0)then
            ! procedure before output
            call set_particle_data(ipu)
-           
+
            if(count_pset == it_skip_pset)then
               call sample_compare(rfl, ipu, np_set, job, it,time)
            endif
-           
+
         endif
-        
-        vlx_b(:,:,:,:) = vlx(:,:,:,:)
-        vly_b(:,:,:,:) = vly(:,:,:,:)
-        vlz_b(:,:,:,:) = vlz(:,:,:,:)
-        
-        np_evolve = sum(flag_evol(:))
-        write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
-        
-        if((     mode_backward .and. (count_out==0 .or. first))   .or. &
-           (.not.mode_backward .and. (count_out==0 .or. first))   )then
-           
+
+
+        if(count_out==0 .or. first)then
+
            ! write(str1,'(i6.6)') ittot
            ! open (11,file=trim(dir_out) // "/position_"//trim(str1)//".dat",status="replace")
            ! write(11,'("# ",99es12.4)') time, sum(dm_p(1:ipu))
@@ -741,7 +690,7 @@ program main
            !    endif
            ! enddo
            ! close(11)
-           
+
            if    (it-it_skip==0)then
               count_skip = 0
            elseif(it-it_skip< 0)then
@@ -753,11 +702,67 @@ program main
            write(str1,'(i3.3)') job
            write(str2,'(i6.6)') it
            fn = trim(dir_out) // "/data_"//trim(str1)//"_"//trim(str2)//".h5"
-           call save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,filename(job))
-           
+           call save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_data3d(job))
+
+        endif
+                
+        
+        if(first)then
+           dt = 0.d0
+        else
+           dt = time - time_prv
         endif
         
-        if( mode_backward.and. count_out==0 )then
+        ! evolve particles
+        substep_max = 0
+        !call evolution_particle_3D(ipu,time,time_prv,substep_max)
+        
+        !vlx_b(:,:,:,:) = vlx(:,:,:,:)
+        !vly_b(:,:,:,:) = vly(:,:,:,:)
+        !vlz_b(:,:,:,:) = vlz(:,:,:,:)
+
+        ! initialize
+        t_p(1:ipu) = time
+        
+        it_v_1 = it*2-2
+        it_v_2 = it*2-3
+        do it_v=it_v_1,it_v_2,step
+           call recursive_evolution(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id)
+        enddo
+        
+        np_evolve = sum(flag_evol(:))
+        write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+
+        !call h5fclose_f(famr_id, error)
+        !stop
+        
+        ! tasks done at the timesteps in which all the levels are in the same timeslice
+
+        if(.not.first)then
+
+           if(.not.mode_volbased .and. count_pset == 0 )then
+
+              if(ips+n_points>np)then
+                 call reallocate_particle_data(np,ips+n_points)
+                 np = ips+n_points
+                 write(6,*) "np reset to", np
+              endif
+
+              call set_new_particle(ips,rfl,dt,v_average,it_skip,it_skip_out,it_skip_pset,m_max,m_min,m_average,v_max,v_min,np_set)
+
+              !itt_pset_next = ittot - it_skip_pset
+              count_pset = it_skip_pset
+              write(6,'("# of particles set = ",i5,", v/c(max,min,ave) = ",3es12.4,", m(max,min,ave) = ",3es12.4,". Next: dt (s), skip = ",es12.4,i5)') np_set, v_max,v_min,v_average, m_max,m_min,m_average, dt*dble(it_skip_pset), it_skip_pset
+
+              write(unum,'(2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(dm_p(1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
+
+              ipu = ips
+
+           endif
+        endif
+
+
+        if( mode_backward .and. count_out==0 )then
 
            do ip=1,ipu
               if(flag_evol(ip)==1.and. &
@@ -765,19 +770,18 @@ program main
                    ! tem_p(ip,ittot)>5.d0.or. &
                    ! ittot==itt_min.or. &
                    time*1.d3<tms_end) )then
-                 
+
                  flag_evol(ip) = 0
-                 
+
               endif
            enddo
-           
+
         endif
 
-        
         if(.not.mode_backward .and. count_out==0)then
 
            do ip = 1,ipu
-              
+
               if(flag_evol(ip)==1.and. &
                    ( &
                    ! tem_p(ip,ittot)>5.d0.or. &
@@ -785,39 +789,44 @@ program main
                    sqrt(x_p(ip)**2+y_p(ip)**2+z_p(ip)**2)>rfl&
                    ! time*1.d3>tms_end &
                    ))then
-                 
+
                  flag_evol(ip) = 0
-                 
+
               endif
            enddo
-           
+
         endif
         
-        if(sum(flag_evol(:))==0)goto 100
-
+        if(mode_volbased .and. sum(flag_evol(:))==0) goto 100
+           
         if(first) first = .false.
         if(count_out == 0) count_out = it_skip_out
         
         count_out = count_out - 1
         
         if(.not.mode_volbased) count_pset = count_pset - 1
-     
+        
         it_save = it
+        
      enddo !end of the iteration of this job
-
+     
      close(unum)
 
      call h5fclose_f(file_id, error)
+     call h5fclose_f(famr_id, error)
      
      write(6,'("Output restart data")')
      write(str1,'(i3.3)') job
      fn = trim(dir_out) // "/res_"//trim(str1)//".h5"
-     call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,filename(job))
+     call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,fn_data3d(job))
      
      
   enddo !end of this job
 100 continue
   write(6,'("Tracing finished.")')
+
+  close(nunit_timestep)
+
 
   ! write(6,*) "Output particle data"
   ! do ip = 1,ipu

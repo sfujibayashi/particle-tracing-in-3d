@@ -15,7 +15,7 @@ FCC := h5pcc
 # compiler option
 
 FFLAGS:=-convert big_endian -mcmodel=large -shared-intel -fpic -qopenmp -xCORE-AVX512 -qopt-zmm-usage=high
-# FFLAGS += -O0 -CB -traceback -g -fpe0 -check uninit # -warn unused
+#FFLAGS += -O0 -CB -traceback -g -fpe0 -check uninit # -warn unused
 FFLAGS += -diag-disable=10121 #-z noexecstack #-h ipafrom=vis_fcn.f90:atm_fnc.f90
 FFLAGS += -module $(OBJ_DIR)
 
@@ -42,6 +42,7 @@ module_flux_sample.f90\
 main.f90\
 coorindex3D.f90\
 evolution_particle_3D.f90\
+evolution_particle_3D_levels.f90\
 set_ejecta_inside_3D_divide.f90\
 set_ejecta_uniform.f90\
 recursive_division.f90\
@@ -51,7 +52,8 @@ ascii.f90\
 subroutine_analysis.f90\
 analysis.f90\
 print_data.f90\
-partial_output_hdf.f90
+partial_output_hdf.f90\
+recursive_evolution.f90
 
 
 SRC := $(addprefix $(SRC_DIR), $(SRC))
