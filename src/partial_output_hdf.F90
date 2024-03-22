@@ -22,24 +22,25 @@ subroutine partial_output_hdf(dir_out,job,it,t)
   fn = trim(dir_out)//"/first.h5"
   call h5fcreate_f(fn, H5F_ACC_TRUNC_F, file_id, hdf_err)
   
+  ld_write=ld
 #ifdef STAGGERED
 #ifndef FULL
   ld_write=ld+1
 #endif
 #endif
-    
+  
   jdat = ju-jd+1
   kdat = ku-kd+1
   ldat = lu-ld_write+1
  
 
-  lv=lv_max
-  l=ld+1
-  do k=kd,ku,3
-     do j=jd,ju,3
-        write(99,*) x(j,lv), y(k,lv), qrho(j,k,l,lv)
-     enddo
-  enddo
+  ! lv=lv_max
+  ! l=ld+1
+  ! do k=kd,ku,3
+  !    do j=jd,ju,3
+  !       write(99,*) x(j,lv), y(k,lv), qrho(j,k,l,lv)
+  !    enddo
+  ! enddo
   
   do lv=lv_min,lv_max
      
