@@ -1,4 +1,4 @@
-recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_p,fvel_id,mode_backward,substep_max,ipu,famr_id)
+recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_p,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
   use hdf5
   use simdata3D, only: read_velocity, time_level, vlx, vly, vlz, vlx_b, vly_b, vlz_b, jd,ju,kd,ku,ld,lu
   use particle_data
@@ -6,6 +6,7 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_p,fvel_id
 
   implicit none
   integer,intent(in) :: lv_min,lv_max,lvf1,lvf2
+  integer,intent(in) :: lvf2_limit
   ! level evolved, timeslice of its parent level toward which particles are evolved.
   integer,intent(in) :: lv,it_p,ipu
   logical,intent(in) :: mode_backward
@@ -15,7 +16,7 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_p,fvel_id
   INTEGER(HID_T),intent(in) :: famr_id ! File identifier of output
   
   character(256) :: str1
-  integer :: it_min, it_max, it1, it2, step, it
+  integer :: it_min, it_max, it1, it2, step, it, it_skip
 
   integer :: ip, np_evolved
   logical,allocatable :: evolution_finished(:)
@@ -31,7 +32,8 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_p,fvel_id
      it_max = it_p*2 + 1
   endif
 
-  ! write(6,*) "lv,it_p,it_min,it_max=", lv,it_p,it_min,it_max
+  it_skip = 1
+  ! write(6,*) "lv,it_p,it_min,it_max,it_skip=", lv,it_p,it_min,it_max,it_skip
   
   if(mode_backward)then
      it1 = it_max
@@ -43,7 +45,13 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_p,fvel_id
      step = +1  
   endif
 
-  do it=it1,it2,step
+
+  if(lv>lvf2_limit)then
+     it1=it2
+  endif
+
+
+  do it=it1,it2,step*it_skip
 
      vlx_b(:,:,:,lv) = vlx(:,:,:,lv)
      vly_b(:,:,:,lv) = vly(:,:,:,lv)
@@ -52,6 +60,7 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_p,fvel_id
      
      call read_velocity(fvel_id,it,lv)
      write(nunit_timestep,'("read data",i4,i8,es15.7,99es12.4)') lv, it, time_level(lv),  time_level(lv_min:lv)-time_level(lv_min)
+     ! write(6,'("read data",i4,i8,es15.7,99es12.4)') lv, it, time_level(lv),  time_level(lv_min:lv_max)-time_level(lv_min)
      
      ! block
      !   integer :: j,k,l
@@ -69,9 +78,10 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_p,fvel_id
      ! end block
      
      if(lv<lv_max)then
-        call recursive_evolution(lv+1,lv_min,lv_max,lvf1,lvf2,it,fvel_id, mode_backward, substep_max, ipu, famr_id)
+        call recursive_evolution(lv+1,lv_min,lv_max,lvf1,lvf2,it,fvel_id, mode_backward, substep_max, ipu, famr_id, lvf2_limit)
      endif
-
+     
+     ! np_evolved = 0; substep_max=0; remain(:)=0
      call evolution_particle_3D_levels(ipu,substep_max,lv,lv,np_evolved,evolution_finished)
      write(nunit_timestep,'("evolution done. lv=", i7, ", evolved=", i7, ", substep=", i5, ", remainings=", i7)') lv,np_evolved,substep_max,sum(remain(:))
 

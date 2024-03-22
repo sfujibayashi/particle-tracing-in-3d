@@ -106,7 +106,7 @@ program main
   ! AMR substep
   INTEGER(HID_T) :: fvel_id
   integer :: it_v,it_v_1,it_v_2
-  integer :: lvf1,lvf2
+  integer :: lvf1,lvf2,lvf2_limit
   INTEGER(HID_T) :: famr_id
   call h5open_f (error)
 
@@ -578,6 +578,7 @@ program main
 
        deallocate(nstep_level)
      end block
+     lvf2_limit = lvf2-2
      !
      
      if(job==job_min)then
@@ -632,8 +633,7 @@ program main
         !vlx_b(:,:,:,:) = vlx(:,:,:,:)
         !vly_b(:,:,:,:) = vly(:,:,:,:)
         !vlz_b(:,:,:,:) = vlz(:,:,:,:)
-
-
+        
         ! set particle
         ! set max number of particle at the first step
         if(first)then
@@ -728,11 +728,13 @@ program main
            it_v_1 = it*2-2
            it_v_2 = it*2-3
            do it_v=it_v_1,it_v_2,step
-              call recursive_evolution(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id)
+              call recursive_evolution(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
+              ! stop
            enddo
            
            np_evolve = sum(flag_evol(:))
            write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+           
         endif
 
         !call h5fclose_f(famr_id, error)
