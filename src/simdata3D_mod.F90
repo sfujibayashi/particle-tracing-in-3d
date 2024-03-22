@@ -177,6 +177,11 @@ contains
 #endif
 #endif
 
+
+#ifdef TIMESTEP_DEBUG    
+    return
+#endif
+
     write(6,*)
     write(6,'("setting 3D volume element...")')
     vol3D(:,:,:,:) = 0.d0
@@ -374,8 +379,12 @@ contains
 
     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
     t = dble(tms(1)*time_unit_h5)
-    
     time_level(:) = t
+
+#ifdef TIMESTEP_DEBUG    
+    return
+#endif
+
     
     ldat = (lu-ld+1)
     kdat = (ku-kd+1)
@@ -506,6 +515,10 @@ contains
 
     call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
     time_level(lv) = dble(tms(1)*time_unit_h5)
+
+#ifdef TIMESTEP_DEBUG    
+    return
+#endif
     
     ldat = (lu-ld+1)
     kdat = (ku-kd+1)
