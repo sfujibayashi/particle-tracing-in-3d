@@ -38,7 +38,7 @@ restart="N"
 
 incr_next=1
 
-info=""
+info="skip"
 
 #info="3e8km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
@@ -50,7 +50,8 @@ print("sub info = ",info)
 if info!="":
    info = "_"+info
 
-fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
+fn_eos = "/sakura/ptmp/shofu/EOS/EOS_DD2sekigTim_rho626_temp231_ye061_ierd151_knuc626"; nrho=626; nye=60; ntemp=231
+#fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
 #fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
 #fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
 
