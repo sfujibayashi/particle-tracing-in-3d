@@ -619,7 +619,20 @@ program main
         ! read profile
         call read_simdata(file_id,it,time)
         call set_secondary
-        write(6,*) "read data for all levels from raw3d.h5",it,time
+        ! write(6,*) "read data for all levels from raw3d.h5",it,time
+        
+        if(first)then
+           dt = 0.d0
+        else
+           dt = time - time_prv
+        endif
+        ! ! evolve particles if only raw3d is used.
+
+        !call evolution_particle_3D(ipu,time,time_prv,substep_max)
+        !vlx_b(:,:,:,:) = vlx(:,:,:,:)
+        !vly_b(:,:,:,:) = vly(:,:,:,:)
+        !vlz_b(:,:,:,:) = vlz(:,:,:,:)
+
 
         ! set particle
         ! set max number of particle at the first step
@@ -643,7 +656,7 @@ program main
 
            ips=npv
            ipu=ips
-
+           
            !call partial_output_hdf(dir_out, job, it, time)
            !stop
 
@@ -705,33 +718,22 @@ program main
            call save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_data3d(job))
 
         endif
-                
-        
-        if(first)then
-           dt = 0.d0
-        else
-           dt = time - time_prv
-        endif
-        
-        ! evolve particles
-        substep_max = 0
-        !call evolution_particle_3D(ipu,time,time_prv,substep_max)
-        
-        !vlx_b(:,:,:,:) = vlx(:,:,:,:)
-        !vly_b(:,:,:,:) = vly(:,:,:,:)
-        !vlz_b(:,:,:,:) = vlz(:,:,:,:)
 
-        ! initialize
-        t_p(1:ipu) = time
-        
-        it_v_1 = it*2-2
-        it_v_2 = it*2-3
-        do it_v=it_v_1,it_v_2,step
-           call recursive_evolution(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id)
-        enddo
-        
-        np_evolve = sum(flag_evol(:))
-        write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+        if(it>1)then
+           ! ! evolution if AMR-substep is used
+           ! initialize
+           substep_max = 0
+           t_p(1:ipu) = time
+           
+           it_v_1 = it*2-2
+           it_v_2 = it*2-3
+           do it_v=it_v_1,it_v_2,step
+              call recursive_evolution(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id)
+           enddo
+           
+           np_evolve = sum(flag_evol(:))
+           write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+        endif
 
         !call h5fclose_f(famr_id, error)
         !stop
