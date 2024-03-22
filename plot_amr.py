@@ -81,7 +81,7 @@ for level in list_levels:
     y.append(np.asarray(f1['/%s/y' % (level)]))
     z.append(np.asarray(f1['/%s/z' % (level)]))
 
-    list_obj=list(f1["/%s" % (level)].keys())
+    list_obj=natural_sort(list(f1["/%s" % (level)].keys()))
 
     list_obj.remove("x")
     list_obj.remove("y")
@@ -98,7 +98,9 @@ lv_max = n_lv
 cmap_lv = cm.get_cmap('jet', 256)
 norm_lv = colors.Normalize(vmin=1,vmax=lv_max)
 
-for islice in range(nstep_tot):
+skip_slice = 16
+
+for islice in range(0,nstep_tot,skip_slice):
     
     fig_xy = plt.figure(figsize=(size_fig, size_fig*0.95))
     ax_xy = fig_xy.add_subplot(111)
@@ -158,13 +160,13 @@ for islice in range(nstep_tot):
             idat = int(islice/nskip_lv)
             group = list_data_lv[ilv][idat]
             group = "/level%d/" % (lv)+group
-
-            t = np.asarray(f1[group+"/time"])[0]            
+            
+            t = np.asarray(f1[group+"/time"])[0]
             Nevolved = np.asarray(f1[group+"/Nevolved"])[0]
 
             if Nevolved>0:
                 text += "%d " % (lv)
-                print(lv,idat,t,Nevolved)
+                print(lv,idat,group,t,Nevolved)
                 x_p = np.asarray(f1[group+"/x_evolved"])
                 y_p = np.asarray(f1[group+"/y_evolved"])
                 z_p = np.asarray(f1[group+"/z_evolved"])
@@ -176,11 +178,11 @@ for islice in range(nstep_tot):
         #
     #print(text)
     ax_xy.text(1.0, 1.02, "$t=$%13.10f s" % (t), ha="right", va="top", transform=ax_xy.transAxes )
-    ax_xy.text(1.0, 0.00, text, ha="left", va="top", transform=ax_xy.transAxes )
+    ax_xy.text(0.0, 1.00, text, ha="left", va="top", transform=ax_xy.transAxes )
     ax_yz.text(1.0, 1.02, "$t=$%13.10f s" % (t), ha="right", va="top", transform=ax_yz.transAxes )
-    ax_yz.text(1.0, 0.00, text, ha="left", va="top", transform=ax_xy.transAxes )
+    ax_yz.text(0.0, 1.00, text, ha="left", va="top", transform=ax_xy.transAxes )
     ax_zx.text(1.0, 1.02, "$t=$%13.10f s" % (t), ha="right", va="top", transform=ax_zx.transAxes )
-    ax_zx.text(1.0, 0.00, text, ha="left", va="top", transform=ax_xy.transAxes )
+    ax_zx.text(0.0, 1.00, text, ha="left", va="top", transform=ax_xy.transAxes )
     #
     fn = dir_out + "/xy_%09d.png" % (islice)
     fig_xy.savefig(fn)
@@ -194,5 +196,6 @@ for islice in range(nstep_tot):
     fig_zx.savefig(fn)
     plt.close(fig_zx)
 
-    sys.exit()
+    #if islice==2:
+    #    sys.exit()
     
