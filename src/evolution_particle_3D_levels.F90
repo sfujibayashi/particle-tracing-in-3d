@@ -27,6 +27,10 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
   logical,allocatable :: evolved_in_this_level(:)
   ! integer :: np_evolved
 
+  integer :: ip_test
+  
+  ip_test = 50
+
   ! dt = time-time_prv
 
   allocate(evolved_in_this_level(ipu))
@@ -58,22 +62,20 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
         np_evolved = np_evolved + 1
      endif
   enddo
-  ! write(6,*) np_evolved
-  
 
   evolution_finished(:) = .false.
   remain(:) = 0
   
   substep_max = 0
   !$omp parallel default(none) &
-  !$omp shared(ipu,flag_evol,dt,x_p,y_p,z_p,x,y,z,vlx_b,vly_b,vlz_b,vlx,vly,vlz,ju,jd,ku,kd,lu,ld,lv_min,&
-  !$omp   lv_evolved_min,lv_evolved_max,t_p,time_level,remain,evolved_in_this_level,evolution_finished) &
+  !$omp shared(ipu,flag_evol,x_p,y_p,z_p,x,y,z,vlx_b,vly_b,vlz_b,vlx,vly,vlz,ju,jd,ku,kd,lu,ld,lv_min,&
+  !$omp   lv_evolved_min,lv_evolved_max,t_p,time_level,remain,evolved_in_this_level,evolution_finished,ip_test) &
   !$omp private(t,xtmp,ytmp,ztmp,j1,k1,l1,lv,j,k,l,x1,x0,y1,y0,z1,z0,t1,t0, &
   !$omp   vxtmp,vytmp,vztmp,dx,dy,dz,dt_p,nt_sub,dtt,xm,ym,zm,vxm,vym,vzm,xp,yp,zp, &
   !$omp   xc,yc,zc,vxc,vyc,vzc,vxdx,vxdy,vxdz,vydx,vydy,vydz,vzdx,vzdy,vzdz, &
   !$omp   fx,fy,fz,fxx,fxy,fxz,fyx,fyy,fyz,fzx,fzy,fzz,det,fixx,fixy,fixz,fiyx,fiyy,fiyz,fizx,fizy,fizz, &
   !$omp   dxc,dyc,dzc,&
-  !$omp   lv_p,dxdt, dydt, dzdt, dtb, dt_xb, dt_yb, dt_zb) &
+  !$omp   lv_p,dxdt, dydt, dzdt, dtb, dt_xb, dt_yb, dt_zb, dt) &
   !$omp reduction(max:substep_max)
   !$omp do
   do ip=1,ipu
@@ -86,7 +88,7 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
 
         call coorindex3D(xtmp,ytmp,ztmp,j1,k1,l1,lv_p)
         ! if(lv_p < lv_evolved_min .or. lv_evolved_max < lv_p) goto 11
-
+        
         lv = lv_p
         dt = time_level(lv)-t
         
@@ -134,6 +136,16 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
                    dz/(abs(vztmp)+1.d-20)/v_uni  )
 
         nt_sub = max(1,int(2.d0*abs(dt)/dt_p))
+
+        ! write(1000+ip,*)
+        ! write(1000+ip,'(3i4,99es12.4)') ip,lv_p, nt_sub, t, xtmp,ytmp,ztmp, time_level(lv),dt
+        ! write(1000+ip,*)
+        
+        ! if(ip==ip_test)then
+        !    write(6,*)
+        !    write(6,'(3i4,99es12.4)') ip,lv_p, nt_sub, t, xtmp,ytmp,ztmp, time_level(lv),dt
+        !    write(6,*)
+        ! endif
         
         !write(6,*) ip, dt_p, dt, nt_sub
 
@@ -409,6 +421,11 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
               dxc = -(fixx*fx +fixy*fy +fixz*fz)/det
               dyc = -(fiyx*fx +fiyy*fy +fiyz*fz)/det
               dzc = -(fizx*fx +fizy*fy +fizz*fz)/det
+              
+              ! if(ip==ip_test.or.abs(dxc/xc)>1d0.or.abs(dyc/yc)>1d0.or.abs(dzc/zc)>1d0)then
+              !    write(6,'(2i4,99es12.4)') ip, itr, x1,y1,z1,t1,dxc,dyc,dzc, xc,yc,zc
+              ! endif
+              ! write(1000+ip,'(2i4,99es12.4)') ip, itr, x1,y1,z1,t1,dxc,dyc,dzc, xc,yc,zc
 
               if(abs(dxc) < 1.d-8*abs(xc) .and. &
                  abs(dyc) < 1.d-8*abs(yc) .and. &
@@ -425,7 +442,7 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
 #else
               zc = max(min(zc,z(lu,lv_min)),0.d0)
 #endif
-
+              
            enddo
 10         continue
            
