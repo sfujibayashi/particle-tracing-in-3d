@@ -41,6 +41,8 @@ program main
   integer :: incr_next
   ! whether reading file for pset timing
   logical :: read_pset_file = .false.
+  ! whether vel3d.h5 is used
+  logical :: flag_amr_step
 
   integer :: step
 
@@ -140,6 +142,8 @@ program main
   read(10,*);read(10,'(a)') fn_eos
   read(10,*);read(10,*) nrho_in, nye_in, ntemp_in
   read(10,*);read(10,*) incr_next
+  read(10,*);read(10,*) flag_amr_step
+  read(10,*);read(10,*) lvf2_limit
 
   read(10,*);read(10,*) restart
   if(restart=="Y")then
@@ -502,85 +506,88 @@ program main
      fn = fn_data3d(job)
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 
-     call h5fopen_f(fn_vel3d(job), H5F_ACC_RDONLY_F, fvel_id, error)
+     if(flag_amr_step)then
+        call h5fopen_f(fn_vel3d(job), H5F_ACC_RDONLY_F, fvel_id, error)
 
-     write(str1,'(i10)') job
-     fn = trim(dir_out)//"/amr_steps_"//trim(adjustl(str1))//".h5"
-     create_amr_step_file:block
-       integer :: hdf_err
-       integer :: lv
-       integer :: jdat,ldat,kdat
-       INTEGER(HID_T) :: group_id
+        write(str1,'(i10)') job
+        fn = trim(dir_out)//"/amr_steps_"//trim(adjustl(str1))//".h5"
+        create_amr_step_file:block
+          integer :: hdf_err
+          integer :: lv
+          integer :: jdat,ldat,kdat
+          INTEGER(HID_T) :: group_id
 
-       jdat = ju-jd+1
-       kdat = ku-kd+1
-       ldat = lu-ld+1
+          jdat = ju-jd+1
+          kdat = ku-kd+1
+          ldat = lu-ld+1
 
-       call h5fcreate_f(fn, H5F_ACC_TRUNC_F, famr_id, hdf_err)
-       do lv=lv_min,lv_max
+          call h5fcreate_f(fn, H5F_ACC_TRUNC_F, famr_id, hdf_err)
+          do lv=lv_min,lv_max
 
-          write(str1,'(i10)') lv
-          call h5gcreate_f(famr_id, "level"//trim(adjustl(str1)) , group_id, hdf_err)
+             write(str1,'(i10)') lv
+             call h5gcreate_f(famr_id, "level"//trim(adjustl(str1)) , group_id, hdf_err)
 
-          dims1(1) = jdat
-          call h5ltmake_dataset_float_f(group_id, "x", 1, dims1, x(:,lv), hdf_err)
-          dims1(1) = kdat
-          call h5ltmake_dataset_float_f(group_id, "y", 1, dims1, y(:,lv), hdf_err)
-          dims1(1) = ldat
-          call h5ltmake_dataset_float_f(group_id, "z", 1, dims1, z(:,lv), hdf_err)
-          
-          call h5gclose_f(group_id, hdf_err)
-       enddo
-     end block create_amr_step_file
-  
+             dims1(1) = jdat
+             call h5ltmake_dataset_float_f(group_id, "x", 1, dims1, x(:,lv), hdf_err)
+             dims1(1) = kdat
+             call h5ltmake_dataset_float_f(group_id, "y", 1, dims1, y(:,lv), hdf_err)
+             dims1(1) = ldat
+             call h5ltmake_dataset_float_f(group_id, "z", 1, dims1, z(:,lv), hdf_err)
 
-     ! count the steps in each level and calculate lvf1,lvf2
-     block
-       integer,allocatable :: nstep_level(:)
-       integer :: lv
+             call h5gclose_f(group_id, hdf_err)
+          enddo
+        end block create_amr_step_file
+        
+        
+        ! count the steps in each level and calculate lvf1,lvf2
+        block
+          integer,allocatable :: nstep_level(:)
+          integer :: lv
 
-       allocate(nstep_level(lv_min:lv_max))
-  
-       write(6,*)
-       
-       
-       do lv=lv_min,lv_max
-          write(str2,'(i10)') lv
-          
-          it = 0
-          setstep_level: do
-             it = it + 1
-             write(str1,'(i10)') it
-             call h5lexists_f(fvel_id,"/level"//trim(adjustl(str2))//"/data"//trim(adjustl(str1)),link_exists,error)
-             if(.not. link_exists)then
-                nstep_level(lv) = it - 1
-                exit setstep_level
+          allocate(nstep_level(lv_min:lv_max))
+
+          write(6,*)
+
+
+          do lv=lv_min,lv_max
+             write(str2,'(i10)') lv
+
+             it = 0
+             setstep_level: do
+                it = it + 1
+                write(str1,'(i10)') it
+                call h5lexists_f(fvel_id,"/level"//trim(adjustl(str2))//"/data"//trim(adjustl(str1)),link_exists,error)
+                if(.not. link_exists)then
+                   nstep_level(lv) = it - 1
+                   exit setstep_level
+                endif
+             enddo setstep_level
+             write(6,*) lv, nstep_level(lv)
+          enddo
+
+          search_lvf1:do lv=lv_min,lv_max-1
+             if(nstep_level(lv) < nstep_level(lv+1))then
+                lvf1 = lv
+                exit search_lvf1
              endif
-          enddo setstep_level
-          write(6,*) lv, nstep_level(lv)
-       enddo
+          enddo search_lvf1
 
-       search_lvf1:do lv=lv_min,lv_max-1
-          if(nstep_level(lv) < nstep_level(lv+1))then
-             lvf1 = lv
-             exit search_lvf1
-          endif
-       enddo search_lvf1
+          search_lvf2:do lv=lv_max,lv_min,-1
+             if(nstep_level(lv) > nstep_level(lv-1))then
+                lvf2 = lv
+                exit search_lvf2
+             endif
+          enddo search_lvf2
 
-       search_lvf2:do lv=lv_max,lv_min,-1
-          if(nstep_level(lv) > nstep_level(lv-1))then
-             lvf2 = lv
-             exit search_lvf2
-          endif
-       enddo search_lvf2
-       
-       write(6,*) "lvf1,lvf2 = ",lvf1,lvf2
+          write(6,*) "lvf1,lvf2 = ",lvf1,lvf2
+          write(6,*) "lvf2_limit = ",lvf2_limit
 
-       deallocate(nstep_level)
-     end block
-     lvf2_limit = lvf2-2
-     !
-     
+          deallocate(nstep_level)
+        end block
+        !lvf2_limit = lvf2-4
+        !
+     endif
+
      if(job==job_min)then
         it0 = 0
      else
@@ -629,11 +636,13 @@ program main
         endif
         ! ! evolve particles if only raw3d is used.
 
-        !call evolution_particle_3D(ipu,time,time_prv,substep_max)
-        !vlx_b(:,:,:,:) = vlx(:,:,:,:)
-        !vly_b(:,:,:,:) = vly(:,:,:,:)
-        !vlz_b(:,:,:,:) = vlz(:,:,:,:)
-        
+        if(.not.flag_amr_step)then
+           call evolution_particle_3D(ipu,time,time_prv,substep_max)
+           vlx_b(:,:,:,:) = vlx(:,:,:,:)
+           vly_b(:,:,:,:) = vly(:,:,:,:)
+           vlz_b(:,:,:,:) = vlz(:,:,:,:)
+        endif
+
         ! set particle
         ! set max number of particle at the first step
         if(first)then
@@ -719,24 +728,25 @@ program main
 
         endif
 
-        if(it>1)then
-           ! ! evolution if AMR-substep is used
-           ! initialize
-           substep_max = 0
-           t_p(1:ipu) = time
-           
-           it_v_1 = it*2-2
-           it_v_2 = it*2-3
-           do it_v=it_v_1,it_v_2,step
-              call recursive_evolution(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
-              ! stop
-           enddo
-           
-           np_evolve = sum(flag_evol(:))
-           write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
-           
-        endif
+        if(flag_amr_step)then
+           if(it>1)then
+              ! ! evolution if AMR-substep is used
+              ! initialize
+              substep_max = 0
+              t_p(1:ipu) = time
 
+              it_v_1 = it*2-2
+              it_v_2 = it*2-3
+              do it_v=it_v_1,it_v_2,step
+                 call recursive_evolution(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
+
+              enddo
+
+              np_evolve = sum(flag_evol(:))
+           endif
+        endif
+        
+        write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
         !call h5fclose_f(famr_id, error)
         !stop
         
@@ -817,8 +827,12 @@ program main
      close(unum)
 
      call h5fclose_f(file_id, error)
-     call h5fclose_f(famr_id, error)
      
+     if(flag_amr_step)then
+        call h5fclose_f(fvel_id, error)
+        call h5fclose_f(famr_id, error)
+     endif
+
      write(6,'("Output restart data")')
      write(str1,'(i3.3)') job
      fn = trim(dir_out) // "/res_"//trim(str1)//".h5"
