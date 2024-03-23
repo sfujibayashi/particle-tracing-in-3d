@@ -83,7 +83,7 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_p,fvel_id
      
      ! np_evolved = 0; substep_max=0; remain(:)=0
      call evolution_particle_3D_levels(ipu,substep_max,lv,lv,np_evolved,evolution_finished)
-     write(nunit_timestep,'("evolution done. lv=", i7, ", evolved=", i7, ", substep=", i5, ", remainings=", i7)') lv,np_evolved,substep_max,sum(remain(:))
+     write(nunit_timestep,'("evolution done. lv=", i7, ", time=",es15.7, ", evolved=", i7, ", substep=", i5, ", remainings=", i7)') lv,time_level(lv), np_evolved,substep_max,sum(remain(:))
 
      
      output:block
