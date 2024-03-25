@@ -107,9 +107,10 @@ program main
 
   ! AMR substep
   INTEGER(HID_T) :: fvel_id
-  integer :: it_v,it_v_1,it_v_2
+  integer :: it_v,it_v_1,it_v_2, it_offset
   integer :: lvf1,lvf2,lvf2_limit
   INTEGER(HID_T) :: famr_id
+  real(8) :: time_v_1, time_v_2
   call h5open_f (error)
 
 
@@ -179,9 +180,9 @@ program main
   write(*,'("data read from  : ",a)') trim(dir_read)
   write(*,'("result saved in : ",a)') trim(dir_out)
   
-  ! call ascii(model,dir_out,it_skip_out)
-  ! call tr_analysis(model,dir_out)
-  ! stop
+  !call ascii(model,dir_out,it_skip_out)
+  !call tr_analysis(model,dir_out)
+  !stop
 
   
   write(6,'("it_skip, it_skip_out      : ",2i5)') it_skip,it_skip_out
@@ -275,12 +276,12 @@ program main
      tms(:)=0.d0
      write(str2,'(i10)') 1
      call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-     t_min = tms(1)*time_unit_h5
+     t_min = dble(tms(1)*time_unit_h5)
      write(str2,'(i10)') nstep_job(job)
      call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-     t_max = tms(1)*time_unit_h5
+     t_max = dble(tms(1)*time_unit_h5)
 
-     write(6,'("job, steps(lv=1) in the job, time(min,max) = ",2i4,2es12.4)') job,nstep_job(job),t_min,t_max
+     write(6,'("job, steps in the job, time(min,max) = ",2i4,2es12.4)') job,nstep_job(job),t_min,t_max
      !tsta_job(job) = t_min
      !tend_job(job) = t_max
 
@@ -582,6 +583,21 @@ program main
           write(6,*) "lvf1,lvf2 = ",lvf1,lvf2
           write(6,*) "lvf2_limit = ",lvf2_limit
 
+          ! check whether the last snapshot of raw3d.h5 is synchronized with that of vel3d.h5
+          ! assumes raw3d data is output every two steps of the lowest level of vel3d
+
+          it_v_1 = nstep_level(lv_min)
+          call read_time_in_velocity_data(fvel_id,it_v,lv_min,time_v_1)
+          it_v_2 = nstep_level(lv_min)-1
+          call read_time_in_velocity_data(fvel_id,it_v,lv_min,time_v_2)
+
+          if( abs(time_v_1-t_max) < abs(time_v_2-t_max) )then
+             it_offset = 0
+          else
+             it_offset = 1
+          endif
+          write(6,*) it_offset, t_max, time_v_1, time_v_2
+          
           deallocate(nstep_level)
         end block
         !lvf2_limit = lvf2-4
@@ -735,8 +751,8 @@ program main
               substep_max = 0
               t_p(1:ipu) = time
 
-              it_v_1 = it*2-2
-              it_v_2 = it*2-3
+              it_v_1 = it*2 - 1 - it_offset
+              it_v_2 = it*2 - 2 - it_offset
               do it_v=it_v_1,it_v_2,step
                  call recursive_evolution(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
 

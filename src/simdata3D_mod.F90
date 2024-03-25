@@ -486,6 +486,29 @@ contains
 
   end subroutine zboundary
 
+  subroutine read_time_in_velocity_data(file_id,it,lv,t)
+    use hdf5
+    use h5lt
+    use unit
+    
+    INTEGER(HID_T),intent(in) :: file_id
+    integer,intent(in)  :: it, lv
+    real(8),intent(out) :: t
+    
+    integer(HSIZE_T) :: dims1(1)
+    integer :: error
+    
+    character(10) :: str1,str2
+
+    write(str1,'(i10)') lv
+    write(str2,'(i10)') it
+    
+    dims1(1) = 1
+    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+    t = dble(tms(1)*time_unit_h5)
+    
+  end subroutine read_time_in_velocity_data
+
   subroutine read_velocity(file_id,it,lv)
     use hdf5
     use h5lt
@@ -510,9 +533,11 @@ contains
 #endif
 #endif
 
+
     write(str1,'(i10)') lv
     write(str2,'(i10)') it
 
+    dims1(1) = 1
     call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
     time_level(lv) = dble(tms(1)*time_unit_h5)
 
