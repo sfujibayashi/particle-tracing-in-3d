@@ -486,6 +486,79 @@ contains
 
   end subroutine zboundary
 
+  subroutine find_substeps(fvel_id,t_max,lvf1,lvf2,it_offset)
+    use hdf5
+    
+    INTEGER(HID_T),intent(in) :: fvel_id
+    real(8),intent(in) :: t_max
+    integer,intent(out) :: lvf1,lvf2,it_offset
+    
+    integer,allocatable :: nstep_level(:)
+    integer :: lv
+    integer :: it,it_v_1,it_v_2
+    logical :: link_exists
+    real(8) :: time_v_1, time_v_2
+
+    character(200) :: str1,str2
+    integer :: hdf_err
+
+    allocate(nstep_level(lv_min:lv_max))
+
+    write(6,*)
+
+    do lv=lv_min,lv_max
+       write(str2,'(i10)') lv
+
+       it = 0
+       setstep_level: do
+          it = it + 1
+          write(str1,'(i10)') it
+          call h5lexists_f(fvel_id,"/level"//trim(adjustl(str2))//"/data"//trim(adjustl(str1)),link_exists,hdf_err)
+          if(.not. link_exists)then
+             nstep_level(lv) = it - 1
+             exit setstep_level
+          endif
+       enddo setstep_level
+       write(6,*) lv, nstep_level(lv)
+    enddo
+
+    search_lvf1:do lv=lv_min,lv_max-1
+       if(nstep_level(lv) < nstep_level(lv+1))then
+          lvf1 = lv
+          exit search_lvf1
+       endif
+    enddo search_lvf1
+
+    search_lvf2:do lv=lv_max,lv_min,-1
+       if(nstep_level(lv) > nstep_level(lv-1))then
+          lvf2 = lv
+          exit search_lvf2
+       endif
+    enddo search_lvf2
+
+    write(6,*) "lvf1,lvf2 = ",lvf1,lvf2
+
+
+    ! check whether the last snapshot of raw3d.h5 is synchronized with that of vel3d.h5
+    ! assumes raw3d data is output every two steps of the lowest level of vel3d
+
+    it_v_1 = nstep_level(lv_min)
+    call read_time_in_velocity_data(fvel_id,it_v_1,lv_min,time_v_1)
+    it_v_2 = nstep_level(lv_min)-1
+    call read_time_in_velocity_data(fvel_id,it_v_2,lv_min,time_v_2)
+
+    if( abs(time_v_1-t_max) < abs(time_v_2-t_max) )then
+       it_offset = 0
+    else
+       it_offset = 1
+    endif
+    write(6,*) "initial offset: ", it_offset
+
+    deallocate(nstep_level)
+
+    
+  end subroutine find_substeps
+
   subroutine read_time_in_velocity_data(file_id,it,lv,t)
     use hdf5
     use h5lt
@@ -496,15 +569,17 @@ contains
     real(8),intent(out) :: t
     
     integer(HSIZE_T) :: dims1(1)
-    integer :: error
+    integer :: hdf_err
     
     character(10) :: str1,str2
 
     write(str1,'(i10)') lv
     write(str2,'(i10)') it
     
+    ! write(6,'(a)') "/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/time"
+    
     dims1(1) = 1
-    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/time",tms,dims1,hdf_err)
     t = dble(tms(1)*time_unit_h5)
     
   end subroutine read_time_in_velocity_data
@@ -518,7 +593,7 @@ contains
     integer,intent(in)  :: it,lv
     ! real(8),intent(out) :: t
     integer :: sum_err
-    integer :: error
+    integer :: hdf_err
     integer(HSIZE_T) :: dims1(1),dims3(3)
     real(4),allocatable :: buf3d_real4_1(:,:,:), buf3d_real4_2(:,:,:), buf3d_real4_3(:,:,:)
     
@@ -538,10 +613,10 @@ contains
     write(str2,'(i10)') it
 
     dims1(1) = 1
-    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/time",tms,dims1,hdf_err)
     time_level(lv) = dble(tms(1)*time_unit_h5)
 
-#ifdef TIMESTEP_DEBUG    
+#ifdef TIMESTEP_DEBUG
     return
 #endif
     
@@ -556,14 +631,14 @@ contains
     allocate(buf3d_real4_1(jdat,kdat,ldat), buf3d_real4_2(jdat,kdat,ldat), buf3d_real4_3(jdat,kdat,ldat))
     
     sum_err = 0
-    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vx", buf3d_real4_1, dims3, error); sum_err = sum_err + error
+    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vx", buf3d_real4_1, dims3, hdf_err); sum_err = sum_err + abs(hdf_err)
     vlx (:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)/vel_unit_h5
-    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vy", buf3d_real4_2, dims3, error); sum_err = sum_err + error
+    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vy", buf3d_real4_2, dims3, hdf_err); sum_err = sum_err + abs(hdf_err)
     vly (:,:,ld_read:lu,lv) = buf3d_real4_2(:,:,:)/vel_unit_h5
-    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz", buf3d_real4_3, dims3, error); sum_err = sum_err + error
+    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz", buf3d_real4_3, dims3, hdf_err); sum_err = sum_err + abs(hdf_err)
     vlz (:,:,ld_read:lu,lv) = buf3d_real4_3(:,:,:)/vel_unit_h5
     
-    if(sum_err>0)then
+    if(sum_err/=0)then
        write(6,*) "Error in reading hdf5 file. STOP.",lv,sum_err
        stop
     endif
