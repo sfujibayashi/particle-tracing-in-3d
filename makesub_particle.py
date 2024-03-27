@@ -37,8 +37,9 @@ volumebased="T"
 restart="N"
 
 incr_next=1
+lvf2_limit = 14
 
-info="skip"
+info="test"
 
 #info="3e8km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
@@ -84,7 +85,7 @@ compf="h5pfc"
 compc="h5pcc"
 option="-convert big_endian -mcmodel=large -shared-intel -fpic -qopenmp -xCORE-AVX512 -qopt-zmm-usage=high"
 
-prog="bin/ptr.out"
+prog="ptr.out"
 
 # fn_makefile = "makefile_raw"
 # with open(fn_makefile,mode="r") as f:
@@ -127,7 +128,8 @@ else:
     os.system(cmd)
 
 #dir_read = work_dir + "/" + model + "/hdf5"
-dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
+#dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
+dir_read = "/sakura/ptmp/kiuchikn/" + model + "/hdf5_"
 #dir_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS/hdf5_"
 
 if dir_exists:
@@ -184,6 +186,10 @@ with open(dir_out + "/parameters.dat",mode="w") as f:
     f.write("%i %i %i\n" % (nrho,nye,ntemp))
     f.write("# incrementation in the next job:\n")
     f.write("%i\n" % (incr_next))
+    f.write("# Use vel3d.h5?:\n")
+    f.write("%s\n" % (True))
+    f.write("# Don't use the finer time step of the level higher than this:\n")
+    f.write("%d\n" % (lvf2_limit))
 
     f.write("# Restart flag:\n")
     f.write("%s\n" % (restart))
