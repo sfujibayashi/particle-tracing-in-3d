@@ -426,11 +426,33 @@ program main
 
      ips = ipu
      
-     fn = fn_read
-     call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
+
 !!! read sim data for the previous-step velocity
-     call read_simdata(file_id,it_prv,time)
-     call h5fclose_f(file_id, error)
+     if(flag_amr_step)then
+        
+        call h5fopen_f(fn_read, H5F_ACC_RDONLY_F, fvel_id, error)
+        call find_substeps(fvel_id,t_max,lvf1,lvf2,it_offset)
+        block
+          integer :: lv
+          do lv=lv_min,lv_max
+             if(lv>lvf2_limit)then
+                it_v = 1*2**(lv-lvf2_limit)
+             else
+                it_v = 1
+             endif
+             call read_velocity(fvel_id,it_v,lv)
+          enddo
+          write(6,'(99es15.7)') time_level(:)
+        end block
+        call h5fclose_f(fvel_id, error)
+
+     else
+
+        call h5fopen_f(fn_read, H5F_ACC_RDONLY_F, file_id, error)
+        call read_simdata(file_id,it_prv,time)
+        call h5fclose_f(file_id, error)
+        
+     endif
      
      vlx_b(:,:,:,:) = vlx(:,:,:,:)
      vly_b(:,:,:,:) = vly(:,:,:,:)
@@ -455,10 +477,7 @@ program main
      stop
   endif
 
-  fn = trim(dir_out)//"/timesteps.dat"
-  open(newunit=nunit_timestep, file=fn, status="replace", action="write")
-
-
+  
   write(*,'("Tracing start...")')
   call cpu_time(time0)
 
@@ -504,7 +523,7 @@ program main
      !    count_pset = 0
      !    call h5fcreate_f(fn, H5F_ACC_TRUNC_F, file_pset_id, error)
      ! endif
-
+     
      fn = fn_data3d(job)
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 
@@ -543,6 +562,10 @@ program main
         call find_substeps(fvel_id,t_max,lvf1,lvf2,it_offset)
         write(6,*) "lvf2_limit = ",lvf2_limit
         
+        write(str1,'(i3.3)') job
+        fn = trim(dir_out)//"/timesteps_"//trim(str1)//".dat"
+        open(newunit=nunit_timestep, file=fn, status="replace", action="write")
+
      endif
 
      if(job==job_min)then
@@ -578,7 +601,39 @@ program main
      open(newunit=unum,file=fn,status="replace",action="write")
      
      do it = it1, it2, step*it_skip
-           
+
+        if(flag_amr_step)then
+           if(.not.first.and.it==it1.and.it_offset==1)then
+
+              block
+                integer :: lv
+                logical,allocatable :: evolution_finished(:)
+                
+                do lv=lv_min,lv_max
+                   call synchronizing_slices(lv,lv_min,lv_max,lvf1,lvf2,it*2+1, &
+                        it_v)
+                   
+                   call read_velocity(fvel_id,it_v,lv)
+                enddo
+
+                write(6,'(99es15.7)') time_level(:)
+
+
+                allocate(evolution_finished(ipu))
+                call evolution_particle_3D_levels(ipu,substep_max,lv_min,lv_max,np_evolve,evolution_finished)
+                deallocate(evolution_finished)
+                ! write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+                write(6,'("job,it =",2i6,", Time (s) = ",es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+                
+              end block
+              
+              substep_max = 0
+              it_v = it*2+1
+              write(6,*) "first evolution to the time just before the next 3D data", it_v
+              call recursive_evolution_to_end(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
+           endif
+        endif
+        
         time_prv = time
 
         ! read profile
@@ -648,7 +703,7 @@ program main
                 write(6,'("job,it =",2i6,", Time (s) = ",es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
                 
               end block
-
+              
            endif
 
            if(.not.mode_volbased .and. count_pset == 0 )then
@@ -658,7 +713,7 @@ program main
                  np = ips+n_points
                  write(6,*) "np reset to", np
               endif
-
+              
               call set_new_particle(ips,rfl,dt,v_average,it_skip,it_skip_out,it_skip_pset,m_max,m_min,m_average,v_max,v_min,np_set)
 
               !itt_pset_next = ittot - it_skip_pset
@@ -668,7 +723,7 @@ program main
               write(unum,'(2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(dm_p(1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
 
               ipu = ips
-
+              
            endif
         endif
         
@@ -820,19 +875,24 @@ program main
      if(flag_amr_step)then
         call h5fclose_f(fvel_id, error)
         call h5fclose_f(famr_id, error)
+        close(nunit_timestep)
      endif
 
      write(6,'("Output restart data")')
      write(str1,'(i3.3)') job
      fn = trim(dir_out) // "/res_"//trim(str1)//".h5"
-     call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,fn_data3d(job))
+     if(flag_amr_step)then
+        fn_read = fn_vel3d(job)
+     else
+        fn_read = fn_data3d(job)
+     endif
+     call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read)
      
      
   enddo !end of this job
 100 continue
   write(6,'("Tracing finished.")')
-
-  close(nunit_timestep)
+  
 
 
   ! write(6,*) "Output particle data"

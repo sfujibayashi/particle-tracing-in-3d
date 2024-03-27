@@ -559,6 +559,24 @@ contains
     
   end subroutine find_substeps
 
+  subroutine synchronizing_slices(lv,lv_min,lv_max,lvf1,lvf2,it_v_lvf, &
+       it_v)
+    integer,intent(in) :: lv,lv_min,lv_max,lvf1,lvf2,it_v_lvf
+    integer,intent(out) :: it_v
+    
+    if(lv>=lvf1)then
+       if(lv<lvf2)then
+          it_v = it_v_lvf*2**(lv-lvf1)
+       else
+          it_v = it_v_lvf*2**(lvf2-lvf1)
+       endif
+    else
+       it_v =  it_v_lvf
+    endif
+    
+  end subroutine synchronizing_slices
+
+
   subroutine read_time_in_velocity_data(file_id,it,lv,t)
     use hdf5
     use h5lt
