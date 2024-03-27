@@ -88,6 +88,7 @@ contains
          ut1_buf (:), &
          hut_buf(:)
     
+    real(8),allocatable :: t_buf(:)
     
     allocate( &
          flag_evol_buf(np_old), &
@@ -112,6 +113,9 @@ contains
          ut1_buf (np_old), &
          hut_buf (np_old)  )
     
+    allocate( &
+         t_buf(np_old) )
+
     do ip=1,np_old
        flag_evol_buf(ip) = flag_evol(ip)
        x_buf        (ip) = x_p      (ip)
@@ -134,6 +138,8 @@ contains
        dm_buf       (ip) = dm_p     (ip)
        ut1_buf      (ip) = ut1_p    (ip)
        hut_buf      (ip) = hut_p    (ip)
+
+       t_buf(ip) = t_p(ip)
     enddo
 
     deallocate( &
@@ -185,6 +191,8 @@ contains
        dm_p     (ip) = dm_buf       (ip)
        ut1_p    (ip) = ut1_buf      (ip)
        hut_p    (ip) = hut_buf      (ip)
+
+       t_p    (ip) = t_buf      (ip)
     enddo
     
     deallocate( &
@@ -209,6 +217,8 @@ contains
          dm_buf  , &
          ut1_buf , &
          hut_buf   )
+    
+    deallocate(t_buf)
     
   end subroutine reallocate_particle_data
 
