@@ -486,21 +486,22 @@ contains
 
   end subroutine zboundary
 
-  subroutine find_substeps(fvel_id,t_max,lvf1,lvf2,it_offset)
+  subroutine find_substeps(fvel_id,file_id,lvf1,lvf2,it_offset,nstep,nstep_v_min)
     use hdf5
     
-    INTEGER(HID_T),intent(in) :: fvel_id
-    real(8),intent(in) :: t_max
+    INTEGER(HID_T),intent(in) :: fvel_id,file_id
     integer,intent(out) :: lvf1,lvf2,it_offset
+    integer,intent(out):: nstep, nstep_v_min
     
     integer,allocatable :: nstep_level(:)
     integer :: lv
     integer :: it,it_v_1,it_v_2
     logical :: link_exists
-    real(8) :: time_v_1, time_v_2
+    real(8) :: time_v_1, time_v_2, time_3d
 
     character(200) :: str1,str2
     integer :: hdf_err
+
 
     allocate(nstep_level(lv_min:lv_max))
 
@@ -537,22 +538,62 @@ contains
     enddo search_lvf2
 
     write(6,*) "lvf1,lvf2 = ",lvf1,lvf2
+    
+    nstep_v_min = nstep_level(lv_min)
+    
+    
+    it = 0
+    setstep: do
+       it = it + 1
+       write(str1,'(i10)') it
+       call h5lexists_f(file_id,"/level1/data"//trim(adjustl(str1)),link_exists,hdf_err)
+       if(.not. link_exists)then
+          nstep = it - 1
+          exit setstep
+       endif
+    enddo setstep
+    
+    write(6,*) nstep, nstep_v_min
 
-
+    it = 1
+    call read_time_in_velocity_data(file_id,it,lv_min,time_3d)
+    
     ! check whether the last snapshot of raw3d.h5 is synchronized with that of vel3d.h5
     ! assumes raw3d data is output every two steps of the lowest level of vel3d
-
-    it_v_1 = nstep_level(lv_min)
+    ! 
+    it_v_1 = 1
     call read_time_in_velocity_data(fvel_id,it_v_1,lv_min,time_v_1)
-    it_v_2 = nstep_level(lv_min)-1
+    it_v_2 = 2
     call read_time_in_velocity_data(fvel_id,it_v_2,lv_min,time_v_2)
 
-    if( abs(time_v_1-t_max) < abs(time_v_2-t_max) )then
+    if    (nstep_v_min == 2*nstep+1)then
        it_offset = 0
-    else
+    elseif(nstep_v_min == 2*nstep-1)then
        it_offset = 1
+    elseif(nstep_v_min == 2*nstep  )then
+
+       write(6,*) "times of the 3D data and two vel data", time_3d
+       write(6,*) it_v_1, it_v_2, time_v_1-time_3d, time_v_2-time_3d
+
+       if( abs(time_v_1-time_3d) < abs(time_v_2-time_3d) )then
+          it_offset = 1
+       else
+          it_offset = 0
+       endif
+    else
+       write(6,*) "something is wrong with step numbers:"
+       write(6,*) nstep, nstep_v_min
     endif
-    write(6,*) "initial offset: ", it_offset
+
+    if(it_offset == 1)then
+       write(6,*) "synchronized data: itv = 2*it-1"
+    else
+       write(6,*) "synchronized data: itv = 2*it"
+    endif
+    
+    if(nstep==2*nstep_v_min+1.or.(nstep_v_min==2*nstep.and.it_offset==1))then
+       write(6,*) "a step in velocity file is present before reaching the last existing 3D data."
+    endif
 
     deallocate(nstep_level)
 

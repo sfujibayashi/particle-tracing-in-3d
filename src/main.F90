@@ -64,7 +64,7 @@ program main
   real(8) :: time0,time1
 
   ! job-number and timestep related
-  integer :: job_max,job_min,job_start,job_prv,job,job1,job2,it1,it2,it_start,nsteps,it0,it_save
+  integer :: job_max,job_min,job_start,job_prv,job,job1,job2,it1,it2,it_start,it0,it_save
   integer :: it,substep_max
   integer :: count_skip
 
@@ -87,11 +87,12 @@ program main
   integer :: count_out
 
   integer,allocatable :: nstep_job(:)
-  
+  integer :: nstep, nstep_v_min
+
   integer :: job_restart, it_restart, it_prv
   character(1) :: restart
   logical :: first
-  character(256) :: fn_read, fn_3d_read, fn_vel_read
+  character(256) :: fn_3d_read, fn_vel_read
 
   !!! 3D
   real(8) :: t_min,t_max!,tms_glo_min,tms_glo_max
@@ -420,7 +421,8 @@ program main
      write(6,'("np, npv = ",2i5)') np,npv
      write(6,'("time    = ",es12.4)') time
      write(6,'("counts  = ",3i5)') count_pset,count_out,count_skip
-     write(6,'(a,a)') "file read: ",trim(fn_read)
+     write(6,'(a,a)') "file read: ",trim(fn_3d_read)
+     if(flag_amr_prv) write(6,'(a,a)') "velocity file read: ",trim(fn_3d_read)
      write(6,*) " -------------------------- "
      write(6,*)
 
@@ -430,8 +432,10 @@ program main
 !!! read sim data for the previous-step velocity
      if(flag_amr_prv)then
         
-        call h5fopen_f(fn_read, H5F_ACC_RDONLY_F, fvel_id, error)
-        call find_substeps(fvel_id,t_max,lvf1,lvf2,it_offset)
+        call h5fopen_f(fn_3d_read, H5F_ACC_RDONLY_F, file_id, error)
+        call h5fopen_f(fn_vel_read, H5F_ACC_RDONLY_F, fvel_id, error)
+        call find_substeps(fvel_id,file_id,lvf1,lvf2,it_offset, nstep, nstep_v_min)
+        
         block
           integer :: lv
           do lv=lv_min,lv_max
@@ -445,10 +449,11 @@ program main
           write(6,'(99es15.7)') time_level(:)
         end block
         call h5fclose_f(fvel_id, error)
+        call h5fclose_f(file_id, error)
 
      else
 
-        call h5fopen_f(fn_read, H5F_ACC_RDONLY_F, file_id, error)
+        call h5fopen_f(fn_3d_read, H5F_ACC_RDONLY_F, file_id, error)
         call read_simdata(file_id,it_prv,time)
         call h5fclose_f(file_id, error)
         
@@ -527,11 +532,6 @@ program main
      fn = fn_data3d(job)
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 
-     tms(:)=0.d0
-     write(str2,'(i10)') nstep_job(job)
-     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
-     t_max = dble(tms(1)*time_unit_h5)
-
      if(flag_amr_step)then
         call h5fopen_f(fn_vel3d(job), H5F_ACC_RDONLY_F, fvel_id, error)
 
@@ -564,7 +564,7 @@ program main
           enddo
         end block create_amr_step_file
         
-        call find_substeps(fvel_id,t_max,lvf1,lvf2,it_offset)
+        call find_substeps(fvel_id,file_id,lvf1,lvf2,it_offset,nstep, nstep_v_min)
         write(6,*) "lvf2_limit = ",lvf2_limit
         
         write(str1,'(i3.3)') job
@@ -610,7 +610,7 @@ program main
      do it = it1, it2, step*it_skip
 
         if(flag_amr_step)then
-           if(.not.first.and.it==it1.and.it_offset==1)then
+           if(.not.first.and.it==it1.and.(nstep_v_min==2*nstep.or.(nstep==2*nstep_v_min.and.it_offset==1)))then
 
               vlx_b(:,:,:,:) = vlx(:,:,:,:)
               vly_b(:,:,:,:) = vly(:,:,:,:)
@@ -619,9 +619,11 @@ program main
               block
                 integer :: lv
                 logical,allocatable :: evolution_finished(:)
-                
+                integer :: it_v_lvf
+
+                it_v_lvf = nstep*2+1-it_offset
                 do lv=lv_min,lv_max
-                   call synchronizing_slices(lv,lv_min,lv_max,lvf1,lvf2,it*2+1, &
+                   call synchronizing_slices(lv,lv_min,lv_max,lvf1,lvf2,it_v_lvf, &
                         it_v)
                    call read_velocity(fvel_id,it_v,lv)
                 enddo
@@ -645,15 +647,15 @@ program main
                 call evolution_particle_3D_levels(ipu,substep_max,lv_min,lv_max,np_evolve,evolution_finished)
                 deallocate(evolution_finished)
                 ! write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
-                write(6,'("job,itv =",2i6,", Time (s) = ",es14.6, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it*2+1,time, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+                write(6,'("job,itv =",2i6,", Time (s) = ",es14.6, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it_v_lvf,time, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
                 
               end block
               
               substep_max = 0
-              it_v = it*2+1
+              it_v = nstep*2-it_offset
               write(6,*) "first evolution to the time just before the next 3D data", it_v
               call recursive_evolution_to_end(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
-
+              
            endif
         endif
         
@@ -825,7 +827,7 @@ program main
            substep_max = 0
            t_p(1:ipu) = time
            
-           it_v = it*2 - 1 - it_offset
+           it_v = it*2 - it_offset - 1
            if(it_v>0)then
               call recursive_evolution(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
               write(6,*) "one time step done"
@@ -915,7 +917,6 @@ program main
      write(6,'("Output restart data")')
      write(str1,'(i3.3)') job
      fn = trim(dir_out) // "/res_"//trim(str1)//".h5"
-     
      call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,fn_data3d(job),fn_vel3d(job),flag_amr_step)
      
      
