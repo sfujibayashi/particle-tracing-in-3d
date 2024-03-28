@@ -436,7 +436,7 @@ contains
        endif
 
        if(sum_err>0)then
-          write(6,*) "Error in reading hdf5 file. STOP.",lv,sum_err
+          write(6,*) "Error in reading hdf5 file. STOP.",lv,it,sum_err
           stop
        endif
     enddo
@@ -657,7 +657,7 @@ contains
     vlz (:,:,ld_read:lu,lv) = buf3d_real4_3(:,:,:)/vel_unit_h5
     
     if(sum_err/=0)then
-       write(6,*) "Error in reading hdf5 file. STOP.",lv,sum_err
+       write(6,*) "Error in reading velocity hdf5 file. STOP.",lv,it,sum_err
        stop
     endif
 
