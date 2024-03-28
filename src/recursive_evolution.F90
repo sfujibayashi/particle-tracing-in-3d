@@ -1,4 +1,4 @@
-recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_min,it_max,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
+recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_min,it_max,fvel_id,mode_backward,substep_max_out,ipu,famr_id,lvf2_limit)
 #include "macro.h"
   use hdf5
   use simdata3D, only: read_velocity, time_level, vlx, vly, vlz, vlx_b, vly_b, vlz_b, jd,ju,kd,ku,ld,lu
@@ -11,7 +11,8 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_min,it_ma
   ! level evolved, minimum and maximum time slice for evolution.
   integer,intent(in) :: lv,it_max,it_min,ipu
   logical,intent(in) :: mode_backward
-  integer,intent(out) :: substep_max
+  integer,intent(out) :: substep_max_out
+  ! integer,intent(out) :: np_evolved
   
   INTEGER(HID_T),intent(in) :: fvel_id ! File identifier of velocity data
   INTEGER(HID_T),intent(in) :: famr_id ! File identifier of output
@@ -19,9 +20,11 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_min,it_ma
   character(256) :: str1
   integer :: it1,it2, step, it, it_skip, it_min_daughter, it_max_daughter
   
-  integer :: ip, np_evolved
+  integer :: ip,np_evolved,substep_max
   logical,allocatable :: evolution_finished(:)
   real(8) :: time_prv
+
+  substep_max_out = 0
 
   allocate(evolution_finished(ipu))
 
@@ -49,21 +52,6 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_min,it_ma
      write(6,'("read data",i4,i8,es15.7,99es12.4)') lv, it, time_level(lv),  time_level(lv_min:lv)-time_level(lv_min)
 #endif
      
-     ! block
-     !   integer :: j,k,l
-     !   if( lv==lv_max )then
-     !      write(99,*) "#", it, time_prv, time_level(lv)
-     !      l=ld+1
-     !      do k=kd,ku,2
-     !         do j=jd,ju,2
-     !            write(99,'(3i4,99es12.4)') j,k,l,vlx(j,k,l,lv),vly(j,k,l,lv),vlz(j,k,l,lv),vlx_b(j,k,l,lv),vly_b(j,k,l,lv),vlz_b(j,k,l,lv)
-     !         enddo
-     !      enddo
-     !      stop
-     !   endif
-
-     ! end block
-     
      if(lv<lv_max)then
 
         if(lv+1<=lvf1.or.lv+1>lvf2)then
@@ -90,6 +78,8 @@ recursive subroutine recursive_evolution(lv,lv_min,lv_max,lvf1,lvf2,it_min,it_ma
 #ifdef TIMESTEP_DEBUG
      write(6,'("evolution done. lv=", i7, ", it=",i7, ", time=",es15.7, ", evolved=", i7, ", substep=", i5, ", remainings=", i7)') lv,it,time_level(lv), np_evolved,substep_max,sum(remain(:))
 #endif
+
+     substep_max_out = max(substep_max_out, substep_max)
 
 #ifndef TIMESTEP_DEBUG
      output:block
