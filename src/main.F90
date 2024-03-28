@@ -386,6 +386,7 @@ program main
      ips = 0
      ipu = 0
      !itt_pset_next = itt_start-it_skip
+     it_skip_pset=1
      count_pset = 1
      count_out  = 0
      count_skip = 0
@@ -527,6 +528,11 @@ program main
      fn = fn_data3d(job)
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 
+     tms(:)=0.d0
+     write(str2,'(i10)') nstep_job(job)
+     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+     t_max = dble(tms(1)*time_unit_h5)
+
      if(flag_amr_step)then
         call h5fopen_f(fn_vel3d(job), H5F_ACC_RDONLY_F, fvel_id, error)
 
@@ -605,6 +611,10 @@ program main
         if(flag_amr_step)then
            if(.not.first.and.it==it1.and.it_offset==1)then
 
+              vlx_b(:,:,:,:) = vlx(:,:,:,:)
+              vly_b(:,:,:,:) = vly(:,:,:,:)
+              vlz_b(:,:,:,:) = vlz(:,:,:,:)
+
               block
                 integer :: lv
                 logical,allocatable :: evolution_finished(:)
@@ -612,18 +622,29 @@ program main
                 do lv=lv_min,lv_max
                    call synchronizing_slices(lv,lv_min,lv_max,lvf1,lvf2,it*2+1, &
                         it_v)
-                   
                    call read_velocity(fvel_id,it_v,lv)
                 enddo
+                
+                !write(6,'(99i15)') (lv,lv=lv_min,lv_max)
+                !write(6,'(99es15.7)') time_level(:)
+                ! block
+                !   integer :: j,k,l
+                !   do lv=lv_min,lv_max
+                !      l=0
+                !      do k=kd,ku,2
+                !         do j=jd,ju,2
+                !            write(100+lv,'(4i5,99es15.7)') j,k,l,lv, x(j,lv), y(k,lv), z(l,lv), vlx(j,k,l,lv), vly(j,k,l,lv), vlz(j,k,l,lv), vlx_b(j,k,l,lv), vly_b(j,k,l,lv), vlz_b(j,k,l,lv)
+                !         enddo
+                !      enddo
+                !   enddo
 
-                write(6,'(99es15.7)') time_level(:)
-
-
+                ! end block
+                
                 allocate(evolution_finished(ipu))
                 call evolution_particle_3D_levels(ipu,substep_max,lv_min,lv_max,np_evolve,evolution_finished)
                 deallocate(evolution_finished)
                 ! write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
-                write(6,'("job,it =",2i6,", Time (s) = ",es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+                write(6,'("job,itv =",2i6,", Time (s) = ",es14.6, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it*2+1,time, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
                 
               end block
               
@@ -631,6 +652,7 @@ program main
               it_v = it*2+1
               write(6,*) "first evolution to the time just before the next 3D data", it_v
               call recursive_evolution_to_end(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
+
            endif
         endif
         
@@ -638,11 +660,14 @@ program main
 
         ! read profile
 
+        vlx_b(:,:,:,:) = vlx(:,:,:,:)
+        vly_b(:,:,:,:) = vly(:,:,:,:)
+        vlz_b(:,:,:,:) = vlz(:,:,:,:)
         call read_simdata(file_id,it,time)
 #ifndef TIMESTEP_DEBUG
         call set_secondary
 #endif
-        write(6,*) "read data for all levels from raw3d.h5",it,time
+        write(nunit_timestep,*) "read data for all levels from raw3d.h5",it,time
         
         if(first)then
            dt = 0.d0
@@ -653,9 +678,6 @@ program main
 
         if(.not.flag_amr_step)then
            call evolution_particle_3D(ipu,time,time_prv,substep_max)
-           vlx_b(:,:,:,:) = vlx(:,:,:,:)
-           vly_b(:,:,:,:) = vly(:,:,:,:)
-           vlz_b(:,:,:,:) = vlz(:,:,:,:)
         endif
 
 #ifndef TIMESTEP_DEBUG
@@ -700,7 +722,7 @@ program main
                 call evolution_particle_3D_levels(ipu,substep_max,lv_min,lv_max,np_evolve,evolution_finished)
                 deallocate(evolution_finished)
                 ! write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
-                write(6,'("job,it =",2i6,", Time (s) = ",es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+                write(6,'("job,it  =",2i6,", Time (s) = ",es14.6, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
                 
               end block
               
@@ -732,13 +754,21 @@ program main
            ! procedure before output
            call set_particle_data(ipu)
 
-           if(count_pset == it_skip_pset)then
+           if(.not.mode_volbased.and.count_pset == it_skip_pset)then
               call sample_compare(rfl, ipu, np_set, job, it,time)
            endif
 
         endif
+
         
-        
+        ! if(job==5.and.it==49)then
+        !    write(6,*)
+        !    do ip=1,ipu
+        !       write(6,'(i5,99es25.17)') ip, t_p(ip), x_p(ip), y_p(ip), z_p(ip)
+        !    enddo
+        !    stop
+        ! endif
+
         if(count_out==0 .or. first)then
 
            ! write(str1,'(i6.6)') ittot
@@ -795,16 +825,17 @@ program main
            it_v = it*2 - 1 - it_offset
            if(it_v>0)then
               call recursive_evolution(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
-              
               write(6,*) "one time step done"
               write(nunit_timestep,*) "one time step done"
+              
+              np_evolve = sum(flag_evol(:))
+              write(6,'("job,itv =",2i6,", Time (s) = ",es14.6, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it_v,time_level(lv_min), np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
            else
               it_v=1
            endif
 
            write(nunit_timestep,*)
-           np_evolve = sum(flag_evol(:))
-           write(6,'("job,it =",2i6,", Time (s) = ",es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time_level(lv_min), np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+
            ! substep_max = 0
            ! t_p(1:ipu) = time
            ! it_v = it_v - 1
