@@ -3,7 +3,7 @@ module module_restart_hdf
   implicit none
 
 contains
-  subroutine save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read)
+  subroutine save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read,flag_amr)
     use particle_data
     use hdf5
     use h5lt
@@ -12,6 +12,7 @@ contains
     real(8),intent(in) :: time
     character(*),intent(in) :: fn
     character(*),intent(in),optional :: fn_read
+    logical,intent(in) :: flag_amr
     
     integer :: ip
 
@@ -21,6 +22,8 @@ contains
     real(8),allocatable :: buf1(:)
     integer,allocatable :: ibuf1(:)
 
+    integer :: iflag
+    INTEGER(HID_T) :: dspace_id, dset_id
     ! write(6,*) fn,np,ipu,itt_tmp,itt_max
     
     call h5fcreate_f(fn, H5F_ACC_TRUNC_F, file_id, error)
@@ -45,6 +48,19 @@ contains
     ibuf1(1) = npv
     call h5ltmake_dataset_int_f(file_id, "/npv", 1, dims1, ibuf1, error)
     deallocate(ibuf1)
+    
+    if(flag_amr)then
+       iflag = 1
+    else
+       iflag = 0
+    endif
+    CALL h5screate_simple_f(1, dims1, dspace_id, error)
+    CALL h5dcreate_f(file_id, "flag_AMR", H5T_NATIVE_INTEGER, dspace_id, &
+         dset_id, error)
+    CALL h5dwrite_f(dset_id, H5T_NATIVE_INTEGER, iflag, dims1, error)
+    CALL h5dclose_f(dset_id, error)
+    call h5sclose_f(dspace_id, error)
+    
     
     ! dim-1 double
     allocate(buf1(1))
@@ -93,7 +109,7 @@ contains
   end subroutine save_checkpoint_hdf
   
 
-  subroutine read_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read)
+  subroutine read_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read,flag_amr)
     use particle_data
     use hdf5
     use h5lt
@@ -102,6 +118,7 @@ contains
     integer,intent(out) :: ipu,np,count_pset,count_out,count_skip,job,it,npv
     real(8),intent(out) :: time
     character(*),intent(out),optional :: fn_read
+    logical,intent(out) :: flag_amr
 
     integer :: ip
 
@@ -113,6 +130,10 @@ contains
     
     integer :: nstring
     character(200) :: str1
+
+    logical :: link_exists
+    integer :: iflag
+
     call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
     
     dims1(1) = 1
@@ -136,7 +157,21 @@ contains
     count_skip=ibuf1(1)
     call H5LTread_dataset_int_f(file_id,"/npv",ibuf1,dims1,error)
     npv=ibuf1(1)
-    
+
+    call h5lexists_f(file_id,"/flag_AMR",link_exists,error)
+    if(.not.link_exists)then
+       write(6,*) "flag_AMR not exists. STOP"
+       stop
+    endif
+
+    call H5LTread_dataset_int_f(file_id,"/flag_AMR",ibuf1,dims1,error)
+    iflag=ibuf1(1)
+    if(iflag==1)then
+       flag_amr=.true.
+    else
+       flag_amr=.false.
+    endif
+
     deallocate(ibuf1,buf1)
 
     call allocate_particle_data(np)

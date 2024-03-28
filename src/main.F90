@@ -106,6 +106,7 @@ program main
   integer,parameter :: incl_next=20
 
   ! AMR substep
+  logical :: flag_amr_prv
   INTEGER(HID_T) :: fvel_id
   integer :: it_v,it_v_1,it_v_2, it_offset
   integer :: lvf1,lvf2,lvf2_limit
@@ -411,7 +412,7 @@ program main
 !!! read all particle data
      ipu = 0
      ips = 0
-     call read_checkpoint_hdf(fn,job_prv,it_prv,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read)
+     call read_checkpoint_hdf(fn,job_prv,it_prv,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read,flag_amr_prv)
      
      write(6,*)
      write(6,*) " -- Checkpoint file info -- "
@@ -427,7 +428,7 @@ program main
      
 
 !!! read sim data for the previous-step velocity
-     if(flag_amr_step)then
+     if(flag_amr_prv)then
         
         call h5fopen_f(fn_read, H5F_ACC_RDONLY_F, fvel_id, error)
         call find_substeps(fvel_id,t_max,lvf1,lvf2,it_offset)
@@ -812,7 +813,7 @@ program main
            write(str1,'(i3.3)') job
            write(str2,'(i6.6)') it
            fn = trim(dir_out) // "/data_"//trim(str1)//"_"//trim(str2)//".h5"
-           call save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_data3d(job))
+           call save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_data3d(job),flag_amr_step)
 
         endif
         
@@ -919,7 +920,7 @@ program main
      else
         fn_read = fn_data3d(job)
      endif
-     call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read)
+     call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read,flag_amr_step)
      
      
   enddo !end of this job
