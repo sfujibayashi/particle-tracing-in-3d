@@ -94,7 +94,7 @@ program main
   character(200) :: fn_read
 
   !!! 3D
-  real(8) :: tms_start,tms_end,t_min,t_max!,tms_glo_min,tms_glo_max
+  real(8) :: t_min,t_max!,tms_glo_min,tms_glo_max
   integer :: n_pset
   logical :: link_exists
   !real(8),allocatable :: tsta_job(:),tend_job(:),dt_job(:)
@@ -222,8 +222,6 @@ program main
   write(6,'("EOS table        : ",a)') trim(fn_eos)
   write(6,'("nrho, nye, ntemp : ",3i5)') nrho_in,nye_in,ntemp_in
 
-  tms_end = 5.d0
-  
 ! !!!
   call readeos(fn_eos,nrho_in,ntemp_in,nye_in)
 
@@ -851,40 +849,40 @@ program main
         ! tasks done at the timesteps in which all the levels are in the same timeslice
 
         
-        if( mode_backward .and. count_out==0 )then
+        ! if( mode_backward .and. count_out==0 )then
 
-           do ip=1,ipu
-              if(flag_evol(ip)==1.and. &
-                   ( &
-                   ! tem_p(ip,ittot)>5.d0.or. &
-                   ! ittot==itt_min.or. &
-                   time*1.d3<tms_end) )then
+        !    do ip=1,ipu
+        !       if(flag_evol(ip)==1.and. &
+        !            ( &
+        !            ! tem_p(ip,ittot)>5.d0.or. &
+        !            ! ittot==itt_min.or. &
+        !            time*1.d3<tms_end) )then
 
-                 flag_evol(ip) = 0
+        !          flag_evol(ip) = 0
 
-              endif
-           enddo
+        !       endif
+        !    enddo
 
-        endif
+        ! endif
 
-        if(.not.mode_backward .and. count_out==0)then
+        ! if(.not.mode_backward .and. count_out==0)then
 
-           do ip = 1,ipu
+        !    do ip = 1,ipu
 
-              if(flag_evol(ip)==1.and. &
-                   ( &
-                   ! tem_p(ip,ittot)>5.d0.or. &
-                   ! ittot==itt_max.or. &
-                   sqrt(x_p(ip)**2+y_p(ip)**2+z_p(ip)**2)>rfl&
-                   ! time*1.d3>tms_end &
-                   ))then
+        !       if(flag_evol(ip)==1.and. &
+        !            ( &
+        !            ! tem_p(ip,ittot)>5.d0.or. &
+        !            ! ittot==itt_max.or. &
+        !            sqrt(x_p(ip)**2+y_p(ip)**2+z_p(ip)**2)>rfl&
+        !            ! time*1.d3>tms_end &
+        !            ))then
 
-                 flag_evol(ip) = 0
+        !          flag_evol(ip) = 0
 
-              endif
-           enddo
+        !       endif
+        !    enddo
 
-        endif
+        ! endif
         
         if(mode_volbased .and. sum(flag_evol(:))==0) goto 100
            
