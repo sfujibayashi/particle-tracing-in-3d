@@ -91,7 +91,7 @@ program main
   integer :: job_restart, it_restart, it_prv
   character(1) :: restart
   logical :: first
-  character(200) :: fn_read
+  character(256) :: fn_read, fn_3d_read, fn_vel_read
 
   !!! 3D
   real(8) :: t_min,t_max!,tms_glo_min,tms_glo_max
@@ -412,7 +412,7 @@ program main
 !!! read all particle data
      ipu = 0
      ips = 0
-     call read_checkpoint_hdf(fn,job_prv,it_prv,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read,flag_amr_prv)
+     call read_checkpoint_hdf(fn,job_prv,it_prv,np,ipu,time,count_pset,count_out,count_skip,npv,fn_3d_read,fn_vel_read,flag_amr_prv)
      
      write(6,*)
      write(6,*) " -- Checkpoint file info -- "
@@ -813,7 +813,7 @@ program main
            write(str1,'(i3.3)') job
            write(str2,'(i6.6)') it
            fn = trim(dir_out) // "/data_"//trim(str1)//"_"//trim(str2)//".h5"
-           call save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_data3d(job),flag_amr_step)
+           call save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_data3d(job),fn_vel3d(job),flag_amr_step)
 
         endif
         
@@ -915,12 +915,8 @@ program main
      write(6,'("Output restart data")')
      write(str1,'(i3.3)') job
      fn = trim(dir_out) // "/res_"//trim(str1)//".h5"
-     if(flag_amr_step)then
-        fn_read = fn_vel3d(job)
-     else
-        fn_read = fn_data3d(job)
-     endif
-     call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read,flag_amr_step)
+     
+     call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,fn_data3d(job),fn_vel3d(job),flag_amr_step)
      
      
   enddo !end of this job
