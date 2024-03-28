@@ -53,16 +53,11 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
         endif
         
      endif
+
+     ! write(6,*) ip, evolved_in_this_level(ip)
      
   enddo
-
-  np_evolved = 0
-  do ip=1,ipu
-     if(evolved_in_this_level(ip))then
-        np_evolved = np_evolved + 1
-     endif
-  enddo
-
+  
   evolution_finished(:) = .false.
   remain(:) = 0
   
@@ -551,4 +546,11 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
   !$omp end do
   !$omp end parallel
 
+  np_evolved = 0
+  do ip=1,ipu
+     if(evolution_finished(ip))then
+        np_evolved = np_evolved + 1
+     endif
+  enddo
+  
 end subroutine evolution_particle_3D_levels
