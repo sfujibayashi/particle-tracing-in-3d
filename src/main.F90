@@ -599,10 +599,12 @@ program main
      endif
 
      write(6,'("job, it1,it2,step = ",i3,2i5,i3)') job,it1,it2,step*it_skip
-     
+
      write(str1,'(i10)') job
-     fn = trim(dir_out)//"/flux_"//trim(adjustl(str1))//".dat"
-     open(newunit=unum,file=fn,status="replace",action="write")
+     if(.not.mode_volbased)then
+        fn = trim(dir_out)//"/flux_"//trim(adjustl(str1))//".dat"
+        open(newunit=unum,file=fn,status="replace",action="write")
+     endif
      
      do it = it1, it2, step*it_skip
 
@@ -676,6 +678,8 @@ program main
 
         if(.not.flag_amr_step)then
            call evolution_particle_3D(ipu,time,time_prv,substep_max)
+           np_evolve = sum(flag_evol(:))
+           write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
         endif
 
 #ifndef TIMESTEP_DEBUG
@@ -885,7 +889,7 @@ program main
         ! endif
         
         if(mode_volbased .and. sum(flag_evol(:))==0) goto 100
-           
+        
         if(first) first = .false.
         if(count_out == 0) count_out = it_skip_out
         
