@@ -626,6 +626,8 @@ program main
                    call synchronizing_slices(lv,lv_min,lv_max,lvf1,lvf2,it_v_lvf, &
                         it_v)
                    call read_velocity(fvel_id,it_v,lv)
+                   write(nunit_timestep,'("read data",i4,i8,es15.7,99es12.4)') lv, it_v, time_level(lv),  time_level(lv_min:lv)-time_level(lv_min)
+
                 enddo
                 
                 !write(6,'(99i15)') (lv,lv=lv_min,lv_max)
@@ -646,13 +648,16 @@ program main
                 allocate(evolution_finished(ipu))
                 call evolution_particle_3D_levels(ipu,substep_max,lv_min,lv_max,np_evolve,evolution_finished)
                 deallocate(evolution_finished)
+                do lv=lv_max,lv_min,-1
+                   write(nunit_timestep,'("evolution done. lv=", i7, ", time=",es15.7, ", evolved=", i7, ", substep=", i5, ", remainings=", i7)') lv,time_level(lv), np_evolve,substep_max,sum(remain(:))
+                enddo
                 ! write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
                 write(6,'("job,itv =",2i6,", Time (s) = ",es14.6, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it_v_lvf,time, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
                 
               end block
               
               substep_max = 0
-              it_v = nstep*2-it_offset
+              it_v = nstep*2+1-it_offset
               write(6,*) "first evolution to the time just before the next 3D data", it_v
               call recursive_evolution_to_end(lv_min,lv_min,lv_max,lvf1,lvf2,it_v,fvel_id,mode_backward,substep_max,ipu,famr_id,lvf2_limit)
               
@@ -726,6 +731,10 @@ program main
                 allocate(evolution_finished(ipu))
                 call evolution_particle_3D_levels(ipu,substep_max,lv_min,lv_max,np_evolve,evolution_finished)
                 deallocate(evolution_finished)
+                do lv=lv_max,lv_min,-1
+                   write(nunit_timestep,'("evolution done. lv=", i7, ", time=",es15.7, ", evolved=", i7, ", substep=", i5, ", remainings=", i7)') lv,time_level(lv), np_evolve,substep_max,sum(remain(:))
+                enddo
+
                 ! write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
                 write(6,'("job,it  =",2i6,", Time (s) = ",es14.6, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
                 
