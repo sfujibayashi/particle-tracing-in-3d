@@ -54,7 +54,8 @@ analysis.f90\
 print_data.f90\
 partial_output_hdf.f90\
 recursive_evolution.f90\
-recursive_evolution_to_end.f90
+recursive_evolution_to_end.f90\
+set_particle_from_hdf.f90
 
 
 SRC := $(addprefix $(SRC_DIR), $(SRC))

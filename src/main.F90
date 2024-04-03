@@ -701,8 +701,12 @@ program main
            call partial_output_hdf(dir_out, job, it, time)
            !stop
 
+
            ! call set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
            ! np = npv
+           
+           
+           
            call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
            np = npv
 
@@ -712,9 +716,15 @@ program main
 
            call set_ejecta_inside_3D_divide(1,rfl,rin,mass_crit,mass_min,npv)
 
+
+           !call set_particle_from_hdf("./init_009_000017.h5",np,ipu)
+           !npv = np
+
            ips=npv
            ipu=ips
            
+           t_p(1:ipu) = time
+
            !call partial_output_hdf(dir_out, job, it, time)
            !stop
            write(6,*)
@@ -728,9 +738,12 @@ program main
               write(6,*) "evolve to 3D data time", time
               block
                 logical,allocatable :: evolution_finished(:)
+                integer :: lv
+                
                 allocate(evolution_finished(ipu))
                 call evolution_particle_3D_levels(ipu,substep_max,lv_min,lv_max,np_evolve,evolution_finished)
                 deallocate(evolution_finished)
+
                 do lv=lv_max,lv_min,-1
                    write(nunit_timestep,'("evolution done. lv=", i7, ", time=",es15.7, ", evolved=", i7, ", substep=", i5, ", remainings=", i7)') lv,time_level(lv), np_evolve,substep_max,sum(remain(:))
                 enddo
@@ -755,7 +768,7 @@ program main
               !itt_pset_next = ittot - it_skip_pset
               count_pset = it_skip_pset
               write(6,'("# of particles set = ",i5,", v/c(max,min,ave) = ",3es12.4,", m(max,min,ave) = ",3es12.4,". Next: dt (s), skip = ",es12.4,i5)') np_set, v_max,v_min,v_average, m_max,m_min,m_average, dt*dble(it_skip_pset), it_skip_pset
-
+              
               write(unum,'(2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(dm_p(1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
 
               ipu = ips
@@ -834,7 +847,6 @@ program main
            ! evolution if AMR-substep is used
            ! initialize
            substep_max = 0
-           t_p(1:ipu) = time
            
            it_v = it*2 - it_offset - 1
            if(it_v>0)then
