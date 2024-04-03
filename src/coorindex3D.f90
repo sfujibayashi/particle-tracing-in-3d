@@ -6,7 +6,10 @@ subroutine coorindex3D(xx,yy,zz,j1,k1,l1,lv)
 
   lv = lv_max
   do
-     if((abs(xx)<x(ju,lv).and.abs(yy)<y(ku,lv).and.abs(zz)<z(lu,lv)).or.lv==lv_min)then
+     ! if((abs(xx)<x(ju,lv).and.abs(yy)<y(ku,lv).and.abs(zz)<z(lu,lv)).or.lv==lv_min)then
+     if( (x(jd,lv)<xx.and.xx<x(ju,lv).and. &
+          y(kd,lv)<yy.and.yy<y(ku,lv).and. &
+          z(ld,lv)<zz.and.zz<z(lu,lv) ).or. lv==lv_min)then
         exit
      else
         lv = lv - 1
