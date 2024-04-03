@@ -29,7 +29,7 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
 
   integer :: ip_test
   
-  ip_test = 50
+  ip_test = 387
 
   ! dt = time-time_prv
 
@@ -57,7 +57,7 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
      ! write(6,*) ip, evolved_in_this_level(ip)
      
   enddo
-  
+
   evolution_finished(:) = .false.
   remain(:) = 0
   
@@ -83,10 +83,14 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
 
         call coorindex3D(xtmp,ytmp,ztmp,j1,k1,l1,lv_p)
         ! if(lv_p < lv_evolved_min .or. lv_evolved_max < lv_p) goto 11
+
+        !if(ip==ip_test) write(6,'(4i5)') ip,lv_evolved_min,lv_evolved_max, lv_p
         
         lv = lv_p
         dt = time_level(lv)-t
         
+        !if(ip==ip_test) write(6,'(i5,99es20.12)') ip,dt,time_level(lv), t
+
         j=j1-1
         k=k1-1
         l=l1-1
@@ -136,11 +140,7 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
         ! write(1000+ip,'(3i4,99es12.4)') ip,lv_p, nt_sub, t, xtmp,ytmp,ztmp, time_level(lv),dt
         ! write(1000+ip,*)
         
-        ! if(ip==ip_test)then
-        !    write(6,*)
-        !    write(6,'(3i4,99es12.4)') ip,lv_p, nt_sub, t, xtmp,ytmp,ztmp, time_level(lv),dt
-        !    write(6,*)
-        ! endif
+        !if(ip==ip_test)write(6,'(3i4,99es12.4)') ip,lv_p, nt_sub, t, xtmp,ytmp,ztmp, time_level(lv), dt
         
         !write(6,*) ip, dt_p, dt, nt_sub
 
@@ -185,6 +185,8 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
               z0 = 1.d0-z1
               t1 = (time_level(lv)-t)/dt
               t0 = 1.d0-t1
+
+              !if(ip==ip_test) write(6,'(3i4,9i5,99es12.4)') ip, itr, lv, j,k,l,jd,kd,ld,ju,ku,lu, x1,y1,z1,t1
 
               vxc = t1*x1*y1*z1* vlx_b(j1,k1,l1,lv) &
                   + t1*x0*y1*z1* vlx_b(j ,k1,l1,lv) &
@@ -417,9 +419,9 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
               dyc = -(fiyx*fx +fiyy*fy +fiyz*fz)/det
               dzc = -(fizx*fx +fizy*fy +fizz*fz)/det
               
-              ! if(ip==ip_test.or.abs(dxc/xc)>1d0.or.abs(dyc/yc)>1d0.or.abs(dzc/zc)>1d0)then
-              !    write(6,'(2i4,99es12.4)') ip, itr, x1,y1,z1,t1,dxc,dyc,dzc, xc,yc,zc
-              ! endif
+              !if(ip==ip_test.or.abs(dxc/xc)>1d0.or.abs(dyc/yc)>1d0.or.abs(dzc/zc)>1d0)then
+              ! write(6,'(2i4,99es12.4)') ip, itr, x1,y1,z1,t1,dxc,dyc,dzc, xc,yc,zc
+              !endif
               ! write(1000+ip,'(2i4,99es12.4)') ip, itr, x1,y1,z1,t1,dxc,dyc,dzc, xc,yc,zc
 
               if(abs(dxc) < 1.d-8*abs(xc) .and. &
@@ -446,34 +448,35 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
            dydt = (yc-ytmp)/dtt
            dzdt = (zc-ztmp)/dtt
 
-           if    (dxdt>0d0)then
+           if    (dxdt*dt>0d0)then
               dt_xb = (x(ju,lv_p)-xtmp)/dxdt
-           elseif(dxdt<0d0)then
+           elseif(dxdt*dt<0d0)then
               dt_xb = (x(jd,lv_p)-xtmp)/dxdt
            else
               dt_xb = 1d99
            endif
 
-           if    (dydt>0d0)then
+           if    (dydt*dt>0d0)then
               dt_yb = (y(ku,lv_p)-ytmp)/dydt
-           elseif(dydt<0d0)then
+           elseif(dydt*dt<0d0)then
               dt_yb = (y(kd,lv_p)-ytmp)/dydt
            else
               dt_yb = 1d99
            endif
 
-           if    (dzdt>0d0)then
+           if    (dzdt*dt>0d0)then
               dt_zb = (z(lu,lv_p)-ztmp)/dzdt
-           elseif(dzdt<0d0)then
+           elseif(dzdt*dt<0d0)then
               dt_zb = (z(ld,lv_p)-ztmp)/dzdt
            else
               dt_zb = 1d99
            endif
 
-           dtb = min(dt_xb,dt_yb,dt_zb)
+           !if(ip==ip_test) write(6,'(i5,99es12.4)') ip, dt_xb, dt_yb, dt_zb, dtt
+           dtb = min(abs(dt_xb),abs(dt_yb),abs(dt_zb))
+           if(dtt<0d0) dtb = -dtb
            
-
-           if(dtb < dtt)then
+           if(abs(dtb) < abs(dtt))then
 
               write(6,*) ip,"reached a boundary"
               t_p(ip) = t - dtt + dtb
@@ -481,6 +484,8 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
               y_p(ip) = ytmp + dtb*dydt
               z_p(ip) = ztmp + dtb*dzdt
               remain(ip) = 1
+
+              write(6,'(i5,99es12.4)') ip, x_p(ip), y_p(ip), z_p(ip), x(jd,lv_p), x(ju,lv_p), y(kd,lv_p), y(ku,lv_p), z(ld,lv_p), z(lu,lv_p)
               
               goto 11
            endif
@@ -530,7 +535,8 @@ subroutine evolution_particle_3D_levels(ipu,substep_max,lv_evolved_min,lv_evolve
                  + x0*y1*z0* vlz  (j ,k1,l ,lv) &
                  + x1*y0*z0* vlz  (j1,k ,l ,lv) &
                  + x0*y0*z0* vlz  (j ,k ,l ,lv)
-
+           
+           !if(ip==ip_test) write(6,'(2i5)') ip, lv
         enddo
         
         t_p(ip) = t
