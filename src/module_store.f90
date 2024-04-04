@@ -122,17 +122,16 @@ contains
     !$omp   private(str1,unit)
     !$omp do
     do ip=1,np
-       !if(flag_evol(ip))then
        
        write(str1,'(i8.8)') ip
        open (newunit=unit,file=trim(dir_out)//"/traj_"//trim(str1)//".dat",status="replace")
        write(unit,'("# particle id:",i8)') ip
        write(unit,'("# model: ",a)') trim(model)
        write(unit,'("# particle mass:",es13.5," g, ut+1, hut+h_atm:",2es13.5)') dm_p(ip), ut1_p(ip), hut_p(ip)
-       write(unit,'("#     Time [s]        x [cm]        y [cm]        z [cm]     Vx [cm/s]     Vy [cm/s]     Vz [cm/s]  rho [g/cm^3]         T [K]            Ye   S [k_b/nuc] Ee [erg/cm^3] Ea [erg/cm^3]         tau_e         tau_a")')
-       close(unit)
+       ! write(unit,'("#     Time [s]        x [cm]        y [cm]        z [cm]     Vx [cm/s]     Vy [cm/s]     Vz [cm/s]  rho [g/cm^3]         T [K]            Ye   S [k_b/nuc] Ee [erg/cm^3] Ea [erg/cm^3]         tau_e         tau_a")')
+       write(unit,'("#",99a14)') "Time [s]","x [cm]","y [cm]","z [cm]","Vx [cm/s]","Vy [cm/s]","Vz [cm/s]","rho [g/cm^3]","T [K]","Ye","S [k_b/nuc]","Ee [erg/cm^3]"," Ea [erg/cm^3]","tau_e","tau_a","u_t+1","h-1"
        
-       !endif
+       close(unit)
 
     enddo
     !$omp end do
@@ -152,7 +151,7 @@ contains
     
     !$omp parallel default(none) &
     !$omp   shared(np,nt_output,flag_evol_store,dir_out,time_store,x_p_store,y_p_store,z_p_store,vlx_p_store,vly_p_store,vlz_p_store, &
-    !$omp          qrho_p_store, tem_p_store, ye_p_store,sen_p_store,rne_p_store,rae_p_store,deptn_p_store,depta_p_store) &
+    !$omp          qrho_p_store, tem_p_store, ye_p_store,sen_p_store,rne_p_store,rae_p_store,deptn_p_store,depta_p_store,ut_p_store,hhh_p_store) &
     !$omp   private(str1,unit)
     !$omp do
     do ip=1,np
@@ -160,7 +159,7 @@ contains
        open(newunit=unit,file=trim(dir_out)//"/traj_"//trim(str1)//".dat",status="old",position="append")
        do it_out = 1, nt_output
           if(flag_evol_store(ip,it_out)==1)then
-             write(unit,'(99es14.6)') &
+             write(unit,'(" ",99es14.6)') &
                   time_store(it_out), &
                   x_p_store(ip,it_out), &
                   y_p_store(ip,it_out), &
@@ -175,7 +174,9 @@ contains
                   rne_p_store(ip,it_out), &
                   rae_p_store(ip,it_out), &
                   deptn_p_store(ip,it_out), &
-                  depta_p_store(ip,it_out)
+                  depta_p_store(ip,it_out), &
+                  ut_p_store(ip,it_out)+1d0, &
+                  hhh_p_store(ip,it_out)-1d0
           endif
           
        enddo

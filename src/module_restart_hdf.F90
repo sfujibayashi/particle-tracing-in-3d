@@ -139,7 +139,7 @@ contains
     integer,intent(out) :: ipu,np,count_pset,count_out,count_skip,job,it,npv
     real(8),intent(out) :: time
     character(*),intent(out),optional :: fn_3d_read, fn_vel_read
-    logical,intent(out) :: flag_amr
+    logical,intent(out),optional :: flag_amr
 
     integer :: ip
 
@@ -187,20 +187,24 @@ contains
     call H5LTread_dataset_int_f(file_id,"/npv",ibuf1,dims1,error)
     npv=ibuf1(1)
 
-    call h5lexists_f(file_id,"/flag_AMR",link_exists,error)
-    if(.not.link_exists)then
-       write(6,*) "flag_AMR not exists. STOP"
-       stop
+    if(present(flag_amr))then
+       call h5lexists_f(file_id,"/flag_AMR",link_exists,error)
+       if(.not.link_exists)then
+          write(6,*) "flag_AMR not exists. STOP"
+          stop
+       endif
+       !flag_amr = .false.
+       !else
+       
+       call H5LTread_dataset_int_f(file_id,"/flag_AMR",ibuf1,dims1,error)
+       iflag=ibuf1(1)
+       if(iflag==1)then
+          flag_amr=.true.
+       else
+          flag_amr=.false.
+       endif
     endif
-
-    call H5LTread_dataset_int_f(file_id,"/flag_AMR",ibuf1,dims1,error)
-    iflag=ibuf1(1)
-    if(iflag==1)then
-       flag_amr=.true.
-    else
-       flag_amr=.false.
-    endif
-
+    
     deallocate(ibuf1,buf1)
 
     call allocate_particle_data(np)

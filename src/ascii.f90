@@ -68,7 +68,8 @@ subroutine ascii(model, dir_read, it_skip_out)
         fn = trim(dir_read) // "/data_"//trim(str1)//"_"//trim(str2)//".h5"
         if(access(fn," ")==0)then
            itt = itt + 1
-           call read_checkpoint_hdf(fn,job_buf,it_buf,np_buf,ipu,time,count_pset,count_out,count_skip,npv,fn_hdf,fn_vel,flag_amr)
+           ! call read_checkpoint_hdf(fn,job_buf,it_buf,np_buf,ipu,time,count_pset,count_out,count_skip,npv,fn_hdf,fn_vel,flag_amr)
+           call read_checkpoint_hdf(fn,job_buf,it_buf,np_buf,ipu,time,count_pset,count_out,count_skip,npv,fn_hdf)
            write(6,'(4i8,es12.4)') job,it,itt,it_out,time
 
            if(first)then
