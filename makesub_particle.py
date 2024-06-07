@@ -17,7 +17,7 @@ username="shofu"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
 #model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
-model="DD2Tim626_135_135_44km_150mstg_B0_HLLC_FUKA"; job_min=1; job_max=9; nickname="DD2-135135"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+model="DD2Tim626_135_135_44km_150mstg_B0_HLLC_FUKA"; job_min=5; job_max=9; nickname="DD2-135135-FMR"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
 #model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
@@ -27,10 +27,10 @@ n_theta = 16
 it_start= 0
 it_skip = 1
 it_skip_out = 1 #it_skip
-rfl=3e8
+rfl=3e9
 rin=1e7
 mass_crit = 1e-5
-mass_min  = 1e-12
+mass_min  = 1e-15
 backward="T"
 volumebased="T"
 
@@ -39,7 +39,7 @@ restart="N"
 incr_next=1
 lvf2_limit = 14
 
-info="old"
+info="large"
 
 #info="3e8km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
@@ -156,7 +156,7 @@ with open(dir_out + "/parameters.dat",mode="w") as f:
     f.write("# data read from:\n")
     f.write("%s\n" % (dir_read))
     f.write("# result saved in:\n")
-    f.write("%s\n" % (dir_out))
+    f.write("%s\n" % ("."))
     
     f.write("# Evolving backward?:\n")
     f.write("%s\n" % (backward))
@@ -238,7 +238,7 @@ njob = int((job_max-job_min+1)/incr_next)
 
 
 for job in range(1,njob+1):
-   with open("sub_ptr_%s%s_%i.sh" % (model,info,job) ,mode="w") as f:
+   with open(dir_out + "/sub_ptr_%s%s_%i.sh" % (model,info,job) ,mode="w") as f:
       for line in lines:
          line1=line
          for rep_pair in list_replace:
@@ -246,6 +246,16 @@ for job in range(1,njob+1):
             line1=line1.replace(rep_pair[0],rep_pair[1])
          line1=line1.replace("${job}","%i" %(job))
          f.write(line1)
+
+cmd="mv ./bin/%s %s/" %( prog, dir_out )
+stdout, stderr, return_code = utils.exec_subprocess(cmd)
+print(stdout.decode())
+print(stderr.decode())
+
+if return_code!=0:
+   print("command failed. stop.")
+   sys.exit()
+
 sys.exit()
 
 # Ask compile or not

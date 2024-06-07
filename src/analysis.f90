@@ -1,4 +1,133 @@
 subroutine analysis(dir_out,time)
+  implicit none
+  character(*),intent(in) :: dir_out
+  real(8),intent(in) :: time
+
+  write(6,*) "enter analysis routine"
+
+  ! call angle_dependence(dir_out,time)
+  call histograms(dir_out,time)
+
+end subroutine analysis
+
+subroutine histograms(dir_out,time)
+  use simdata3D
+  use module_eos, only: hhh_min
+  implicit none
+  character(*),intent(in) :: dir_out
+  real(8),intent(in) :: time
+  
+  integer,parameter :: nrho = 131
+  real(8) :: hist_v_lrho(nrho), hist_lrho(nrho)
+  real(8),parameter :: lrho_max = log10(1d15), lrho_min = log10(1d2)
+  real(8),parameter :: dlrho=(lrho_max-lrho_min)/dble(nrho)
+
+  integer,parameter :: nbgam = 91
+  real(8) :: hist_v_lbgam(nbgam), hist_lbgam(nbgam), hist_lbgam_hut(nbgam)
+  real(8),parameter :: lbgam_max = log10(1d1), lbgam_min = log10(1d-2)
+  real(8),parameter :: dlbgam=(lbgam_max-lbgam_min)/dble(nbgam)
+
+  integer :: irho, ibgam
+  integer :: j,k,l,lv
+  real(8) :: dm, mass_tot, bgam, gam, bgam_hut, gam_hut
+  integer :: ncell_bgam1
+
+  integer :: nunit
+  character(256) :: fn
+
+  do irho=1,nrho
+     hist_v_lrho(irho) = lrho_min + dlrho*dble(irho-1)
+  enddo
+
+  do ibgam=1,nbgam
+     hist_v_lbgam(ibgam) = lbgam_min + dlbgam*dble(ibgam-1)
+  enddo
+
+  hist_lrho(:) = 0d0
+  hist_lbgam(:) = 0d0
+  hist_lbgam_hut(:) = 0d0
+  ncell_bgam1 = 0
+  
+  do lv=lv_min,lv_max
+     
+     !$omp parallel default(none) &
+     !$omp shared(ld,lu,kd,ku,jd,ju,lv,vol3d,qb,qrho,ut,hhh,hhh_min) &
+     !$omp private(dm, irho, ibgam, gam, bgam, gam_hut, bgam_hut) &
+     !$omp reduction(+: hist_lrho, hist_lbgam, mass_tot, ncell_bgam1, hist_lbgam_hut)
+     !$omp do
+     do l=ld,lu
+        do k=kd,ku
+           do j=jd,ju
+              
+              dm = qb(j,k,l,lv)*vol3D(j,k,l,lv)
+              mass_tot = mass_tot + dm
+              
+              irho = max(1,min(nrho,int( (log10(qrho(j,k,l,lv))-lrho_min)/dlrho ) + 1 ))
+              
+              hist_lrho(irho) = hist_lrho(irho) + dm
+              
+              gam = -ut(j,k,l,lv)
+              if(gam>1d0)then
+                 bgam = sqrt(gam**2-1d0)
+                 
+                 ibgam = max(1,min(nbgam,int( (log10(bgam)-lbgam_min)/dlbgam ) + 1 ))
+
+                 hist_lbgam(ibgam) = hist_lbgam(ibgam) + dm
+
+                 if(bgam>=1d0.and.dm>0d0)then
+                    ncell_bgam1 = ncell_bgam1 + 1
+                 endif
+              endif
+
+
+              gam_hut = -hhh(j,k,l,lv)*ut(j,k,l,lv)/hhh_min
+              if(gam_hut>1d0)then
+                 bgam_hut = sqrt(gam_hut**2-1d0)
+                 
+                 ibgam = max(1,min(nbgam,int( (log10(bgam_hut)-lbgam_min)/dlbgam ) + 1 ))
+
+                 hist_lbgam_hut(ibgam) = hist_lbgam_hut(ibgam) + dm
+                 
+              endif
+
+           enddo
+        enddo
+     enddo
+     !$omp end do
+     !$omp end parallel
+
+  enddo
+  
+  fn = trim(dir_out) // "/hist_rho.dat"
+  open(newunit=nunit,file=fn, status="replace", action="write")
+  write(nunit,'("#","Mtot=",99es12.4)') mass_tot
+  write(nunit,'("#",99a15)') "rho(bottom)", "mass (g)", "cumulative"
+  do irho=1,nrho
+     write(nunit,'(" ",99es15.7)') 10d0**hist_v_lrho(irho), hist_lrho(irho), sum(hist_lrho(:irho))
+  enddo
+  close(nunit)
+
+  fn = trim(dir_out) // "/hist_bgam.dat"
+  open(newunit=nunit,file=fn, status="replace", action="write")
+  write(nunit,'("#","Mtot=",es12.4, "Ncell(betaGamma>1)=",i8)') mass_tot, ncell_bgam1
+  write(nunit,'("#",99a15)') "bGam(bottom)", "mass (g)", "cumulative"
+  do ibgam=1,nbgam
+     write(nunit,'(" ",99es15.7)') 10d0**hist_v_lbgam(ibgam), hist_lbgam(ibgam), sum(hist_lbgam(ibgam:))
+  enddo
+  close(nunit)
+
+  fn = trim(dir_out) // "/hist_bgam_hut.dat"
+  open(newunit=nunit,file=fn, status="replace", action="write")
+  write(nunit,'("#","Mtot=",es12.4, "Ncell(betaGamma>1)=",i8)') mass_tot, ncell_bgam1
+  write(nunit,'("#",99a15)') "bGam(bottom)", "mass (g)", "cumulative"
+  do ibgam=1,nbgam
+     write(nunit,'(" ",99es15.7)') 10d0**hist_v_lbgam(ibgam), hist_lbgam_hut(ibgam), sum(hist_lbgam_hut(ibgam:))
+  enddo
+  close(nunit)
+
+end subroutine histograms
+
+subroutine angle_dependence(dir_out,time)
   use simdata3D
   implicit none
   character(*),intent(in) :: dir_out
@@ -27,7 +156,6 @@ subroutine analysis(dir_out,time)
   character(256) :: fn
   integer :: i
 
-  write(6,*) "enter analysis routine"
 
   nr = 100
   r_min = 1d7; r_max = 1d10
@@ -176,4 +304,4 @@ subroutine analysis(dir_out,time)
   enddo
   
   
-end subroutine analysis
+end subroutine angle_dependence

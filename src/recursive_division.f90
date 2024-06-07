@@ -16,19 +16,24 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
 
   real(8) :: mass,comx,comy,comz,vol,vr2_av,vr_av,vr,sigmav,rho_av
 
+  real(8) :: bgam,gam
+  real(8) :: mass_highv
+  
   mass = 0d0
   comx = 0.d0
   comy = 0.d0
   comz = 0.d0
   vol  = 0.d0
+
+  mass_highv = 0d0
   
   vr_av = 0.d0
   vr2_av= 0.d0
 
   !$omp parallel default(none) &
-  !$omp shared(lld,llu,kkd,kku,jjd,jju,lv,rfl,rin,hhh_crit,vol3D,qb,x,y,z,vlx,vly,vlz) &
-  !$omp private(vr) &
-  !$omp reduction(+: mass,comx,comy,comz,vol,vr_av,vr2_av)
+  !$omp shared(lld,llu,kkd,kku,jjd,jju,lv,rfl,rin,hhh_crit,vol3D,qb,x,y,z,vlx,vly,vlz,ut) &
+  !$omp private(vr,bgam,gam) &
+  !$omp reduction(+: mass,comx,comy,comz,vol,vr_av,vr2_av,mass_highv)
   !$omp do
   do l=lld,llu
      do k=kkd,kku
@@ -44,6 +49,15 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
               vr_av  = vr_av  + vr   *vol3D(j,k,l,lv)*qb(j,k,l,lv)
               vr2_av = vr2_av + vr**2*vol3D(j,k,l,lv)*qb(j,k,l,lv)
               vol = vol + vol3D(j,k,l,lv)
+              
+              gam = -ut(j,k,l,lv)
+              if(gam > 1d0)then
+                 bgam = sqrt(gam**2-1d0)
+                 if(bgam > 1d0)then
+                    mass_highv = mass_highv + vol3D(j,k,l,lv)*qb(j,k,l,lv)
+                 endif
+              endif
+              
            endif
         enddo
      enddo
@@ -64,7 +78,7 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
   endif
   ! write(6,'(6i5,99es12.4)') jjd,jju,kkd,kku,lld,llu,mass
 
-  if( ( mass > mass_crit ) &
+  if( ( mass > mass_crit .or. mass_highv > 1d-5*mass_crit) &
        .and. jju-jjd+1>=2 .and. kku-kkd+1>=2 .and. llu-lld+1>=2)then
      call divide8(jjd,jju,kkd,kku,lld,llu,jd_divided8,ju_divided8,kd_divided8,ku_divided8,ld_divided8,lu_divided8)
      do i8=1,8

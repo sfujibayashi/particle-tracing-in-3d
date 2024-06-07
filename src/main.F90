@@ -696,7 +696,7 @@ program main
         if(first)then
            write(6,*)
            write(6,*) "first-step task"
-           !call analysis(dir_out,time)
+           call analysis(dir_out,time)
            !call print_data(time,job,it)
            call partial_output_hdf(dir_out, job, it, time)
            !stop
