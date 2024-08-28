@@ -24,7 +24,7 @@ subroutine evolution_particle_3D(ipu,time,time_prv,substep_max)
   
   substep_max = 0
   !$omp parallel default(none) &
-  !$omp shared(ipu,flag_evol,time,time_prv,dt,x_p,y_p,z_p,x,y,z,vlx_b,vly_b,vlz_b,vlx,vly,vlz,ju,jd,ku,kd,lu,ld,lv_min) &
+  !$omp shared(ipu,flag_evol,time,time_prv,dt,x_p,y_p,z_p,x,y,z,vlx_b,vly_b,vlz_b,vlx,vly,vlz,ju,jd,ku,kd,lu,ld,lv_min,lv_max) &
   !$omp private(t,xtmp,ytmp,ztmp,j1,k1,l1,lv,j,k,l,x1,x0,y1,y0,z1,z0,t1,t0, &
   !$omp   vxtmp,vytmp,vztmp,dx,dy,dz,dt_p,nt_sub,dtt,xm,ym,zm,vxm,vym,vzm,xp,yp,zp, &
   !$omp   xc,yc,zc,vxc,vyc,vzc,vxdx,vxdy,vxdz,vydx,vydy,vydz,vzdx,vzdy,vzdz, &

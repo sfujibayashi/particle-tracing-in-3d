@@ -170,8 +170,8 @@ program main
   write(*,'("result saved in : ",a)') trim(dir_out)
   
   ! call ascii(model,dir_out,it_skip_out)
-  ! call tr_analysis(model,dir_out)
-  ! stop
+  call tr_analysis(model,dir_out)
+  stop
 
   
   write(6,'("it_skip, it_skip_out      : ",2i5)') it_skip,it_skip_out
@@ -349,7 +349,7 @@ program main
   ! endif
   ! nsteps = itt_max-itt_min+1
   
-  write(6,'("# job_min,job_max,job_start,it_start = ",4i3)') job_min,job_max,job_start,it_start
+  write(6,'("# job_min,job_max,job_start,it_start = ",4i5)') job_min,job_max,job_start,it_start
   !write(6,'("# itt_min,itt_max,itt_start = ",3i10)') itt_min,itt_max,itt_start
 
 !!! set particle data to be stored
@@ -496,7 +496,7 @@ program main
      write(6,*)
      write(6,*) " -- Checkpoint file info -- "
      write(6,'("job,it  = ",2i5)') job_prv,it_prv
-     write(6,'("np, npv = ",2i5)') np,npv
+     write(6,'("np, npv = ",2i7)') np,npv
      write(6,'("time    = ",es12.4)') time
      write(6,'("counts  = ",3i5)') count_pset,count_out,count_skip
      write(6,'(a,a)') "file read: ",trim(fn_read)

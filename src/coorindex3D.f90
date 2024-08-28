@@ -1,40 +1,53 @@
-subroutine coorindex3D(xx,yy,zz,j1,k1,l1,lv)
-  use simdata3D
-  implicit none
-  real(8),intent(in) :: xx,yy,zz
-  integer,intent(out) :: lv,j1,k1,l1
+module utils_3D
+contains
+  
+  subroutine coorindex3D(xx,yy,zz,j1,k1,l1,lv,lv_max_search)
+    use simdata3D
+    implicit none
+    real(8),intent(in) :: xx,yy,zz
+    integer,intent(out) :: lv,j1,k1,l1
+    integer,intent(in),optional :: lv_max_search
 
-  lv = lv_max
-  do
-     if((abs(xx)<x(ju,lv).and.abs(yy)<y(ku,lv).and.abs(zz)<z(lu,lv)).or.lv==lv_min)then
-        exit
-     else
-        lv = lv - 1
-     endif
-  enddo
+    lv = lv_max
+    if(present(lv_max_search))then
+       if(lv_max_search > lv_max)then
+          write(6,*) "lv_max_search > lv_max", lv_max_search, lv_max
+          stop
+       else
+          lv = lv_max_search
+       endif
+    endif
 
-  j1 = jd + 1
-  do while( ( xx - x(j1-1,lv) )*( xx - x(j1,lv) ) > 0.d0 .and.j1<ju)
-   j1 = j1 + 1
-  end do
-  
-  k1 = kd + 1
-  do while( ( yy - y(k1-1,lv) )*( yy - y(k1,lv) ) > 0.d0 .and.k1<ku)
-   k1 = k1 + 1
-  end do
-  
-  l1 = ld + 1
-  do while( ( zz - z(l1-1,lv) )*( zz - z(l1,lv) ) > 0.d0 .and.l1<lu)
-     l1 = l1 + 1
-  end do
+    do
+       ! write(6,'(99es11.3)') abs(xx),x(ju,lv), abs(yy),y(ku,lv), abs(zz),z(lu,lv)
+       if((abs(xx)<x(ju,lv).and.abs(yy)<y(ku,lv).and.abs(zz)<z(lu,lv)).or.lv==lv_min)then
+          exit
+       else
+          lv = lv - 1
+       endif
+    enddo
 
-  if(lv<lv_min .or. lv>lv_max .or. &
-       j1 < jd + 1 .or. ju < j1 .or. &
-       k1 < kd + 1 .or. ku < k1 .or. &
-       l1 < ld + 1 .or. lu < l1 )then
-     write(6,'(a,99i10)') "index out of range", j1,k1,l1,lv
-  endif
-  
-  
-  return
-end subroutine coorindex3D
+    j1 = jd + 1
+    do while( ( xx - x(j1-1,lv) )*( xx - x(j1,lv) ) > 0.d0 .and.j1<ju)
+       j1 = j1 + 1
+    end do
+
+    k1 = kd + 1
+    do while( ( yy - y(k1-1,lv) )*( yy - y(k1,lv) ) > 0.d0 .and.k1<ku)
+       k1 = k1 + 1
+    end do
+
+    l1 = ld + 1
+    do while( ( zz - z(l1-1,lv) )*( zz - z(l1,lv) ) > 0.d0 .and.l1<lu)
+       l1 = l1 + 1
+    end do
+
+    if(lv<lv_min .or. lv>lv_max .or. &
+         j1 < jd + 1 .or. ju < j1 .or. &
+         k1 < kd + 1 .or. ku < k1 .or. &
+         l1 < ld + 1 .or. lu < l1 )then
+       write(6,'(a,99i10)') "index out of range", j1,k1,l1,lv
+    endif
+
+  end subroutine coorindex3D
+end module utils_3D

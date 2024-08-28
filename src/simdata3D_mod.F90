@@ -123,6 +123,7 @@ contains
 
     enddo setlevel
 
+    lv_max = 13
     write(6,*)
     write(6,*) "level min, max = ",lv_min,lv_max
     write(6,'("# of grid points = ",99i5)') npoints, jd, ju, kd, ku, ld, lu
@@ -350,6 +351,7 @@ contains
     INTEGER(HID_T),intent(in) :: file_id
     integer,intent(in)  :: it
     real(8),intent(out) :: t
+
     integer :: error, sum_err
     integer(HSIZE_T) :: dims1(1),dims3(3)
     real(4),allocatable :: buf3d_real4_1(:,:,:), buf3d_real4_2(:,:,:), buf3d_real4_3(:,:,:), buf3d_real4_4(:,:,:), buf3d_real4_5(:,:,:), buf3d_real4_6(:,:,:), buf3d_real4_7(:,:,:), buf3d_real4_8(:,:,:)
@@ -357,10 +359,12 @@ contains
     integer :: lv,jdat,kdat,ldat,ld_read
     character(10) :: str1,str2
 
+    integer :: lv_max_present
     logical :: link_exists
-    integer :: j,k,l
+
 
     ld_read=ld
+
 #ifdef STAGGERED
 #ifndef FULL
     ld_read=ld+1
@@ -381,15 +385,24 @@ contains
     dims3(3) = ldat
 
     allocate(buf3d_real4_1(jdat,kdat,ldat), buf3d_real4_2(jdat,kdat,ldat), buf3d_real4_3(jdat,kdat,ldat), buf3d_real4_4(jdat,kdat,ldat), buf3d_real4_5(jdat,kdat,ldat), buf3d_real4_6(jdat,kdat,ldat), buf3d_real4_7(jdat,kdat,ldat), buf3d_real4_8(jdat,kdat,ldat))
-
+    
     ! !$omp parallel default(none) &
     ! !$omp num_threads(1) &
     ! !$omp shared(lv_max,lv_min,ld_read,lu,file_id,str2,dims3,qrho,ut,ye,sen,tem,qb,vlx,vly,vlz) &
     ! !$omp private(rbuf3,error,sum_err,str1)
     ! !$omp do
-    do lv=lv_min,lv_max
+    loop_read:do lv=lv_min,lv_max
 
        write(str1,'(i10)') lv
+
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1)),link_exists,error)
+       if(link_exists)then
+          lv_max_present=lv
+       else
+          write(6,*) "lv=",lv,"does not exists. skip."
+          exit loop_read
+       endif
+        
        !write(6,*) "/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density"
        sum_err = 0
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density",buf3d_real4_1,dims3,error); sum_err = sum_err + error
@@ -411,7 +424,9 @@ contains
 
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",link_exists,error)
        if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",qb  (:,:,:,lv),dims3,error)
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",buf3d_real4_1,dims3,error); sum_err = sum_err + error
+          qb(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)*rho_uni
+          ! qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
        else
           !$omp parallel
           !$omp do
@@ -433,7 +448,7 @@ contains
        
        ! write(6,*) lv
 
-    enddo
+    enddo loop_read
     ! !$omp end do
     ! !$omp end parallel
 
@@ -445,6 +460,9 @@ contains
 #endif
 #endif
 
+    write(6,*) lv_max, lv_max_present
+    call interp_finer(lv_max_present)
+    ! stop
     ! block
     !   integer :: j,k,l
     !   lv=lv_max
@@ -457,6 +475,45 @@ contains
     ! end block
 
   end subroutine read_simdata
+
+  subroutine interp_finer(lv_max_present)
+    ! data exists for lv <= lv_max_present
+    integer,intent(in) :: lv_max_present
+    
+    integer :: j,k,l,lv,lv0, j1,k1,l1, ld_read
+    real(8) :: xx, yy, zz
+
+    ld_read=ld
+#ifdef STAGGERED
+#ifndef FULL
+    ld_read=ld+1
+#endif
+#endif
+    
+    if(lv_max>lv_max_present)then
+       do lv=lv_max_present+1,lv_max
+          do l=ld_read,lu
+             do k=kd,ku
+                do j=jd,ju
+                   xx=x(j,lv)
+                   yy=y(k,lv)
+                   zz=z(l,lv)
+                   call coorindex3D(xx,yy,zz,j1,k1,l1,lv0,lv_max_present)
+                   write(6,*) j1,k1,l1,lv0
+                   write(6,*) x(j1-1,lv0), x(j,lv), x(j1,lv0)
+                   write(6,*) y(k1-1,lv0), y(k,lv), y(k1,lv0)
+                   write(6,*) z(l1-1,lv0), z(l,lv), z(l1,lv0)
+                   stop
+                   
+                enddo
+             enddo
+          enddo
+          
+       enddo
+    endif
+
+
+  end subroutine interp_finer
 
   subroutine zboundary
     integer :: j,k,l,lv
@@ -584,6 +641,56 @@ stop
     call read_simdata(file_id,it,t)
     call h5fclose_f(file_id, hdf_err)
   end subroutine all_proc
+
+  subroutine coorindex3D(xx,yy,zz,j1,k1,l1,lv,lv_max_search)
+!    use simdata3D
+!    implicit none
+    real(8),intent(in) :: xx,yy,zz
+    integer,intent(out) :: lv,j1,k1,l1
+    integer,intent(in),optional :: lv_max_search
+
+    lv = lv_max
+    if(present(lv_max_search))then
+       if(lv_max_search > lv_max)then
+          write(6,*) "lv_max_search > lv_max", lv_max_search, lv_max
+          stop
+       else
+          lv = lv_max_search
+       endif
+    endif
+
+    do
+       ! write(6,'(99es11.3)') abs(xx),x(ju,lv), abs(yy),y(ku,lv), abs(zz),z(lu,lv)
+       if((abs(xx)<x(ju,lv).and.abs(yy)<y(ku,lv).and.abs(zz)<z(lu,lv)).or.lv==lv_min)then
+          exit
+       else
+          lv = lv - 1
+       endif
+    enddo
+
+    j1 = jd + 1
+    do while( ( xx - x(j1-1,lv) )*( xx - x(j1,lv) ) > 0.d0 .and.j1<ju)
+       j1 = j1 + 1
+    end do
+
+    k1 = kd + 1
+    do while( ( yy - y(k1-1,lv) )*( yy - y(k1,lv) ) > 0.d0 .and.k1<ku)
+       k1 = k1 + 1
+    end do
+
+    l1 = ld + 1
+    do while( ( zz - z(l1-1,lv) )*( zz - z(l1,lv) ) > 0.d0 .and.l1<lu)
+       l1 = l1 + 1
+    end do
+
+    if(lv<lv_min .or. lv>lv_max .or. &
+         j1 < jd + 1 .or. ju < j1 .or. &
+         k1 < kd + 1 .or. ku < k1 .or. &
+         l1 < ld + 1 .or. lu < l1 )then
+       write(6,'(a,99i10)') "index out of range", j1,k1,l1,lv
+    endif
+
+  end subroutine coorindex3D
 
 end module simdata3D
 
