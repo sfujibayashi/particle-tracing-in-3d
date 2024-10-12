@@ -129,7 +129,7 @@ contains
        write(unit,'("# particle id:",i8)') ip
        write(unit,'("# model: ",a)') trim(model)
        write(unit,'("# particle mass:",es13.5," g, ut+1, hut+h_atm:",2es13.5)') dm_p(ip), ut1_p(ip), hut_p(ip)
-       write(unit,'("#     Time [s]        x [cm]        y [cm]        z [cm]     Vx [cm/s]     Vy [cm/s]     Vz [cm/s]  rho [g/cm^3]         T [K]            Ye   S [k_b/nuc] Ee [erg/cm^3] Ea [erg/cm^3]         tau_e         tau_a")')
+       write(unit,'("#     Time [s]        x [cm]        y [cm]        z [cm]     Vx [cm/s]     Vy [cm/s]     Vz [cm/s]  rho [g/cm^3]         T [K]            Ye   S [k_b/nuc] Ee [erg/cm^3] Ea [erg/cm^3]         tau_e         tau_a           u_t         h/c^2")')
        close(unit)
        
        !endif
@@ -152,7 +152,7 @@ contains
     
     !$omp parallel default(none) &
     !$omp   shared(np,nt_output,flag_evol_store,dir_out,time_store,x_p_store,y_p_store,z_p_store,vlx_p_store,vly_p_store,vlz_p_store, &
-    !$omp          qrho_p_store, tem_p_store, ye_p_store,sen_p_store,rne_p_store,rae_p_store,deptn_p_store,depta_p_store) &
+    !$omp          qrho_p_store, tem_p_store, ye_p_store,sen_p_store,rne_p_store,rae_p_store,deptn_p_store,depta_p_store,ut_p_store,hhh_p_store) &
     !$omp   private(str1,unit)
     !$omp do
     do ip=1,np
@@ -175,7 +175,9 @@ contains
                   rne_p_store(ip,it_out), &
                   rae_p_store(ip,it_out), &
                   deptn_p_store(ip,it_out), &
-                  depta_p_store(ip,it_out)
+                  depta_p_store(ip,it_out), &
+                  ut_p_store(ip,it_out), &
+                  hhh_p_store(ip,it_out)
           endif
           
        enddo

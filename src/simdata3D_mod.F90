@@ -409,7 +409,7 @@ contains
        qrho(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/u_t"    ,buf3d_real4_2,dims3,error); sum_err = sum_err + error
        ut  (:,:,ld_read:lu,lv) = buf3d_real4_2(:,:,:)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ye"     ,buf3d_real4_3,dims3,error); sum_err = sum_err + error
+       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Ye"     ,buf3d_real4_3,dims3,error); sum_err = sum_err + error
        ye  (:,:,ld_read:lu,lv) = buf3d_real4_3(:,:,:)
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/entropy",buf3d_real4_4,dims3,error); sum_err = sum_err + error
        sen (:,:,ld_read:lu,lv) = buf3d_real4_4(:,:,:)
@@ -428,17 +428,19 @@ contains
           qb(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)*rho_uni
           ! qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
        else
-          !$omp parallel
-          !$omp do
-          do l=ld,lu
-             do k=kd,ku
-                do j=jd,ju
-                   qb(j,k,l,lv) = qrho(j,k,l,lv)/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
-                enddo
-             enddo
-          enddo
-          !$omp end do
-          !$omp end parallel
+
+          qb(:,:,:,:) = qrho(:,:,:,:)/sqrt(1d0 - ( vlx(:,:,:,:)**2 + vly(:,:,:,:)**2 + vlz(:,:,:,:)**2 ) )
+          ! !$omp parallel
+          ! !$omp do
+          ! do l=ld,lu
+          !    do k=kd,ku
+          !       do j=jd,ju
+          !          qb(j,k,l,lv) = qrho(j,k,l,lv)/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
+          !       enddo
+          !    enddo
+          ! enddo
+          ! !$omp end do
+          ! !$omp end parallel
        endif
        
        if(sum_err>0)then
@@ -446,7 +448,7 @@ contains
           stop
        endif
        
-       ! write(6,*) lv
+       write(6,*) lv
 
     enddo loop_read
     ! !$omp end do

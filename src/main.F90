@@ -170,8 +170,8 @@ program main
   write(*,'("result saved in : ",a)') trim(dir_out)
   
   ! call ascii(model,dir_out,it_skip_out)
-  call tr_analysis(model,dir_out)
-  stop
+  ! call tr_analysis(model,dir_out)
+  ! stop
 
   
   write(6,'("it_skip, it_skip_out      : ",2i5)') it_skip,it_skip_out
@@ -647,11 +647,12 @@ program main
            write(6,*) "first-time task"
            call analysis(dir_out,time)
            !call print_data(time,job,it)
-           call partial_output_hdf(dir_out, job, it, time)
+           ! call partial_output_hdf(dir_out, job, it, time)
            !stop
 
            ! call set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
            ! np = npv
+           
            call set_ejecta_inside_3D_divide(0,rfl,rin,mass_crit,mass_min,npv)
            np = npv
 

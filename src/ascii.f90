@@ -18,7 +18,7 @@ subroutine ascii(model, dir_read, it_skip_out)
   integer :: access
 
   logical :: first
-  real(8) :: mem_max = 1d9/2d0 ! byte
+  real(8) :: mem_max = 10d9 ! byte
   integer :: it_out
 
   integer :: hdferr

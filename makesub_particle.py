@@ -8,17 +8,17 @@ import utils
 
 if_cont=False
 
-# system="yamazaki"
-system="sakura"
-username="shofu"
+system="yamazaki"
+#system="sakura"
+username="sfujibayashi"
 
 #model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=1; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
-model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
+#model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
 
-#model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
 # parameters #
 n_theta = 16
@@ -49,9 +49,9 @@ print("sub info = ",info)
 if info!="":
    info = "_"+info
 
-fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
+#fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
 #fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
-#fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
+fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
 
 
 with open("src/macro.h",mode="w") as f:
@@ -66,8 +66,8 @@ if not os.path.exists(fn_eos):
 # system="yamazaki"
 # username="sfujibayashi"
 
-work_dir="/%s/ptmp/" % (system) +username
-# work_dir="/scratch/" + username
+# work_dir="/%s/ptmp/" % (system) +username
+work_dir="/scratch/" + username
 queue="p.sakura"
 misc=""
 nodes=1
