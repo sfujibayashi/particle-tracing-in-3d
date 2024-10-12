@@ -242,7 +242,7 @@ contains
     if(np_set > 0)then
        v_average = v_average / dble(np_set)
        
-       dt_pset = rfl*dth / abs(v_average*v_uni)
+       dt_pset = rfl*dth / abs(max(0.05,v_average)*v_uni)
        it_skip_pset = int(dt_pset/abs(dt))
 
 
