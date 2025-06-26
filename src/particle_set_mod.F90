@@ -78,6 +78,54 @@ contains
        ph(ip) = phi
     enddo
 
+    
+#ifdef FULL
+    ! set southern points
+    do ip=nnorth+1,n_points
+       p = ip-1
+       p = npix-1-p
+
+       phh = dble(p+1)/2d0
+       i = int(sqrt(phh - sqrt(dble(int(phh))) )) + 1
+       
+       if(i<nside)then
+
+          j = p + 1 - 2*i*(i-1)
+
+          z =-1d0 +dble(i)**2/(3d0*dble(nside)**2)
+          s = 1d0
+          phi = - pi/(2d0*dble(i)) * (dble(j) - s/2d0) + 2d0*pi
+          write(99,'(3i5,2es12.4," ",a)') p,i,j,z,phi, "south-pole"
+       else
+
+          pp = p - 2*nside*(nside-1)
+          i = int( dble(pp)/dble(4*nside) ) + nside
+
+          ! check whether it is actually on the equatorial belt
+          if(nside <= i .and. i <= 2*nside)then
+
+             j = mod(pp, (4*nside)) + 1
+             
+             z=-4d0/3d0 + 2d0*dble(i)/(3d0*dble(nside))
+             s = dble(mod((i-nside+1), 2))
+             phi =-pi/(2d0*dble(nside)) * (dble(j) - s/2d0)  + 2d0*pi
+
+             write(99,'(3i5,2es12.4," ",a)') p,i,j,z,phi,"south-equatorial"
+          else
+             
+             write(6,*) "Something is wrong, stop."
+             stop
+             
+          endif
+       endif
+       
+       th(ip) = acos(z)
+       ph(ip) = phi
+       
+    enddo
+#endif
+
+
     do ip = 1,n_points
        dom(ip) = 4d0*pi/dble(npix)
     enddo
@@ -86,11 +134,6 @@ contains
     do ip = 1,nnorth-neq
        dom(ip) = dom(ip) * 2d0
     enddo
-#endif
-    
-#ifdef FULL
-    write(6,*) "Sorry, not yet supported."
-    stop
 #endif
     
     block
