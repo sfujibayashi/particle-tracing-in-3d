@@ -1,6 +1,6 @@
 program main
 #include "macro.h"
-
+  !$ use omp_lib
   use const
   use simdata3D
   use particle_data
@@ -101,6 +101,12 @@ program main
   integer :: access
 
   integer,parameter :: incl_next=20
+
+
+  !$omp single
+  write(6,'("max thread : ",i4)') omp_get_max_threads()
+  !$omp end single
+
   
   call h5open_f (error)
 

@@ -116,7 +116,8 @@ if not os.path.exists(dir_std):
     os.system(cmd)
 
 dir_exists=False
-dir_out  = work_dir + "/" + model + "/Analysis_ptr/data" + info
+# dir_out  = work_dir + "/" + model + "/Analysis_ptr/data" + info
+dir_out  = "./"
 if os.path.exists(dir_out):
     print("directory exists :",dir_out)
     dir_exists=True

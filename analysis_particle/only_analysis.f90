@@ -27,11 +27,15 @@ program only_analysis
   ! model = "SFHoTim276_125_155_0025_150mstg_B0_HLLC_inspiral"
   ! dir = "/sakura/ptmp/shofu/SFHoTim276_125_155_0025_150mstg_B0_HLLC_inspiral/Analysis_ptr/data_std"
 
-  time_map = 1.871d-02; old_format=.true.; format_2d=.false.
-  model = "DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"
-  dir = "/sakura/ptmp/shofu/DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png/Analysis_ptr/data_small_set/data_post"
+  !time_map = 1.871d-02; old_format=.true.; format_2d=.false.
+  !model = "DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"
+  !dir = "/sakura/ptmp/shofu/DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png/Analysis_ptr/data_small_set/data_post"
   !dir = "/sakura/ptmp/shofu/DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png/Analysis_ptr/data_small_set/data_dyn_unified"
   !dir = "/sakura/ptmp/shofu/DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png/Analysis_ptr/data_3e8km"; time_map = 0d0 ; old_format=.false.
+
+  !time_map = 1.871d-02; old_format=.false.; format_2d=.false.
+  model = "DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"
+  dir = "/scratch/sfujibayashi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS/Analysis_ptr/data_3e8cm/"
   
   call tr_analysis(model,dir,old_format=old_format,format_2d=format_2d, time_map=time_map)
   stop

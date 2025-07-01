@@ -174,6 +174,7 @@ subroutine analysis(dir_out,time)
      enddo
      close(unum)
   enddo
-  
+
+  write(6,*) "analysis finished"
   
 end subroutine analysis
