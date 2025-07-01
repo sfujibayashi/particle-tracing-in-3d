@@ -268,7 +268,7 @@ contains
 
        write(6,*) "No particles set."
        v_average = 0.05d0
-       dt_pset = rfl*dth / (v_average*v_uni)
+       dt_pset = rfl*dth / (max(0.05,v_average)*v_uni)
        it_skip_pset = int(dt_pset/abs(dt))
 
        ! do while(mod(it_skip_pset,it_skip_out)>0)
