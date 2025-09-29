@@ -99,8 +99,6 @@ program main
     
   integer :: unum, unum2
   integer :: access
-
-  integer,parameter :: incl_next=20
   
   call h5open_f (error)
 
@@ -485,7 +483,7 @@ program main
      !write(str2,'(i6.6)') it_restart
      !fn = trim(dir_out) // "/data_"//trim(str1)//"_"//trim(str2)//".h5"
      fn = trim(dir_out) // "/res_"//trim(str1)//".h5"
-     
+
 !!! set ips and ipu
 !!! allocate particle var.
 !!! read all particle data
@@ -888,10 +886,10 @@ program main
   open(10,file=fn,status="replace",action="write")
   if(mode_backward)then
      job_max = job2-1
-     job_min = max(1,job_max-incl_next)
+     job_min = max(1,job_max-incr_next)
   else
      job_min = job2+1
-     job_max = job_min+incl_next
+     job_max = job_min+incr_next
   endif
   write(10,*) job_min
   write(10,*) job_max
