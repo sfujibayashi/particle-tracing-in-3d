@@ -8,20 +8,20 @@ import utils
 
 if_cont=False
 
-# system="yamazaki"
-system="sakura"
-username="shofu"
+system="yamazaki"; username="sfujibayashi"
+# system="sakura"; username="shofu"
 
 #model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=1; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
-model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
+# model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
 
 #model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+model="BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling"; job_min=88; job_max=88; nickname="BHBLpMHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
 # parameters #
-n_theta = 16
+n_theta = 9
 #n_theta = 64
 it_start= 0
 it_skip = 1
@@ -37,7 +37,7 @@ restart="N"
 
 incr_next=10
 
-info="3e8cm_posv"
+info="3e8cm"
 
 #info="3e8km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
@@ -49,9 +49,10 @@ print("sub info = ",info)
 if info!="":
    info = "_"+info
 
-fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
+# fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
 #fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
 #fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
+fn_eos = "/scratch/sfujibayashi/EOS/EOS_BHBLpTim_rho453_temp156_ye061_ierd076_knuc376"; nrho=453; nye=60; ntemp=156
 
 
 with open("src/macro.h",mode="w") as f:
@@ -66,8 +67,8 @@ if not os.path.exists(fn_eos):
 # system="yamazaki"
 # username="sfujibayashi"
 
-work_dir="/%s/ptmp/" % (system) +username
-# work_dir="/scratch/" + username
+# work_dir="/%s/ptmp/" % (system) +username
+work_dir="/scratch/" + username
 queue="p.sakura"
 misc=""
 nodes=1
@@ -78,7 +79,7 @@ OMP_NUM_THREADS=CPUs_per_task
 whour=24
 wmin=00
 wsecond=00
-compf="h5pfc"
+compf="h5fc"
 compc="h5pcc"
 option="-convert big_endian -mcmodel=large -shared-intel -fpic -qopenmp -xCORE-AVX512 -qopt-zmm-usage=high"
 
@@ -125,8 +126,8 @@ else:
     os.system(cmd)
 
 #dir_read = work_dir + "/" + model + "/hdf5"
-dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
-#dir_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS/hdf5_"
+#dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
+dir_read = "/scratch/kiuchi/BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling/hdf5/"
 
 if dir_exists:
     run=input('Directory already exists. Overwrite parameter files? [y/n] :')
