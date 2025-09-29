@@ -428,19 +428,20 @@ contains
           qb(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)*rho_uni
           ! qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
        else
-
-          qb(:,:,:,:) = qrho(:,:,:,:)/sqrt(1d0 - ( vlx(:,:,:,:)**2 + vly(:,:,:,:)**2 + vlz(:,:,:,:)**2 ) )
-          ! !$omp parallel
-          ! !$omp do
-          ! do l=ld,lu
-          !    do k=kd,ku
-          !       do j=jd,ju
-          !          qb(j,k,l,lv) = qrho(j,k,l,lv)/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
-          !       enddo
-          !    enddo
-          ! enddo
-          ! !$omp end do
-          ! !$omp end parallel
+          block
+            integer :: j,k,l
+            !$omp parallel
+            !$omp do
+            do l=ld,lu
+               do k=kd,ku
+                  do j=jd,ju
+                     qb(j,k,l,lv) = qrho(j,k,l,lv)/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
+                  enddo
+               enddo
+            enddo
+            !$omp end do
+            !$omp end parallel
+          end block
        endif
        
        if(sum_err>0)then

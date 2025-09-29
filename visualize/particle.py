@@ -42,6 +42,9 @@ rho_uni = 5.807834130139644e18
 t_uni = 1.606200647186321e-6
 msun = 1.989e33
 
+
+skip=10
+
 #model = "DD2Tim326_Q4_M135_a75_0056_400m_B3e15_Hon_an20231126"; submodel = "ns9"
 
 model = "DD2Tim326_Q4_M135_a75_0056_400m_B3e15_Hon_an20231126"; submodel = "ns9"
@@ -96,7 +99,7 @@ ax_rhoT.set_yscale("log")
 ax_rhoT.set_xlabel("$\\rho$ (g/cm$^3$)")
 ax_rhoT.set_ylabel("$T$ (GK)")
 
-for i in range(0,ntraj,5):
+for i in range(0,ntraj,skip):
     ip = i+1
 
     fn = list_data[i]
