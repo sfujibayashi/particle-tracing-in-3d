@@ -98,6 +98,13 @@ contains
        enddo
     enddo
 
+    ! iye=50
+    ! itemp=1
+    ! irho=1
+    ! write(6,*) rho_e(irho), tem_e(itemp), ye_e(iye)
+    ! h = 10d0**eps_e(itemp,iye,irho) + 10d0**pres_e(itemp,iye,irho)/10d0**rho_e(irho)/v_uni**2
+    ! hhh_min = h
+    
     write(6,*) "Minimum enthalpy : ",  hhh_min
 
   end subroutine readeos
