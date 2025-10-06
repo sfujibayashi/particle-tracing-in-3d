@@ -415,8 +415,16 @@ program main
   
   fn = filename(job2)
   call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
-  
-  write(str2,'(i10)') 1
+
+  block
+    integer :: it_last
+    if(mode_backward)then
+       it_last = 1
+    else
+       it_last = nstep_job(job_max)
+    endif
+    write(str2,'(i10)') it_last
+  end block
   call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
   call h5fclose_f(file_id, error)
   write(6,'("Last    time step: job, it = ",i3,i10, ", t = ",es13.5," s")') job2,1,tms(1)*time_unit_h5
@@ -494,12 +502,14 @@ program main
      ipu = 0
      ips = 0
      call read_checkpoint_hdf(fn,job_prv,it_prv,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read)
-     
+     !fn_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling/hdf5/346/raw3d.h5"
+     !job_prv=346; it_prv = 1
+
      write(6,*)
      write(6,*) " -- Checkpoint file info -- "
      write(6,'("job,it  = ",2i5)') job_prv,it_prv
      write(6,'("np, npv = ",2i7)') np,npv
-     write(6,'("time    = ",es12.4)') time
+     write(6,'("time    = ",es17.9)') time
      write(6,'("counts  = ",3i5)') count_pset,count_out,count_skip
      write(6,'(a,a)') "file read: ",trim(fn_read)
      write(6,*) " -------------------------- "
@@ -512,6 +522,8 @@ program main
 !!! read sim data for the previous-step velocity
      call read_simdata(file_id,it_prv,time)
      call h5fclose_f(file_id, error)
+
+     ! time = 2.806648016d-01
      
      vlx_b(:,:,:,:) = vlx(:,:,:,:)
      vly_b(:,:,:,:) = vly(:,:,:,:)
@@ -781,17 +793,17 @@ program main
 
            do ip = 1,ipu
               
-              if(flag_evol(ip)==1.and. &
-                   ( &
-                   ! tem_p(ip,ittot)>5.d0.or. &
-                   ! ittot==itt_max.or. &
-                   sqrt(x_p(ip)**2+y_p(ip)**2+z_p(ip)**2)>rfl&
-                   ! time*1.d3>tms_end &
-                   ))then
+              ! if(flag_evol(ip)==1.and. &
+              !      ( &
+              !      ! tem_p(ip,ittot)>5.d0.or. &
+              !      ! ittot==itt_max.or. &
+              !      !sqrt(x_p(ip)**2+y_p(ip)**2+z_p(ip)**2)>rfl&
+              !      ! time*1.d3>tms_end &
+              !      ))then
                  
-                 flag_evol(ip) = 0
+              !    flag_evol(ip) = 0
                  
-              endif
+              ! endif
            enddo
            
         endif
