@@ -116,19 +116,32 @@ subroutine tr_analysis(model, dir_read)
   
   endif
   
-  write(*,*) "model = ", trim(model)
-  write(*,'(a)') trim(dir_read)//"/report_ptr.dat"
-  open(10,file=trim(dir_read)//"/report_ptr.dat",status="old")
+  ! write(*,*) "model = ", trim(model)
+  ! write(*,'(a)') trim(dir_read)//"/report_ptr.dat"
+  ! open(10,file=trim(dir_read)//"/report_ptr.dat",status="old")
 
-  if(old_format)then
+  ! if(old_format)then
 
-     read(10,*); read(10,*) itt_min
-     read(10,*); read(10,*) itt_max
-     read(10,*); read(10,*) np
+  !    read(10,*); read(10,*) itt_min
+  !    read(10,*); read(10,*) itt_max
+  !    read(10,*); read(10,*) np
      
-  else
-     read(10,*); read(10,*) np
-  endif
+  ! else
+  !    read(10,*); read(10,*) np
+  ! endif
+  ! close(10)
+
+  ip = 0
+  find_np:do
+     ip=ip+1
+     write(fn,'("traj_",i8.8,".dat")') ip
+     !write(6,*) fn
+     if(access(fn," ")==0)then
+        np=ip
+     else
+        exit find_np
+     endif
+  enddo find_np
 
   write(*,'("np, itt_min, itt_max=",3i7)') np,itt_min,itt_max
 
