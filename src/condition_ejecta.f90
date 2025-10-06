@@ -17,7 +17,7 @@ logical function condition_ejecta(j,k,l,lv,rfl,rin,hhh_crit)
   !    condition_ejecta=.true.
   ! endif
 
-  ! condition_ejecta = condition_ejecta_geo(j,k,l,lv,rfl,rin)
+  !condition_ejecta = condition_ejecta_geo(j,k,l,lv,rfl,rin)
   condition_ejecta = condition_ejecta_bernoulli(j,k,l,lv,rfl,rin)
 
   return
@@ -37,7 +37,7 @@ logical function condition_ejecta_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
   if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-hhh_crit> 0.d0  &
        ! .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
        .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
-       !.and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>rin &
+       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin &
        )then
      condition_ejecta_bernoulli = .true.
   endif
@@ -58,7 +58,7 @@ logical function condition_ejecta_bernoulli_positive_velocity(j,k,l,lv,rfl,rin,h
   if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-hhh_crit> 0.d0  &
        .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
        .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
-       !.and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>rin &
+       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin &
        )then
      condition_ejecta_bernoulli_positive_velocity = .true.
   endif
@@ -77,9 +77,9 @@ logical function condition_ejecta_geo(j,k,l,lv,rfl,rin)
   condition_ejecta_geo = .false.
 
   if(ut(j,k,l,lv)+1d0 < 0.d0  &
-       .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
+       !.and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
        .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
-!       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>rin &
+       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin &
        )then
      condition_ejecta_geo =.true.
   endif
