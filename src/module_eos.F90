@@ -18,7 +18,10 @@ module module_eos
 
   real(8) :: hhh_min
 
+  real(8),allocatable :: h_min_tab(:)
+
 contains
+
   subroutine readeos(fn,nrho_in,ntemp_in,nye_in)
     use unit
     character(*),intent(in) :: fn
@@ -107,6 +110,49 @@ contains
     
     write(6,*) "Minimum enthalpy : ",  hhh_min
 
+    ! Ye-dependent h-min
+    allocate(h_min_tab(nye))
+    block
+      real(8) :: hm
+      do iye=1,nye
+         hm=1d99
+         
+         do itemp = 1 ,ntemp
+            do irho = 1 ,nrho
+               if(.not.isnan(eps_e(itemp,iye,irho)))then
+                  h = 10d0**eps_e(itemp,iye,irho) + 10d0**pres_e(itemp,iye,irho)/10d0**rho_e(irho)/v_uni**2
+                  hm = min(hm,h)
+               endif
+            enddo
+         enddo
+         h_min_tab(iye) = hm
+         write(6,*) ye_e(iye), hm
+      enddo
+    end block
+    
   end subroutine readeos
+
+
+  subroutine get_h_min_ye(ye,h)
+
+    real(8),intent(in) :: ye
+    real(8),intent(out):: h
+    
+    integer :: iye, iye1
+    real(8) :: tt, ttp
+
+    iye  = max(1 , min(nye-1, int((ye-ye_e_min )*dyei)+1))
+    iye1 = iye +1
+    tt   = max(0.d0, min(1.d0 ,     (ye-ye_e(iye))*dyei)   )
+    ttp  = 1.d0-tt
+
+    h = ttp*h_min_tab(iye) + tt *h_min_tab(iye1)
+
+    ! write(6,*) tt,ttp
+    ! write(6,*) hmintab_ye(iye),ye,hmintab_ye(iye1)
+    ! write(6,*) hmintab_hhh(iye),hhh_min,hmintab_hhh(iye1)
+    
+  end subroutine get_h_min_ye
+
   
 end module module_eos
