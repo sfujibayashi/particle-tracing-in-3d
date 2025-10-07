@@ -50,6 +50,18 @@ module simdata3D
        eps (:,:,:,:),&
        hhh (:,:,:,:)
 
+  ! misc.
+  real(4),allocatable :: &
+       bx (:,:,:,:),&
+       by (:,:,:,:),&
+       bz (:,:,:,:),&
+       b2 (:,:,:,:)
+
+  real(4),allocatable :: &
+       alpha(:,:,:,:), &
+       rhog (:,:,:,:), &
+       www  (:,:,:,:)
+       
 
   integer,allocatable :: &
        ip_ejecta_vol(:,:,:,:)
@@ -341,6 +353,17 @@ contains
          ip_ejecta_vol(jd:ju,kd:ku,ld:lu,lv_min:lv_max) )
 
     
+    allocate( &
+         bx (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         by (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         bz (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         b2 (jd:ju,kd:ku,ld:lu,lv_min:lv_max) )
+    
+    allocate( &
+         alpha(jd:ju,kd:ku,ld:lu,lv_min:lv_max), &
+         rhog (jd:ju,kd:ku,ld:lu,lv_min:lv_max), &
+         www  (jd:ju,kd:ku,ld:lu,lv_min:lv_max) )
+    
   end subroutine allocate_simdata
 
   subroutine read_simdata(file_id,it,t)
@@ -422,6 +445,44 @@ contains
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,buf3d_real4_8,dims3,error); sum_err = sum_err + error
        vlz (:,:,ld_read:lu,lv) = buf3d_real4_8(:,:,:)/vel_unit_h5
 
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor",link_exists,error)
+       if(link_exists)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,rhog (:,:,:,lv),dims3,error)
+       else
+          rhog (:,:,:,lv)=1d0
+       endif
+
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor",link_exists,error)
+       if(link_exists)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor"     ,www (:,:,:,lv),dims3,error)
+       else
+          block
+            integer :: j,k,l
+            !$omp parallel
+            !$omp do
+            do l=ld,lu
+               do k=kd,ku
+                  do j=jd,ju
+                     www(j,k,l,lv) = 1d0/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
+                  enddo
+               enddo
+            enddo
+            !$omp end do
+            !$omp end parallel
+          end block
+
+          ! www (:,:,:,lv)=1d0
+       endif
+       
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/lapse",link_exists,error)
+       if(link_exists)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/lapse"     ,alpha (:,:,:,lv),dims3,error)
+       else
+          alpha (:,:,:,lv)=0d0
+       endif
+
+
+
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",link_exists,error)
        if(link_exists)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",buf3d_real4_1,dims3,error); sum_err = sum_err + error
@@ -435,7 +496,8 @@ contains
             do l=ld,lu
                do k=kd,ku
                   do j=jd,ju
-                     qb(j,k,l,lv) = qrho(j,k,l,lv)/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
+                     ! qb(j,k,l,lv) = qrho(j,k,l,lv)/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
+                     qb(j,k,l,lv) = qrho(j,k,l,lv)*www(j,k,l,lv)/rhog(j,k,l,lv)**3
                   enddo
                enddo
             enddo
@@ -443,6 +505,29 @@ contains
             !$omp end parallel
           end block
        endif
+       
+       ! call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em1f",link_exists,error)
+       ! if(link_exists)then
+       !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em1f"     ,bx (:,:,:,lv),dims3,error)
+       !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em2f"     ,by (:,:,:,lv),dims3,error)
+       !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em3f"     ,bz (:,:,:,lv),dims3,error)
+       !    bx(:,:,:,lv) = bx(:,:,:,lv)*sqrt(rho_uni*v_uni**2)
+       !    by(:,:,:,lv) = by(:,:,:,lv)*sqrt(rho_uni*v_uni**2)
+       !    bz(:,:,:,lv) = bz(:,:,:,lv)*sqrt(rho_uni*v_uni**2)
+       ! else
+       !    bx (:,:,:,lv)=0d0
+       !    by (:,:,:,lv)=0d0
+       !    bz (:,:,:,lv)=0d0
+       ! endif
+       
+       ! call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b2",link_exists,error)
+       ! if(link_exists)then
+       !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b2"     ,b2 (:,:,:,lv),dims3,error)
+       !    b2(:,:,:,lv) = b2(:,:,:,lv)*rho_uni*v_uni**2
+       ! else
+       !    b2 (:,:,:,lv)=0d0
+       ! endif
+       
        
        if(sum_err>0)then
           write(6,*) "Error in reading hdf5 file. STOP.",lv,sum_err
