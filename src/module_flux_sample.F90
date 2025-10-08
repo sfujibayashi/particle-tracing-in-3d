@@ -124,9 +124,8 @@ contains
   end subroutine init_angle_sample
 
 
-  
   subroutine sample_compare(rfl,ipu,np_set,job,it,time)
-    use particle_data, only : dm_p, ye_p, sen_p, hhh_p, ut_p, qrho_p, x_p, y_p, z_p
+    use particle_data, only : var_p, index_dm, index_ye, index_sen, index_hhh, index_ut, index_rho, index_x, index_y, index_z
     use module_eos, only : hhh_min
     use io, only : dir_out
     !$use omp_lib
@@ -162,11 +161,11 @@ contains
     ye_hist_particle(:) = 0d0
     entr_hist_particle(:) = 0d0
     do ip = ipu-np_set+1,ipu
-       iye = min(nye,max(1,int( (ye_p(ip)-ye_min)/dye ) + 1))
-       ientr = min(nentr,max(1,int( (log10(sen_p(ip))-logentr_min)/dlogentr ) + 1))
+       iye = min(nye,max(1,int( (var_p(index_ye,ip)-ye_min)/dye ) + 1))
+       ientr = min(nentr,max(1,int( (log10(var_p(index_sen,ip))-logentr_min)/dlogentr ) + 1))
        
-       ye_hist_particle(iye) = ye_hist_particle(iye) + dm_p(ip)
-       entr_hist_particle(ientr) = entr_hist_particle(ientr) + dm_p(ip)
+       ye_hist_particle(iye) = ye_hist_particle(iye) + var_p(index_dm,ip)
+       entr_hist_particle(ientr) = entr_hist_particle(ientr) + var_p(index_dm,ip)
     enddo
 
     ye_hist_sample(:) = 0d0
@@ -223,13 +222,13 @@ contains
     open(newunit=nunit, file=trim(dir_out)//"/flux_particle_"//trim(str1)//"_"//trim(str2)//".dat",status="replace",action="write")
     write(nunit,'("#",99es15.7)') time
     do ip=ipu-np_set+1,ipu
-       write(nunit,'(i8,99es15.7)') ip,x_p(ip)/sqrt(x_p(ip)**2+y_p(ip)**2), z_p(ip)/sqrt(x_p(ip)**2 + y_p(ip)**2 + z_p(ip)**2 ), &
-            ut_p(ip), &
-            hhh_p(ip), &
-            qrho_p(ip), &
-            ye_p(ip), &
-            sen_p(ip), &
-            dm_p(ip)
+       write(nunit,'(i8,99es15.7)') ip,var_p(index_x,ip)/sqrt(var_p(index_x,ip)**2+var_p(index_y,ip)**2), var_p(index_z,ip)/sqrt(var_p(index_x,ip)**2 + var_p(index_y,ip)**2 + var_p(index_z,ip)**2 ), &
+            var_p(index_ut,ip), &
+            var_p(index_hhh,ip), &
+            var_p(index_rho,ip), &
+            var_p(index_ye,ip), &
+            var_p(index_sen,ip), &
+            var_p(index_dm,ip)
     enddo
     close(nunit)
     

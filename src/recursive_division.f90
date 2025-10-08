@@ -84,10 +84,10 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
      ! write(6,*) ip, mass, rho_av
      
      if(ib==1)then
-        x_p(ip) = comx/mass
-        y_p(ip) = comy/mass
-        z_p(ip) = comz/mass
-        dm_p(ip)= mass
+        var_p(index_x,ip) = comx/mass
+        var_p(index_y,ip) = comy/mass
+        var_p(index_z,ip) = comz/mass
+        var_p(index_dm,ip)= mass
      endif
      
      do l=lld,llu

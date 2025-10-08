@@ -700,7 +700,7 @@ program main
               count_pset = it_skip_pset
               write(6,'("# of particles set = ",i5,", v/c(max,min,ave) = ",3es12.4,", m(max,min,ave) = ",3es12.4,". Next: dt (s), skip = ",es12.4,i5)') np_set, v_max,v_min,v_average, m_max,m_min,m_average, dt*dble(it_skip_pset), it_skip_pset
               
-              write(unum,'(2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(dm_p(1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
+              write(unum,'(2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(var_p(index_dm,1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
               
               ipu = ips
               
@@ -724,17 +724,17 @@ program main
         vlz_b(:,:,:,:) = vlz(:,:,:,:)
         
         np_evolve = sum(flag_evol(:))
-        write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(dm_p(1:ipu))/1.989d33,count_pset,count_out
+        write(6,'("job,it =",2i6,", Time, dt (s) = ",2es12.4, ", # of particle evolving = ",i8 "/",i8,i6,es12.4,2i6 )') job,it,time,dt, np_evolve,ipu,substep_max,sum(var_p(index_dm,1:ipu))/1.989d33,count_pset,count_out
         
         if((     mode_backward .and. (count_out==0 .or. first))   .or. &
            (.not.mode_backward .and. (count_out==0 .or. first))   )then
            
            ! write(str1,'(i6.6)') ittot
            ! open (11,file=trim(dir_out) // "/position_"//trim(str1)//".dat",status="replace")
-           ! write(11,'("# ",99es12.4)') time, sum(dm_p(1:ipu))
+           ! write(11,'("# ",99es12.4)') time, sum(var_p(index_dm,1:ipu))
            ! do ip = 1,ipu
            !    if(flag_evol(ip)==1)then
-           !       !write(11,'(i10,99es11.3)') ip,dm_p(ip) ,x_p(ip),y_p(ip),z_p(ip),qrho_p(ip),ye_p(ip),tem_p(ip),sen_p(ip)
+           !       !write(11,'(i10,99es11.3)') ip,var_p(index_dm,ip) ,x_p(ip),y_p(ip),z_p(ip),qrho_p(ip),ye_p(ip),tem_p(ip),sen_p(ip)
            !       write(11,'(i10,99es25.17)') ip, x_p(ip),y_p(ip),z_p(ip),&
            !            qrho_p(ip),&
            !            ye_p  (ip),&
@@ -841,7 +841,7 @@ program main
   !    open (11,file=trim(dir_out)//"/traj_"//trim(str1)//".dat",status="replace")
   !    write(11,'("# particle id:",i8)') ip
   !    write(11,'("# model:",a)') trim(model)
-  !    write(11,'("# particle mass:",es13.5," g, ut+1, hut+h_atm:",2es13.5)') dm_p(ip), ut1_p(ip), hut_p(ip)
+  !    write(11,'("# particle mass:",es13.5," g, ut+1, hut+h_atm:",2es13.5)') var_p(index_dm,ip), ut1_p(ip), hut_p(ip)
   !    write(11,'("#     Time [s]        x [cm]        y [cm]        z [cm]     Vx [cm/s]     Vy [cm/s]     Vz [cm/s]  rho [g/cm^3]         T [K]            Ye   S [k_b/nuc] Ee [erg/cm^3] Ea [erg/cm^3]         tau_e         tau_a")')
   !    do itp_tmp=itp_sta(ip),itp_end(ip)
   !       write(11,'(99es14.6)') &

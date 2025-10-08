@@ -263,14 +263,14 @@ contains
                + x1*y0*z0* qb (j1,k ,l ,lv) &
                + x0*y0*z0* qb (j ,k ,l ,lv)
 
-          dm_p(ip) = abs(dt) *rfl**2*dom(ipnt) * qb_i*abs(vlr_i)*v_uni
+          var_p(index_dm,ip) = abs(dt) *rfl**2*dom(ipnt) * qb_i*abs(vlr_i)*v_uni
           
-          ut1_p(ip) = ut_i + 1.d0
-          hut_p(ip) = ut_i*hhh_i + hhh_min
+          var_p(index_ut1,ip) = ut_i + 1.d0
+          var_p(index_hut,ip) = ut_i*hhh_i + hhh_min
           
-          x_p(ip) = xi
-          y_p(ip) = yi
-          z_p(ip) = zi
+          var_p(index_x,ip) = xi
+          var_p(index_y,ip) = yi
+          var_p(index_z,ip) = zi
           
 
           v_average = v_average + vlr_i
@@ -300,10 +300,10 @@ contains
        m_average=0d0
        do ip=ips-np_set+1,ips
           !dm_p(ip) = dm_p(ip) * dble(it_skip_pset)/dble(it_skip)
-          dm_p(ip) = dm_p(ip) * dble(it_skip_pset)
-          m_average=m_average+dm_p(ip)
-          m_max=max(m_max,dm_p(ip))
-          m_min=min(m_min,dm_p(ip))
+          var_p(index_dm,ip) = var_p(index_dm,ip) * dble(it_skip_pset)
+          m_average=m_average+var_p(index_dm,ip)
+          m_max=max(m_max,var_p(index_dm,ip))
+          m_min=min(m_min,var_p(index_dm,ip))
        enddo
        m_average=m_average/dble(np_set)
 
@@ -336,14 +336,13 @@ contains
 
     integer :: j,k,l,lv, j1,k1,l1
     real(8) :: x0,y0,z0,x1,y1,z1
-    real(8) :: www
 
     do ip=1,ipu
        if(flag_evol(ip)==1)then
 
-          xi=x_p(ip)
-          yi=y_p(ip)
-          zi=z_p(ip)
+          xi=var_p(index_x,ip)
+          yi=var_p(index_y,ip)
+          zi=var_p(index_z,ip)
           call coorindex3D(xi,yi,zi,j1,k1,l1,lv)
           j=j1-1
           k=k1-1
@@ -356,90 +355,99 @@ contains
           z1 = (zi-z(l,lv))/(z(l1,lv)-z(l,lv))
           z0 = 1.d0-z1
           
-          vlx_p(ip) = x1*y1*z1* vlx   (j1,k1,l1,lv) &
-                    + x0*y1*z1* vlx   (j ,k1,l1,lv) &
-                    + x1*y0*z1* vlx   (j1,k ,l1,lv) &
-                    + x0*y0*z1* vlx   (j ,k ,l1,lv) &
-                    + x1*y1*z0* vlx   (j1,k1,l ,lv) &
-                    + x0*y1*z0* vlx   (j ,k1,l ,lv) &
-                    + x1*y0*z0* vlx   (j1,k ,l ,lv) &
-                    + x0*y0*z0* vlx   (j ,k ,l ,lv)
-          vly_p(ip) = x1*y1*z1* vly   (j1,k1,l1,lv) &
-                    + x0*y1*z1* vly   (j ,k1,l1,lv) &
-                    + x1*y0*z1* vly   (j1,k ,l1,lv) &
-                    + x0*y0*z1* vly   (j ,k ,l1,lv) &
-                    + x1*y1*z0* vly   (j1,k1,l ,lv) &
-                    + x0*y1*z0* vly   (j ,k1,l ,lv) &
-                    + x1*y0*z0* vly   (j1,k ,l ,lv) &
-                    + x0*y0*z0* vly   (j ,k ,l ,lv)
-          vlz_p(ip) = x1*y1*z1* vlz   (j1,k1,l1,lv) &
-                    + x0*y1*z1* vlz   (j ,k1,l1,lv) &
-                    + x1*y0*z1* vlz   (j1,k ,l1,lv) &
-                    + x0*y0*z1* vlz   (j ,k ,l1,lv) &
-                    + x1*y1*z0* vlz   (j1,k1,l ,lv) &
-                    + x0*y1*z0* vlz   (j ,k1,l ,lv) &
-                    + x1*y0*z0* vlz   (j1,k ,l ,lv) &
-                    + x0*y0*z0* vlz   (j ,k ,l ,lv)
-          qrho_p(ip)= x1*y1*z1* qrho  (j1,k1,l1,lv) &
-                    + x0*y1*z1* qrho  (j ,k1,l1,lv) &
-                    + x1*y0*z1* qrho  (j1,k ,l1,lv) &
-                    + x0*y0*z1* qrho  (j ,k ,l1,lv) &
-                    + x1*y1*z0* qrho  (j1,k1,l ,lv) &
-                    + x0*y1*z0* qrho  (j ,k1,l ,lv) &
-                    + x1*y0*z0* qrho  (j1,k ,l ,lv) &
-                    + x0*y0*z0* qrho  (j ,k ,l ,lv)
-          ye_p (ip) = x1*y1*z1* ye    (j1,k1,l1,lv) &
-                    + x0*y1*z1* ye    (j ,k1,l1,lv) &
-                    + x1*y0*z1* ye    (j1,k ,l1,lv) &
-                    + x0*y0*z1* ye    (j ,k ,l1,lv) &
-                    + x1*y1*z0* ye    (j1,k1,l ,lv) &
-                    + x0*y1*z0* ye    (j ,k1,l ,lv) &
-                    + x1*y0*z0* ye    (j1,k ,l ,lv) &
-                    + x0*y0*z0* ye    (j ,k ,l ,lv)
-          tem_p(ip) = x1*y1*z1* tem   (j1,k1,l1,lv) &
-                    + x0*y1*z1* tem   (j ,k1,l1,lv) &
-                    + x1*y0*z1* tem   (j1,k ,l1,lv) &
-                    + x0*y0*z1* tem   (j ,k ,l1,lv) &
-                    + x1*y1*z0* tem   (j1,k1,l ,lv) &
-                    + x0*y1*z0* tem   (j ,k1,l ,lv) &
-                    + x1*y0*z0* tem   (j1,k ,l ,lv) &
-                    + x0*y0*z0* tem   (j ,k ,l ,lv)
-          sen_p(ip) = x1*y1*z1* sen   (j1,k1,l1,lv) &
-                    + x0*y1*z1* sen   (j ,k1,l1,lv) &
-                    + x1*y0*z1* sen   (j1,k ,l1,lv) &
-                    + x0*y0*z1* sen   (j ,k ,l1,lv) &
-                    + x1*y1*z0* sen   (j1,k1,l ,lv) &
-                    + x0*y1*z0* sen   (j ,k1,l ,lv) &
-                    + x1*y0*z0* sen   (j1,k ,l ,lv) &
-                    + x0*y0*z0* sen   (j ,k ,l ,lv)
-          tem_p(ip) = x1*y1*z1* tem   (j1,k1,l1,lv) &
-                    + x0*y1*z1* tem   (j ,k1,l1,lv) &
-                    + x1*y0*z1* tem   (j1,k ,l1,lv) &
-                    + x0*y0*z1* tem   (j ,k ,l1,lv) &
-                    + x1*y1*z0* tem   (j1,k1,l ,lv) &
-                    + x0*y1*z0* tem   (j ,k1,l ,lv) &
-                    + x1*y0*z0* tem   (j1,k ,l ,lv) &
-                    + x0*y0*z0* tem   (j ,k ,l ,lv)
+          var_p(index_vlx,ip) = &
+                 x1*y1*z1* vlx   (j1,k1,l1,lv) &
+               + x0*y1*z1* vlx   (j ,k1,l1,lv) &
+               + x1*y0*z1* vlx   (j1,k ,l1,lv) &
+               + x0*y0*z1* vlx   (j ,k ,l1,lv) &
+               + x1*y1*z0* vlx   (j1,k1,l ,lv) &
+               + x0*y1*z0* vlx   (j ,k1,l ,lv) &
+               + x1*y0*z0* vlx   (j1,k ,l ,lv) &
+               + x0*y0*z0* vlx   (j ,k ,l ,lv)
+          var_p(index_vly,ip) = &
+                 x1*y1*z1* vly   (j1,k1,l1,lv) &
+               + x0*y1*z1* vly   (j ,k1,l1,lv) &
+               + x1*y0*z1* vly   (j1,k ,l1,lv) &
+               + x0*y0*z1* vly   (j ,k ,l1,lv) &
+               + x1*y1*z0* vly   (j1,k1,l ,lv) &
+               + x0*y1*z0* vly   (j ,k1,l ,lv) &
+               + x1*y0*z0* vly   (j1,k ,l ,lv) &
+               + x0*y0*z0* vly   (j ,k ,l ,lv)
+          var_p(index_vlz,ip) = &
+                 x1*y1*z1* vlz   (j1,k1,l1,lv) &
+               + x0*y1*z1* vlz   (j ,k1,l1,lv) &
+               + x1*y0*z1* vlz   (j1,k ,l1,lv) &
+               + x0*y0*z1* vlz   (j ,k ,l1,lv) &
+               + x1*y1*z0* vlz   (j1,k1,l ,lv) &
+               + x0*y1*z0* vlz   (j ,k1,l ,lv) &
+               + x1*y0*z0* vlz   (j1,k ,l ,lv) &
+               + x0*y0*z0* vlz   (j ,k ,l ,lv)
+          var_p(index_rho,ip)= &
+                 x1*y1*z1* qrho  (j1,k1,l1,lv) &
+               + x0*y1*z1* qrho  (j ,k1,l1,lv) &
+               + x1*y0*z1* qrho  (j1,k ,l1,lv) &
+               + x0*y0*z1* qrho  (j ,k ,l1,lv) &
+               + x1*y1*z0* qrho  (j1,k1,l ,lv) &
+               + x0*y1*z0* qrho  (j ,k1,l ,lv) &
+               + x1*y0*z0* qrho  (j1,k ,l ,lv) &
+               + x0*y0*z0* qrho  (j ,k ,l ,lv)
+          var_p (index_ye,ip) = &
+                 x1*y1*z1* ye    (j1,k1,l1,lv) &
+               + x0*y1*z1* ye    (j ,k1,l1,lv) &
+               + x1*y0*z1* ye    (j1,k ,l1,lv) &
+               + x0*y0*z1* ye    (j ,k ,l1,lv) &
+               + x1*y1*z0* ye    (j1,k1,l ,lv) &
+               + x0*y1*z0* ye    (j ,k1,l ,lv) &
+               + x1*y0*z0* ye    (j1,k ,l ,lv) &
+               + x0*y0*z0* ye    (j ,k ,l ,lv)
+          var_p(index_tem,ip) = &
+                 x1*y1*z1* tem   (j1,k1,l1,lv) &
+               + x0*y1*z1* tem   (j ,k1,l1,lv) &
+               + x1*y0*z1* tem   (j1,k ,l1,lv) &
+               + x0*y0*z1* tem   (j ,k ,l1,lv) &
+               + x1*y1*z0* tem   (j1,k1,l ,lv) &
+               + x0*y1*z0* tem   (j ,k1,l ,lv) &
+               + x1*y0*z0* tem   (j1,k ,l ,lv) &
+               + x0*y0*z0* tem   (j ,k ,l ,lv)
+          var_p(index_sen,ip) = &
+                 x1*y1*z1* sen   (j1,k1,l1,lv) &
+               + x0*y1*z1* sen   (j ,k1,l1,lv) &
+               + x1*y0*z1* sen   (j1,k ,l1,lv) &
+               + x0*y0*z1* sen   (j ,k ,l1,lv) &
+               + x1*y1*z0* sen   (j1,k1,l ,lv) &
+               + x0*y1*z0* sen   (j ,k1,l ,lv) &
+               + x1*y0*z0* sen   (j1,k ,l ,lv) &
+               + x0*y0*z0* sen   (j ,k ,l ,lv)
           
-          hhh_p(ip) = x1*y1*z1* hhh   (j1,k1,l1,lv) &
-                    + x0*y1*z1* hhh   (j ,k1,l1,lv) &
-                    + x1*y0*z1* hhh   (j1,k ,l1,lv) &
-                    + x0*y0*z1* hhh   (j ,k ,l1,lv) &
-                    + x1*y1*z0* hhh   (j1,k1,l ,lv) &
-                    + x0*y1*z0* hhh   (j ,k1,l ,lv) &
-                    + x1*y0*z0* hhh   (j1,k ,l ,lv) &
-                    + x0*y0*z0* hhh   (j ,k ,l ,lv)
-          ut_p (ip) = x1*y1*z1* ut   (j1,k1,l1,lv) &
-                    + x0*y1*z1* ut   (j ,k1,l1,lv) &
-                    + x1*y0*z1* ut   (j1,k ,l1,lv) &
-                    + x0*y0*z1* ut   (j ,k ,l1,lv) &
-                    + x1*y1*z0* ut   (j1,k1,l ,lv) &
-                    + x0*y1*z0* ut   (j ,k1,l ,lv) &
-                    + x1*y0*z0* ut   (j1,k ,l ,lv) &
-                    + x0*y0*z0* ut   (j ,k ,l ,lv)
+          var_p(index_hhh,ip) = &
+                 x1*y1*z1* hhh   (j1,k1,l1,lv) &
+               + x0*y1*z1* hhh   (j ,k1,l1,lv) &
+               + x1*y0*z1* hhh   (j1,k ,l1,lv) &
+               + x0*y0*z1* hhh   (j ,k ,l1,lv) &
+               + x1*y1*z0* hhh   (j1,k1,l ,lv) &
+               + x0*y1*z0* hhh   (j ,k1,l ,lv) &
+               + x1*y0*z0* hhh   (j1,k ,l ,lv) &
+               + x0*y0*z0* hhh   (j ,k ,l ,lv)
+          var_p (index_ut,ip) = &
+                 x1*y1*z1* ut   (j1,k1,l1,lv) &
+               + x0*y1*z1* ut   (j ,k1,l1,lv) &
+               + x1*y0*z1* ut   (j1,k ,l1,lv) &
+               + x0*y0*z1* ut   (j ,k ,l1,lv) &
+               + x1*y1*z0* ut   (j1,k1,l ,lv) &
+               + x0*y1*z0* ut   (j ,k1,l ,lv) &
+               + x1*y0*z0* ut   (j1,k ,l ,lv) &
+               + x0*y0*z0* ut   (j ,k ,l ,lv)
 
-          www = 1d0/sqrt(1d0-vlx_p(ip)*vlx_p(ip)-vly_p(ip)*vly_p(ip)-vlz_p(ip)*vlz_p(ip))
-          qb_p(ip) = www*qrho_p(ip)
+          var_p (index_qb,ip) = &
+                 x1*y1*z1* qb   (j1,k1,l1,lv) &
+               + x0*y1*z1* qb   (j ,k1,l1,lv) &
+               + x1*y0*z1* qb   (j1,k ,l1,lv) &
+               + x0*y0*z1* qb   (j ,k ,l1,lv) &
+               + x1*y1*z0* qb   (j1,k1,l ,lv) &
+               + x0*y1*z0* qb   (j ,k1,l ,lv) &
+               + x1*y0*z0* qb   (j1,k ,l ,lv) &
+               + x0*y0*z0* qb   (j ,k ,l ,lv)
+          
        endif
     enddo
     

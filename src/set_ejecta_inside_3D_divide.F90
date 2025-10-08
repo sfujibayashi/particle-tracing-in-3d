@@ -195,9 +195,9 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
      do ip=1,npv
         
         flag_evol(ip) = 1
-        xx=x_p(ip)
-        yy=y_p(ip)
-        zz=z_p(ip)
+        xx=var_p(index_x,ip)
+        yy=var_p(index_y,ip)
+        zz=var_p(index_z,ip)
   
         call coorindex3D(xx,yy,zz,j1,k1,l1,lv0)
         j0=j1-1
@@ -265,19 +265,19 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
         
         gam_inf_r = - hhh_i*ut_i/hhh_r * (1d0-floss)
         
-        ut1_p(ip) = ut_i + 1.d0
-        hut_p(ip) = ut_i*hhh_i + hhh_min
+        var_p(index_ut1,ip) = ut_i + 1.d0
+        var_p(index_hut,ip) = ut_i*hhh_i + hhh_min
         
-        write(101,'(a1,i14,99es14.6)') " ",ip, dm_p(ip), ut1_p(ip), hut_p(ip), x_p(ip), y_p(ip), z_p(ip), vx_i, vy_i, vz_i, ye_i, gam_inf_r
+        write(101,'(a1,i14,99es14.6)') " ",ip, var_p(index_dm,ip), var_p(index_ut1,ip), var_p(index_hut,ip), var_p(index_x,ip), var_p(index_y,ip), var_p(index_z,ip), vx_i, vy_i, vz_i, ye_i, gam_inf_r
      enddo
      
      mass_p_min = 1d99
      mass_p_max = 0d0
      mass_p_tot = 0d0
      do ip=1,npv
-        mass_p_tot = mass_p_tot + dm_p(ip)
-        mass_p_min = min(mass_p_min, dm_p(ip))
-        mass_p_max = max(mass_p_max, dm_p(ip))
+        mass_p_tot = mass_p_tot + var_p(index_dm,ip)
+        mass_p_min = min(mass_p_min, var_p(index_dm,ip))
+        mass_p_max = max(mass_p_max, var_p(index_dm,ip))
      enddo
      write(6,'("Max, min, average mass of particles = ",99es15.7)') mass_p_max,mass_p_min,mass_p_tot/dble(npv)
 
@@ -314,9 +314,9 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
        
        do ip=1,npv
 
-          xx=x_p(ip)
-          yy=y_p(ip)
-          zz=z_p(ip)
+          xx=var_p(index_x,ip)
+          yy=var_p(index_y,ip)
+          zz=var_p(index_z,ip)
     
           call coorindex3D(xx,yy,zz,j1,k1,l1,lv0)
           j0=j1-1
@@ -405,13 +405,13 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
           if( ut_i*hhh_i + hhh_min < 0d0)then
              vel = sqrt(1d0-1d0/(-ut_i*hhh_i/hhh_min)**2)        
              i_vel= max(1,min(n_vel,int((vel-vel_min)/dvel)+1))
-             histogram_ye_entr_vel_particlesh(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_particlesh(i_ye,i_entr,i_vel) + dm_p(ip)
+             histogram_ye_entr_vel_particlesh(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_particlesh(i_ye,i_entr,i_vel) + var_p(index_dm,ip)
           endif
           
           if( ut_i+1d0<0d0)then
              vel = sqrt(1d0-1d0/(-ut_i)**2)
              i_vel= max(1,min(n_vel,int((vel-vel_min)/dvel)+1))
-             histogram_ye_entr_vel_particles(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_particles(i_ye,i_entr,i_vel) + dm_p(ip)
+             histogram_ye_entr_vel_particles(i_ye,i_entr,i_vel) = histogram_ye_entr_vel_particles(i_ye,i_entr,i_vel) + var_p(index_dm,ip)
           endif
           
        enddo

@@ -2,26 +2,34 @@ module particle_data
 
   implicit none
 
+  integer,parameter :: nvar = 20
+
+  integer,parameter :: index_x = 1
+  integer,parameter :: index_y = 2
+  integer,parameter :: index_z = 3
+  integer,parameter :: index_vlx = 4
+  integer,parameter :: index_vly = 5
+  integer,parameter :: index_vlz = 6
+  integer,parameter :: index_rho = 7
+  integer,parameter :: index_tem = 8
+  integer,parameter :: index_ye = 9
+  integer,parameter :: index_sen = 10
+  integer,parameter :: index_rne = 11
+  integer,parameter :: index_rae = 12
+  integer,parameter :: index_deptn = 13
+  integer,parameter :: index_depta = 14
+  integer,parameter :: index_ut = 15
+  integer,parameter :: index_hhh = 16
+
+  integer,parameter :: index_dm = 17
+  integer,parameter :: index_ut1 = 18
+  integer,parameter :: index_hut = 19
+  integer,parameter :: index_qb = 20
+
+
   ! Their size is only np
   integer,allocatable :: flag_evol(:)
-  real(8),allocatable :: x_p(:),y_p(:),z_p(:),&
-       qrho_p(:),&
-       ye_p  (:),&
-       tem_p (:),&
-       ut_p  (:),&
-       qb_p  (:),&
-       sen_p (:),&
-       vlx_p (:),&
-       vly_p (:),&
-       vlz_p (:),&
-       hhh_p (:),&
-       rne_p (:),&
-       rae_p (:),&
-       deptn_p(:),&
-       depta_p(:),&
-       dm_p  (:), &
-       ut1_p (:), &
-       hut_p(:)
+  real(8),allocatable :: var_p(:,:)
   
 contains
   
@@ -32,24 +40,7 @@ contains
     if(.not.allocated(flag_evol))then
        allocate( &
          flag_evol(np), &
-         x_p   (np), y_p   (np), z_p   (np),&
-         qrho_p(np),&
-         ye_p  (np),&
-         tem_p (np),&
-         ut_p  (np),&
-         qb_p  (np),&
-         sen_p (np),&
-         vlx_p (np),&
-         vly_p (np),&
-         vlz_p (np),&
-         hhh_p (np),&
-         rne_p (np),&
-         rae_p (np),&
-         deptn_p(np),&
-         depta_p(np),&
-         dm_p  (np), &
-         ut1_p (np), &
-         hut_p (np)  )
+         var_p(nvar,np) )
     endif
     
     ! initialize
@@ -63,144 +54,31 @@ contains
     integer :: ip
     
     integer,allocatable :: flag_evol_buf(:)
-    real(8),allocatable :: x_buf(:),y_buf(:),z_buf(:),&
-         qrho_buf(:),&
-         ye_buf  (:),&
-         tem_buf (:),&
-         ut_buf  (:),&
-         qb_buf  (:),&
-         sen_buf (:),&
-         vlx_buf (:),&
-         vly_buf (:),&
-         vlz_buf (:),&
-         hhh_buf (:),&
-         rne_buf (:),&
-         rae_buf (:),&
-         deptn_buf(:),&
-         depta_buf(:),&
-         dm_buf  (:), &
-         ut1_buf (:), &
-         hut_buf(:)
-    
+    real(8),allocatable :: var_buf(:,:)
     
     allocate( &
          flag_evol_buf(np_old), &
-         x_buf   (np_old),&
-         y_buf   (np_old),&
-         z_buf   (np_old),&
-         qrho_buf(np_old),&
-         ye_buf  (np_old),&
-         tem_buf (np_old),&
-         ut_buf  (np_old),&
-         qb_buf  (np_old),&
-         sen_buf (np_old),&
-         vlx_buf (np_old),&
-         vly_buf (np_old),&
-         vlz_buf (np_old),&
-         hhh_buf (np_old),&
-         rne_buf (np_old),&
-         rae_buf (np_old),&
-         deptn_buf(np_old),&
-         depta_buf(np_old),&
-         dm_buf  (np_old), &
-         ut1_buf (np_old), &
-         hut_buf (np_old)  )
+         var_buf   (nvar,np_old) )
     
     do ip=1,np_old
        flag_evol_buf(ip) = flag_evol(ip)
-       x_buf        (ip) = x_p      (ip)
-       y_buf        (ip) = y_p      (ip)
-       z_buf        (ip) = z_p      (ip)
-       qrho_buf     (ip) = qrho_p   (ip)
-       ye_buf       (ip) = ye_p     (ip)
-       tem_buf      (ip) = tem_p    (ip)
-       ut_buf       (ip) = ut_p     (ip)
-       qb_buf       (ip) = qb_p     (ip)
-       sen_buf      (ip) = sen_p    (ip)
-       vlx_buf      (ip) = vlx_p    (ip)
-       vly_buf      (ip) = vly_p    (ip)
-       vlz_buf      (ip) = vlz_p    (ip)
-       hhh_buf      (ip) = hhh_p    (ip)
-       rne_buf      (ip) = rne_p    (ip)
-       rae_buf      (ip) = rae_p    (ip)
-       deptn_buf    (ip) = deptn_p  (ip)
-       depta_buf    (ip) = depta_p  (ip)
-       dm_buf       (ip) = dm_p     (ip)
-       ut1_buf      (ip) = ut1_p    (ip)
-       hut_buf      (ip) = hut_p    (ip)
+       var_buf(:,ip) = var_p(:,ip)
     enddo
 
     deallocate( &
          flag_evol, &
-         x_p   ,&
-         y_p   ,&
-         z_p   ,&
-         qrho_p,&
-         ye_p  ,&
-         tem_p ,&
-         ut_p  ,&
-         qb_p  ,&
-         sen_p ,&
-         vlx_p ,&
-         vly_p ,&
-         vlz_p ,&
-         hhh_p ,&
-         rne_p ,&
-         rae_p ,&
-         deptn_p,&
-         depta_p,&
-         dm_p  , &
-         ut1_p , &
-         hut_p   )
+         var_p)
 
     call allocate_particle_data(np_new)
 
     do ip=1,np_old
        flag_evol(ip) = flag_evol_buf(ip)
-       x_p      (ip) = x_buf        (ip)
-       y_p      (ip) = y_buf        (ip)
-       z_p      (ip) = z_buf        (ip)
-       qrho_p   (ip) = qrho_buf     (ip)
-       ye_p     (ip) = ye_buf       (ip)
-       tem_p    (ip) = tem_buf      (ip)
-       ut_p     (ip) = ut_buf       (ip)
-       qb_p     (ip) = qb_buf       (ip)
-       sen_p    (ip) = sen_buf      (ip)
-       vlx_p    (ip) = vlx_buf      (ip)
-       vly_p    (ip) = vly_buf      (ip)
-       vlz_p    (ip) = vlz_buf      (ip)
-       hhh_p    (ip) = hhh_buf      (ip)
-       rne_p    (ip) = rne_buf      (ip)
-       rae_p    (ip) = rae_buf      (ip)
-       deptn_p  (ip) = deptn_buf    (ip)
-       depta_p  (ip) = depta_buf    (ip)
-       dm_p     (ip) = dm_buf       (ip)
-       ut1_p    (ip) = ut1_buf      (ip)
-       hut_p    (ip) = hut_buf      (ip)
+       var_p(:,ip) = var_buf(:,ip)
     enddo
     
     deallocate( &
          flag_evol_buf, &
-         x_buf   ,&
-         y_buf   ,&
-         z_buf   ,&
-         qrho_buf,&
-         ye_buf  ,&
-         tem_buf ,&
-         ut_buf  ,&
-         qb_buf  ,&
-         sen_buf ,&
-         vlx_buf ,&
-         vly_buf ,&
-         vlz_buf ,&
-         hhh_buf ,&
-         rne_buf ,&
-         rae_buf ,&
-         deptn_buf,&
-         depta_buf,&
-         dm_buf  , &
-         ut1_buf , &
-         hut_buf   )
+         var_buf)
     
   end subroutine reallocate_particle_data
 
@@ -209,24 +87,7 @@ contains
     if(allocated(flag_evol))then
        deallocate( &
          flag_evol, &
-         x_p   , y_p   , z_p   ,&
-         qrho_p,&
-         ye_p  ,&
-         tem_p ,&
-         ut_p  ,&
-         qb_p  ,&
-         sen_p ,&
-         vlx_p ,&
-         vly_p ,&
-         vlz_p ,&
-         hhh_p ,&
-         rne_p ,&
-         rae_p ,&
-         deptn_p,&
-         depta_p,&
-         dm_p  , &
-         ut1_p , &
-         hut_p   )
+         var_p)
     else
        write(6,*) "particle data not allocated yet."
     endif
@@ -246,7 +107,7 @@ contains
     do ip = 1,ipu
        if(flag_evol(ip)==1)then
           ! write(unit,'(i10,99es10.2)') ip, x_p(ip),z_p(ip),qrho_p(ip),ye_p(ip),tem_p(ip),sen_p(ip),dm_p(ip)
-          write(unit,'(i10,99es25.17)') ip, x_p(ip),z_p(ip),qrho_p(ip),ye_p(ip),tem_p(ip),sen_p(ip),dm_p(ip)
+          write(unit,'(i10,99es25.17)') ip, var_p(index_x,ip), var_p(index_z,ip), var_p(index_rho,ip), var_p(index_ye,ip), var_p(index_tem,ip), var_p(index_sen,ip), var_p(index_dm,ip)
        endif
     enddo
     close(unit)

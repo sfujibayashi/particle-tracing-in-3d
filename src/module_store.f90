@@ -6,29 +6,12 @@ module module_store
   real(8),allocatable :: time_store(:)
 
   integer,allocatable :: flag_evol_store(:,:)
-  real(8),allocatable :: x_p_store(:,:),y_p_store(:,:),z_p_store(:,:),&
-       qrho_p_store(:,:),&
-       ye_p_store(:,:),&
-       tem_p_store(:,:),&
-       ut_p_store(:,:),&
-       qb_p_store(:,:),&
-       sen_p_store(:,:),&
-       vlx_p_store(:,:),&
-       vly_p_store(:,:),&
-       vlz_p_store(:,:),&
-       hhh_p_store(:,:),&
-       rne_p_store(:,:),&
-       rae_p_store(:,:),&
-       deptn_p_store(:,:),&
-       depta_p_store(:,:),&
-       dm_p_store(:,:), &
-       ut1_p_store(:,:), &
-       hut_p_store(:,:)
-
+  real(8),allocatable :: var_p_store(:,:,:)
 
 contains
 
   subroutine allocate_store(np,mem_max)
+    use particle_data, only: nvar
     integer,intent(in) :: np
     real(8),intent(in) :: mem_max
     integer :: ip,it
@@ -39,24 +22,7 @@ contains
     allocate( &
          time_store(nt), &
          flag_evol_store(np,nt), &
-         x_p_store(np,nt),y_p_store(np,nt),z_p_store(np,nt),&
-         qrho_p_store(np,nt),&
-         ye_p_store(np,nt),&
-         tem_p_store(np,nt),&
-         ut_p_store(np,nt),&
-         qb_p_store(np,nt),&
-         sen_p_store(np,nt),&
-         vlx_p_store(np,nt),&
-         vly_p_store(np,nt),&
-         vlz_p_store(np,nt),&
-         hhh_p_store(np,nt),&
-         rne_p_store(np,nt),&
-         rae_p_store(np,nt),&
-         deptn_p_store(np,nt),&
-         depta_p_store(np,nt),&
-         dm_p_store(np,nt), &
-         ut1_p_store(np,nt), &
-         hut_p_store(np,nt) )
+         var_p_store(nvar,np,nt))
     
     ! initialize
     flag_evol_store(:,:) = 0
@@ -80,29 +46,8 @@ contains
     time_store(it_out) = time
 
     do ip=1,np
-       
        flag_evol_store(ip,it_out) = flag_evol(ip)
-       x_p_store(ip,it_out) = x_p(ip)
-       y_p_store(ip,it_out) = y_p(ip)
-       z_p_store(ip,it_out) = z_p(ip)
-       qrho_p_store(ip,it_out) = qrho_p(ip)
-       ye_p_store(ip,it_out) = ye_p(ip)
-       tem_p_store(ip,it_out) = tem_p(ip)
-       ut_p_store(ip,it_out) = ut_p(ip)
-       qb_p_store(ip,it_out) = qb_p(ip)
-       sen_p_store(ip,it_out) = sen_p(ip)
-       vlx_p_store(ip,it_out) = vlx_p(ip)
-       vly_p_store(ip,it_out) = vly_p(ip)
-       vlz_p_store(ip,it_out) = vlz_p(ip)
-       hhh_p_store(ip,it_out) = hhh_p(ip)
-       rne_p_store(ip,it_out) = rne_p(ip)
-       rae_p_store(ip,it_out) = rae_p(ip)
-       deptn_p_store(ip,it_out) = deptn_p(ip)
-       depta_p_store(ip,it_out) = depta_p(ip)
-       dm_p_store(ip,it_out) = dm_p(ip)
-       ut1_p_store(ip,it_out) = ut1_p(ip)
-       hut_p_store(ip,it_out) = hut_p(ip)
-
+       var_p_store(:,ip,it_out) = var_p(:,ip)
     enddo
     
   end subroutine store_data
@@ -118,7 +63,7 @@ contains
     character(10) :: str1
     
     !$omp parallel default(none) &
-    !$omp   shared(np,flag_evol,dir_out,model,dm_p,ut1_p,hut_p) &
+    !$omp   shared(np,flag_evol,dir_out,model,var_p) &
     !$omp   private(str1,unit)
     !$omp do
     do ip=1,np
@@ -128,7 +73,7 @@ contains
        open (newunit=unit,file=trim(dir_out)//"/traj_"//trim(str1)//".dat",status="replace")
        write(unit,'("# particle id:",i8)') ip
        write(unit,'("# model: ",a)') trim(model)
-       write(unit,'("# particle mass:",es13.5," g, ut+1, hut+h_atm:",2es13.5)') dm_p(ip), ut1_p(ip), hut_p(ip)
+       write(unit,'("# particle mass:",es13.5," g, ut+1, hut+h_atm:",2es13.5)') var_p(index_dm,ip), var_p(index_ut1,ip), var_p(index_hut,ip)
        write(unit,'("#     Time [s]        x [cm]        y [cm]        z [cm]     Vx [cm/s]     Vy [cm/s]     Vz [cm/s]  rho [g/cm^3]         T [K]            Ye   S [k_b/nuc] Ee [erg/cm^3] Ea [erg/cm^3]         tau_e         tau_a           u_t         h/c^2")')
        close(unit)
        
@@ -151,8 +96,7 @@ contains
     real(8),parameter :: mev_to_kelvin  = 1.160445d10, clight = 2.99792458d10
     
     !$omp parallel default(none) &
-    !$omp   shared(np,nt_output,flag_evol_store,dir_out,time_store,x_p_store,y_p_store,z_p_store,vlx_p_store,vly_p_store,vlz_p_store, &
-    !$omp          qrho_p_store, tem_p_store, ye_p_store,sen_p_store,rne_p_store,rae_p_store,deptn_p_store,depta_p_store,ut_p_store,hhh_p_store) &
+    !$omp   shared(np,nt_output,flag_evol_store,dir_out,time_store,var_p_store) &
     !$omp   private(str1,unit)
     !$omp do
     do ip=1,np
@@ -162,22 +106,7 @@ contains
           if(flag_evol_store(ip,it_out)==1)then
              write(unit,'(99es14.6)') &
                   time_store(it_out), &
-                  x_p_store(ip,it_out), &
-                  y_p_store(ip,it_out), &
-                  z_p_store(ip,it_out), &
-                  vlx_p_store(ip,it_out)*clight, &
-                  vly_p_store(ip,it_out)*clight, &
-                  vlz_p_store(ip,it_out)*clight, &
-                  qrho_p_store(ip,it_out), &
-                  tem_p_store(ip,it_out)*mev_to_kelvin, &
-                  ye_p_store(ip,it_out), &
-                  sen_p_store(ip,it_out), &
-                  rne_p_store(ip,it_out), &
-                  rae_p_store(ip,it_out), &
-                  deptn_p_store(ip,it_out), &
-                  depta_p_store(ip,it_out), &
-                  ut_p_store(ip,it_out), &
-                  hhh_p_store(ip,it_out)
+                  var_p_store(1:16,ip,it_out)
           endif
           
        enddo

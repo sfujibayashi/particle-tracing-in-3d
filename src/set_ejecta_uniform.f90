@@ -67,13 +67,13 @@ subroutine set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
      do i_r = 1,n_r
         do i_theta = 1,n_theta
            
-           x_p(ip) = r(i_r)*sin(theta(i_theta))*cos(phi(i_phi))
-           y_p(ip) = r(i_r)*sin(theta(i_theta))*sin(phi(i_phi))
-           z_p(ip) = r(i_r)*cos(theta(i_theta))
+           var_p(index_x,ip) = r(i_r)*sin(theta(i_theta))*cos(phi(i_phi))
+           var_p(index_y,ip) = r(i_r)*sin(theta(i_theta))*sin(phi(i_phi))
+           var_p(index_z,ip) = r(i_r)*cos(theta(i_theta))
 
            write(101,'(4i5,99es15.7)') ip, i_r, i_theta, i_phi, &
                 r(i_r), theta(i_theta), phi(i_phi), &
-                x_p(ip),y_p(ip),z_p(ip)
+                var_p(index_x,ip),var_p(index_y,ip),var_p(index_z,ip)
            
 
            ip = ip + 1
@@ -99,9 +99,9 @@ subroutine set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
     do ip=1,npv
        
        flag_evol(ip) = 1
-       xx=x_p(ip)
-       yy=y_p(ip)
-       zz=z_p(ip)
+       xx=var_p(index_x,ip)
+       yy=var_p(index_y,ip)
+       zz=var_p(index_z,ip)
   
        call coorindex3D(xx,yy,zz,j1,k1,l1,lv0)
        j0=j1-1
@@ -169,10 +169,10 @@ subroutine set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
        
        gam_inf_r = - hhh_i*ut_i/hhh_r * (1d0-floss)
        
-       ut1_p(ip) = ut_i + 1.d0
-       hut_p(ip) = ut_i*hhh_i! + hhh_at
+       var_p(index_ut1,ip) = ut_i + 1.d0
+       var_p(index_hut,ip) = ut_i*hhh_i! + hhh_at
        
-       write(101,'(a1,i14,99es14.6)') " ",ip, dm_p(ip), ut1_p(ip), hut_p(ip), x_p(ip), y_p(ip), z_p(ip), vx_i, vy_i, vz_i, ye_i, gam_inf_r
+       write(101,'(a1,i14,99es14.6)') " ",ip, var_p(index_dm,ip), var_p(index_ut1,ip), var_p(index_hut,ip), var_p(index_x,ip), var_p(index_y,ip), var_p(index_z,ip), vx_i, vy_i, vz_i, ye_i, gam_inf_r
     enddo
     
   end block
