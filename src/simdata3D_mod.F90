@@ -456,6 +456,7 @@ contains
        if(link_exists)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor"     ,www (:,:,:,lv),dims3,error)
        else
+          if(lv==lv_min)write(6,*) "Lorentz factor is not found"
           block
             integer :: j,k,l
             !$omp parallel
@@ -478,6 +479,7 @@ contains
        if(link_exists)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/lapse"     ,alpha (:,:,:,lv),dims3,error)
        else
+          if(lv==lv_min)write(6,*) "lapse is not found"
           alpha (:,:,:,lv)=0d0
        endif
 
@@ -489,6 +491,7 @@ contains
           qb(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)*rho_uni
           ! qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
        else
+          if(lv==lv_min)write(6,*) "rho_star is not found"
           block
             integer :: j,k,l
             !$omp parallel
