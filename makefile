@@ -1,5 +1,7 @@
 # Makefile
 
+include make.inc
+
 EXE_DIR := bin/
 SRC_DIR := src/
 OBJ_DIR := obj/
@@ -8,13 +10,11 @@ OBJ_DIR := obj/
 PROG := $(EXE_DIR)ptr.out
 
 # compiler
-#FXX := mpifccpx
-#FCC := mpifccpx
-FXX := h5fc
-FCC := h5pcc
+FXX := ${COMPILER_NAME}
+
 # compiler option
 
-FFLAGS:=-convert big_endian -mcmodel=large -shared-intel -fpic -qopenmp -xCORE-AVX512 -qopt-zmm-usage=high
+FFLAGS:=${OPTION}
 #FFLAGS += -O0 -CB -traceback -g -fpe0 -check uninit # -warn unused
 FFLAGS += -diag-disable=10121 #-z noexecstack #-h ipafrom=vis_fcn.f90:atm_fnc.f90
 FFLAGS += -module $(OBJ_DIR)
