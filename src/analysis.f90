@@ -1,4 +1,4 @@
-subroutine analysis(dir_out,time)
+subroutine output_profile(dir_out,time)
   use simdata3D
   implicit none
   character(*),intent(in) :: dir_out
@@ -177,4 +177,68 @@ subroutine analysis(dir_out,time)
 
   write(6,*) "analysis finished"
   
-end subroutine analysis
+end subroutine output_profile
+
+
+
+subroutine analysis_3d_data(time,unum,rin,rfl)
+  use simdata3D
+  use module_eos, only: hhh_min
+  implicit none
+  real(8),intent(in) :: time
+  integer,intent(in) :: unum
+  real(8),intent(in) :: rin,rfl
+  real(8) :: mass_ejecta_geo, mass_ejecta_bernoulli, mass_ejecta_hut1
+  real(8) :: mass_total
+
+  real(8) :: hhh_crit
+  integer :: j,k,l,lv
+  real(8) :: dm
+
+  logical :: condition_ejecta_geo, condition_ejecta_bernoulli, condition_ejecta_hut1
+  
+  hhh_crit = hhh_min
+  
+  mass_ejecta_geo=0d0
+  mass_ejecta_bernoulli=0d0
+  mass_ejecta_hut1=0d0
+  mass_total = 0d0
+
+  do lv=lv_min,lv_max
+     
+     !$omp parallel default(none) &
+     !$omp shared(lv,ld,lu,kd,ku,jd,ju,rfl,rin,hhh_crit,x,y,z,vol3D,qb) &
+     !$omp private(dm) &
+     !$omp reduction(+:mass_total,mass_ejecta_geo, mass_ejecta_bernoulli, mass_ejecta_hut1)
+     !$omp do
+     do l=ld,lu
+        do k=kd,ku
+           do j=jd,ju
+              dm = vol3D(j,k,l,lv)*qb(j,k,l,lv)
+              if(        sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
+                   .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin)then
+                 mass_total = mass_total + dm
+              endif
+
+              if(condition_ejecta_geo(j,k,l,lv,rfl,rin,hhh_crit))then
+                 mass_ejecta_geo = mass_ejecta_geo + dm
+              endif
+
+              if(condition_ejecta_bernoulli(j,k,l,lv,rfl,rin,hhh_crit))then
+                 mass_ejecta_bernoulli = mass_ejecta_bernoulli + dm
+              endif
+
+              if(condition_ejecta_hut1(j,k,l,lv,rfl,rin,hhh_crit))then
+                 mass_ejecta_hut1 = mass_ejecta_hut1 + dm
+              endif
+
+           enddo
+        enddo
+     enddo
+     !$omp end do
+     !$omp end parallel
+  enddo
+  
+  write(unum,'(" ",99es15.7)') time, mass_total, mass_ejecta_geo, mass_ejecta_bernoulli, mass_ejecta_hut1
+  
+end subroutine analysis_3d_data
