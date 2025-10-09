@@ -61,6 +61,7 @@ program main
   real(8) :: time0,time1
 
   ! job-number and timestep related
+  integer :: job_max_global, job_min_global
   integer :: job_max,job_min,job_start,job_prv,job,job1,job2,it1,it2,it_start,nsteps,it0,it_save
   integer :: it,substep_max
   integer :: count_skip
@@ -118,8 +119,8 @@ program main
 
   open(10,file=trim(dir_out)//"/parameters.dat",status="old",action="read")
   read(10,*);read(10,'(a)') model
-  read(10,*);read(10,*) job_min
-  read(10,*);read(10,*) job_max
+  read(10,*);read(10,*) job_min_global
+  read(10,*);read(10,*) job_max_global
   read(10,*);read(10,'(a)') dir_read
   read(10,*);read(10,'(a)') dir_out
   read(10,*);read(10,*) mode_backward
@@ -148,6 +149,14 @@ program main
   endif
   close(10)
 
+  if(mode_backward)then
+     job_max = job_max_global
+     job_min = max(job_min_global, job_max-incr_next+1)
+  else
+     job_min = job_min_global
+     job_max = min(job_max_global, job_min+incr_next-1)
+  endif
+     
   fn = trim(dir_out)//"/restart_info.dat"
   if(access(fn," ")==0)then
      open(10,file=fn,status="old",action="read")
@@ -633,6 +642,10 @@ program main
      write(str1,'(i10)') job
      fn = trim(dir_out)//"/flux_"//trim(adjustl(str1))//".dat"
      open(newunit=unum,file=fn,status="replace",action="write")
+     write(unum,'("#",2a10,a15,a10,99a15)') "job", "it", "t", "np_set", "dM/dt", "M(tot)", "dM(set)", "dm(av)", "dm(max)", "dm(min)", "v(av)", "v(max)", "v(min)"
+     fn = trim(dir_out)//"/analysis_"//trim(adjustl(str1))//".dat"
+     open(newunit=unum2,file=fn,status="replace",action="write")
+     write(unum2,'("#",99a15)') "t", "Mej(geo)", "Mej(Bernoulli)", "Mej(hut+1<0)"
      
      do it = it1, it2, step*it_skip
         
@@ -650,6 +663,8 @@ program main
         else
            dt = time - time_prv
         endif
+
+        call analysis_3d_data(time,unum2,rin,rfl)
         
 !!! evolve particles
         ! write(6,*) "evolve particles"
@@ -659,9 +674,9 @@ program main
 !!! set max number of particle at the first step
         if(first)then
            write(6,*) "first-time task"
-           call analysis(dir_out,time)
+           call output_profile(dir_out,time)
            !call print_data(time,job,it)
-           ! call partial_output_hdf(dir_out, job, it, time)
+           call partial_output_hdf(dir_out, job, it, time)
            !stop
 
            ! call set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
@@ -821,6 +836,7 @@ program main
      enddo !end of the iteration of this job
 
      close(unum)
+     close(unum2)
 
      call h5fclose_f(file_id, error)
      
@@ -903,10 +919,10 @@ program main
   open(10,file=fn,status="replace",action="write")
   if(mode_backward)then
      job_max = job2-1
-     job_min = max(1,job_max-incr_next)
+     job_min = max(job_min_global, job_max-incr_next+1)
   else
      job_min = job2+1
-     job_max = job_min+incr_next
+     job_max = min(job_max_global, job_min+incr_next-1)
   endif
   write(10,*) job_min
   write(10,*) job_max
