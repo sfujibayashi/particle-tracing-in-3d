@@ -68,9 +68,11 @@ subroutine partial_output_hdf(dir_out,job,it,t)
      dims3(3) = ldat
 
      call h5ltmake_dataset_float_f(group2_id, "density", 3, dims3, qrho(:,:,ld_write:lu,lv), hdf_err)
+     call h5ltmake_dataset_float_f(group2_id, "rho_star", 3, dims3, qb(:,:,ld_write:lu,lv), hdf_err)
      call h5ltmake_dataset_float_f(group2_id, "u_t", 3, dims3, ut(:,:,ld_write:lu,lv), hdf_err)
      call h5ltmake_dataset_float_f(group2_id, "ye", 3, dims3, ye(:,:,ld_write:lu,lv), hdf_err)
      call h5ltmake_dataset_float_f(group2_id, "entropy", 3, dims3, sen(:,:,ld_write:lu,lv), hdf_err)
+     call h5ltmake_dataset_float_f(group2_id, "enthalpy", 3, dims3, hhh(:,:,ld_write:lu,lv), hdf_err)
      call h5ltmake_dataset_float_f(group2_id, "temperature", 3, dims3, tem(:,:,ld_write:lu,lv), hdf_err)
      call h5ltmake_dataset_float_f(group2_id, "vx", 3, dims3, vlx(:,:,ld_write:lu,lv), hdf_err)
      call h5ltmake_dataset_float_f(group2_id, "vy", 3, dims3, vly(:,:,ld_write:lu,lv), hdf_err)
