@@ -448,9 +448,11 @@ contains
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor",link_exists,error)
        if(link_exists)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,rhog (:,:,:,lv),dims3,error)
+          rhog (:,:,:,lv)=1d0/rhog (:,:,:,lv)
        else
           rhog (:,:,:,lv)=1d0
        endif
+       ! rhog (:,:,:,lv)=1d0
 
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor",link_exists,error)
        if(link_exists)then
@@ -551,7 +553,7 @@ contains
 #endif
 #endif
 
-    write(6,*) lv_max, lv_max_present
+    ! write(6,*) lv_max, lv_max_present
     call interp_finer(lv_max_present)
     ! stop
     ! block
