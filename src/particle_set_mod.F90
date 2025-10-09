@@ -19,6 +19,9 @@ contains
     real(8) :: z,phi,s,phh
     integer :: npix, nnorth, neq, nring
 
+    write(6,*) 
+    write(6,*) "Initializing for flux-based particle setting..."
+
     npix = 12*nside**2
     neq = 4*nside
     nnorth = int((npix - neq)/2) + neq
