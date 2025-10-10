@@ -159,16 +159,17 @@ contains
 
     real(8) :: dx,dy,dz,fac1,fac,vol,vol_tot,vol_tot_analytic,vol_tot_analytic2
     
-    ldat = (lu-ld+1)
-    kdat = (ku-kd+1)
-    jdat = (ju-jd+1)
-
     ld_read=ld
 #ifdef STAGGERED
 #ifndef FULL
     ld_read=ld+1
 #endif
 #endif
+
+    ldat = (lu-ld_read+1)
+    kdat = (ku-kd+1)
+    jdat = (ju-jd+1)
+
 
     do lv = lv_min,lv_max
        
@@ -402,7 +403,7 @@ contains
     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
     t = tms(1)*time_unit_h5
     
-    ldat = (lu-ld+1)
+    ldat = (lu-ld_read+1)
     kdat = (ku-kd+1)
     jdat = (ju-jd+1)
 
@@ -448,29 +449,15 @@ contains
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,buf3d_real4_8,dims3,error); sum_err = sum_err + error
        vlz (:,:,ld_read:lu,lv) = buf3d_real4_8(:,:,:)/vel_unit_h5
 
-       ! call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor",link_exists,error)
-       ! if(link_exists)then
-       !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,rhog (:,:,:,lv),dims3,error)
-
-       !    block
-       !      integer :: j,k,l
-       !      do l=ld,lu
-       !         do k=kd,ku
-       !            do j=jd,ju
-       !               if(rhog(j,k,l,lv)==0.0)then
-       !                  write(6,*) j,k,l,lv,rhog(j,k,l,lv)
-       !               endif
-       !            enddo
-       !         end do
-       !      enddo
-       !    end block
-          
-       !    !rhog (:,:,:,lv)=1d0/rhog (:,:,:,lv)
-       ! else
-       !    if(lv==lv_min)write(6,*) "conformal factor is not found"
-       !    rhog (:,:,:,lv)=1d0
-       ! endif
-       rhog (:,:,:,lv)=1d0
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor",link_exists,error)
+       if(link_exists)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,rhog (:,:,:,lv),dims3,error)
+          rhog (:,:,:,lv)=1d0/rhog (:,:,:,lv)
+       else
+          if(lv==lv_min)write(6,*) "conformal factor is not found"
+          rhog (:,:,:,lv)=1d0
+       endif
+       ! rhog (:,:,:,lv)=1d0
 
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor",link_exists,error)
        if(link_exists)then
@@ -542,7 +529,7 @@ contains
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/P",link_exists,error)
        if(link_exists)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/P",buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          pres(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+          pres(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)*rho_uni*v_uni**2
        else
           if(lv==lv_min)write(6,*) "P is not found"
           sum_err = sum_err + 1
