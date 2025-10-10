@@ -2,7 +2,7 @@ module particle_data
 
   implicit none
 
-  integer,parameter :: nvar = 20
+  integer,parameter :: nvar = 24, nvar_out = 20
 
   integer,parameter :: index_x = 1
   integer,parameter :: index_y = 2
@@ -20,12 +20,17 @@ module particle_data
   integer,parameter :: index_depta = 14
   integer,parameter :: index_ut = 15
   integer,parameter :: index_hhh = 16
+  integer,parameter :: index_ch_nuf = 17
+  integer,parameter :: index_ch_naf = 18
+  integer,parameter :: index_b2 = 19
+  integer,parameter :: index_pres = 20
 
-  integer,parameter :: index_dm = 17
-  integer,parameter :: index_ut1 = 18
-  integer,parameter :: index_hut = 19
-  integer,parameter :: index_qb = 20
+  integer,parameter :: index_dm = 21
+  integer,parameter :: index_ut1 = 22
+  integer,parameter :: index_hut = 23
+  integer,parameter :: index_qb = 24
 
+  character(len=14),parameter :: label_var(nvar_out) = ["x [cm]", "y [cm]", "z [cm]", "Vx [cm/s]", "Vy [cm/s]", "Vz [cm/s]", "rho [g/cm^3]", "T [K]", "Ye", "S [k_b/nuc]", "Ee [erg/cm^3]", "Ea [erg/cm^3]", "tau_e", "tau_a", "u_t", "h/c^2", "eta(nu_e)", "eta(nu_ebar)", "b^2 [G^2]", "P [dyn/cm^2]"]
 
   ! Their size is only np
   integer,allocatable :: flag_evol(:)

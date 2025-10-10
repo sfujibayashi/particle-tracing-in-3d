@@ -56,27 +56,34 @@ contains
     ! particle data
     dims1(1) = ipu
 
+    call h5ltmake_dataset_int_f   (file_id, "/flag_evol", 1, dims1, flag_evol(1:ipu), error)
+
     call h5ltmake_dataset_double_f(file_id, "/dm_p", 1, dims1, var_p(index_dm,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/ut1_p", 1, dims1, var_p(index_ut1,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/hut_p", 1, dims1, var_p(index_hut,1:ipu), error)
     !call h5ltmake_dataset_double_f(file_id, "/ebind_p", 1, dims1, ebind_p(index_,1:ipu), error)
-    call h5ltmake_dataset_int_f   (file_id, "/flag_evol", 1, dims1, flag_evol(1:ipu), error)
+
     call h5ltmake_dataset_double_f(file_id, "/x_p", 1, dims1, var_p(index_x,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/y_p", 1, dims1, var_p(index_y,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/z_p", 1, dims1, var_p(index_z,1:ipu), error)
+    call h5ltmake_dataset_double_f(file_id, "/vlx_p", 1, dims1, var_p(index_vlx,1:ipu), error)
+    call h5ltmake_dataset_double_f(file_id, "/vly_p", 1, dims1, var_p(index_vly,1:ipu), error)
+    call h5ltmake_dataset_double_f(file_id, "/vlz_p", 1, dims1, var_p(index_vlz,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/qrho_p", 1, dims1, var_p(index_rho,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/tem_p", 1, dims1, var_p(index_tem,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/ye_p", 1, dims1, var_p(index_ye,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/sen_p", 1, dims1, var_p(index_sen,1:ipu), error)
-    call h5ltmake_dataset_double_f(file_id, "/hhh_p", 1, dims1, var_p(index_hhh,1:ipu), error)
-    call h5ltmake_dataset_double_f(file_id, "/ut_p", 1, dims1, var_p(index_ut,1:ipu), error)
-    call h5ltmake_dataset_double_f(file_id, "/vlx_p", 1, dims1, var_p(index_vlx,1:ipu), error)
-    call h5ltmake_dataset_double_f(file_id, "/vly_p", 1, dims1, var_p(index_vly,1:ipu), error)
-    call h5ltmake_dataset_double_f(file_id, "/vlz_p", 1, dims1, var_p(index_vlz,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/rne_p", 1, dims1, var_p(index_rne,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/rae_p", 1, dims1, var_p(index_rae,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/deptn_p", 1, dims1, var_p(index_deptn,1:ipu), error)
     call h5ltmake_dataset_double_f(file_id, "/depta_p", 1, dims1, var_p(index_depta,1:ipu), error)
+    call h5ltmake_dataset_double_f(file_id, "/ut_p", 1, dims1, var_p(index_ut,1:ipu), error)
+    call h5ltmake_dataset_double_f(file_id, "/hhh_p", 1, dims1, var_p(index_hhh,1:ipu), error)
+
+    call h5ltmake_dataset_double_f(file_id, "/ch_nuf_p", 1, dims1, var_p(index_ch_nuf,1:ipu), error)
+    call h5ltmake_dataset_double_f(file_id, "/ch_naf_p", 1, dims1, var_p(index_ch_naf,1:ipu), error)
+    call h5ltmake_dataset_double_f(file_id, "/b2_p", 1, dims1, var_p(index_b2,1:ipu), error)
+    call h5ltmake_dataset_double_f(file_id, "/pres_p", 1, dims1, var_p(index_pres,1:ipu), error)
 
     if(present(fn_read))then
        dims1(1) = 1
@@ -141,27 +148,36 @@ contains
     call allocate_particle_data(np)
 
     dims1(1) = ipu
+
+    call H5LTread_dataset_int_f   (file_id,"/flag_evol",flag_evol(1:ipu),dims1,error)
+
     call H5LTread_dataset_double_f(file_id,"/dm_p",var_p(index_dm,1:ipu),dims1,error)
     call H5LTread_dataset_double_f(file_id,"/ut1_p",var_p(index_ut1,1:ipu),dims1,error)
     call H5LTread_dataset_double_f(file_id,"/hut_p",var_p(index_hut,1:ipu),dims1,error)
     !call H5LTread_dataset_double_f(file_id,"/ebind_p",ebind_p(index_,1:ipu),dims1,error)
-    call H5LTread_dataset_int_f   (file_id,"/flag_evol",flag_evol(1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/x_p",var_p(index_x,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/y_p",var_p(index_y,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/z_p",var_p(index_z,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/qrho_p",var_p(index_rho,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/tem_p" ,var_p(index_tem,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/ye_p"  ,var_p(index_ye,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/sen_p" ,var_p(index_sen,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/hhh_p" ,var_p(index_hhh,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/ut_p" ,var_p(index_ut,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/vlx_p" ,var_p(index_vlx,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/vly_p" ,var_p(index_vly,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/vlz_p" ,var_p(index_vlz,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/rne_p" ,var_p(index_rne,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/rae_p" ,var_p(index_rae,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/deptn_p",var_p(index_deptn,1:ipu),dims1,error)
-    call H5LTread_dataset_double_f(file_id,"/depta_p",var_p(index_depta,1:ipu),dims1,error)
+
+    call H5LTread_dataset_double_f(file_id,"/x_p"    , var_p(index_x,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/y_p"    , var_p(index_y,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/z_p"    , var_p(index_z,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/vlx_p"  , var_p(index_vlx,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/vly_p"  , var_p(index_vly,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/vlz_p"  , var_p(index_vlz,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/qrho_p" , var_p(index_rho,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/tem_p"  , var_p(index_tem,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/ye_p"   , var_p(index_ye,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/sen_p"  , var_p(index_sen,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/rne_p"  , var_p(index_rne,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/rae_p"  , var_p(index_rae,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/deptn_p", var_p(index_deptn,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/depta_p", var_p(index_depta,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/ut_p"   , var_p(index_ut,1:ipu),dims1,error)
+    call H5LTread_dataset_double_f(file_id,"/hhh_p"  , var_p(index_hhh,1:ipu),dims1,error)
+
+    call h5ltread_dataset_double_f(file_id, "/ch_nuf_p", var_p(index_ch_nuf,1:ipu),dims1, error)
+    call h5ltread_dataset_double_f(file_id, "/ch_naf_p", var_p(index_ch_naf,1:ipu),dims1, error)
+    call h5ltread_dataset_double_f(file_id, "/b2_p"    , var_p(index_b2,1:ipu),dims1, error)
+    call h5ltread_dataset_double_f(file_id, "/pres_p"  , var_p(index_pres,1:ipu),dims1, error)
+
 
     if(present(fn_read))then
        dims1(1) = 1

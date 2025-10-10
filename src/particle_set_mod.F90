@@ -450,7 +450,48 @@ contains
                + x0*y1*z0* qb   (j ,k1,l ,lv) &
                + x1*y0*z0* qb   (j1,k ,l ,lv) &
                + x0*y0*z0* qb   (j ,k ,l ,lv)
+
+
+          var_p (index_b2,ip) = &
+                 x1*y1*z1* b2   (j1,k1,l1,lv) &
+               + x0*y1*z1* b2   (j ,k1,l1,lv) &
+               + x1*y0*z1* b2   (j1,k ,l1,lv) &
+               + x0*y0*z1* b2   (j ,k ,l1,lv) &
+               + x1*y1*z0* b2   (j1,k1,l ,lv) &
+               + x0*y1*z0* b2   (j ,k1,l ,lv) &
+               + x1*y0*z0* b2   (j1,k ,l ,lv) &
+               + x0*y0*z0* b2   (j ,k ,l ,lv)
           
+          var_p (index_pres,ip) = &
+                 x1*y1*z1* pres   (j1,k1,l1,lv) &
+               + x0*y1*z1* pres   (j ,k1,l1,lv) &
+               + x1*y0*z1* pres   (j1,k ,l1,lv) &
+               + x0*y0*z1* pres   (j ,k ,l1,lv) &
+               + x1*y1*z0* pres   (j1,k1,l ,lv) &
+               + x0*y1*z0* pres   (j ,k1,l ,lv) &
+               + x1*y0*z0* pres   (j1,k ,l ,lv) &
+               + x0*y0*z0* pres   (j ,k ,l ,lv)
+
+          var_p (index_ch_nuf,ip) = &
+                 x1*y1*z1* ch_nuf   (j1,k1,l1,lv) &
+               + x0*y1*z1* ch_nuf   (j ,k1,l1,lv) &
+               + x1*y0*z1* ch_nuf   (j1,k ,l1,lv) &
+               + x0*y0*z1* ch_nuf   (j ,k ,l1,lv) &
+               + x1*y1*z0* ch_nuf   (j1,k1,l ,lv) &
+               + x0*y1*z0* ch_nuf   (j ,k1,l ,lv) &
+               + x1*y0*z0* ch_nuf   (j1,k ,l ,lv) &
+               + x0*y0*z0* ch_nuf   (j ,k ,l ,lv)
+
+          var_p (index_ch_naf,ip) = &
+                 x1*y1*z1* ch_naf   (j1,k1,l1,lv) &
+               + x0*y1*z1* ch_naf   (j ,k1,l1,lv) &
+               + x1*y0*z1* ch_naf   (j1,k ,l1,lv) &
+               + x0*y0*z1* ch_naf   (j ,k ,l1,lv) &
+               + x1*y1*z0* ch_naf   (j1,k1,l ,lv) &
+               + x0*y1*z0* ch_naf   (j ,k1,l ,lv) &
+               + x1*y0*z0* ch_naf   (j1,k ,l ,lv) &
+               + x0*y0*z0* ch_naf   (j ,k ,l ,lv)
+
        endif
     enddo
     

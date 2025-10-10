@@ -5,7 +5,6 @@ module simdata3D
 
   integer :: ld,lu,kd,ku,jd,ju,lv_min,lv_max
   
-
   real(4),allocatable :: x(:,:),y(:,:),z(:,:),&
        vol3D(:,:,:,:)
 
@@ -33,8 +32,10 @@ module simdata3D
        rne (:,:,:,:),&
        rae (:,:,:,:),&
        deptn(:,:,:,:),&
-       depta(:,:,:,:)
-       
+       depta(:,:,:,:),&
+       ch_nuf(:,:,:,:),&
+       ch_naf(:,:,:,:)
+  
   ! integer,allocatable :: &
   !      flag_active(:,:,:,:)
   
@@ -335,6 +336,8 @@ contains
          vlz (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
          rne (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
          rae (jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         ch_nuf(jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
+         ch_naf(jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
          deptn(jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
          depta(jd:ju,kd:ku,ld:lu,lv_min:lv_max),&
          vol3D(jd:ju,kd:ku,ld:lu,lv_min:lv_max), &
@@ -445,14 +448,29 @@ contains
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,buf3d_real4_8,dims3,error); sum_err = sum_err + error
        vlz (:,:,ld_read:lu,lv) = buf3d_real4_8(:,:,:)/vel_unit_h5
 
-       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor",link_exists,error)
-       if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,rhog (:,:,:,lv),dims3,error)
-          rhog (:,:,:,lv)=1d0/rhog (:,:,:,lv)
-       else
-          rhog (:,:,:,lv)=1d0
-       endif
-       ! rhog (:,:,:,lv)=1d0
+       ! call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor",link_exists,error)
+       ! if(link_exists)then
+       !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,rhog (:,:,:,lv),dims3,error)
+
+       !    block
+       !      integer :: j,k,l
+       !      do l=ld,lu
+       !         do k=kd,ku
+       !            do j=jd,ju
+       !               if(rhog(j,k,l,lv)==0.0)then
+       !                  write(6,*) j,k,l,lv,rhog(j,k,l,lv)
+       !               endif
+       !            enddo
+       !         end do
+       !      enddo
+       !    end block
+          
+       !    !rhog (:,:,:,lv)=1d0/rhog (:,:,:,lv)
+       ! else
+       !    if(lv==lv_min)write(6,*) "conformal factor is not found"
+       !    rhog (:,:,:,lv)=1d0
+       ! endif
+       rhog (:,:,:,lv)=1d0
 
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor",link_exists,error)
        if(link_exists)then
@@ -510,6 +528,25 @@ contains
             !$omp end parallel
           end block
        endif
+
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/enthalpy",link_exists,error)
+       if(link_exists)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/enthalpy",buf3d_real4_1,dims3,error); sum_err = sum_err + error
+          hhh(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+       else
+          if(lv==lv_min)write(6,*) "enthalpy is not found"
+          sum_err = sum_err + 1
+       endif
+
+
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/P",link_exists,error)
+       if(link_exists)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/P",buf3d_real4_1,dims3,error); sum_err = sum_err + error
+          pres(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+       else
+          if(lv==lv_min)write(6,*) "P is not found"
+          sum_err = sum_err + 1
+       endif
        
        ! call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em1f",link_exists,error)
        ! if(link_exists)then
@@ -525,13 +562,32 @@ contains
        !    bz (:,:,:,lv)=0d0
        ! endif
        
-       ! call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b2",link_exists,error)
-       ! if(link_exists)then
-       !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b2"     ,b2 (:,:,:,lv),dims3,error)
-       !    b2(:,:,:,lv) = b2(:,:,:,lv)*rho_uni*v_uni**2
-       ! else
-       !    b2 (:,:,:,lv)=0d0
-       ! endif
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b^2",link_exists,error)
+       if(link_exists)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b^2"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
+          b2(:,:,:,lv) = buf3d_real4_1(:,:,:)
+       else
+          if(lv==lv_min)write(6,*) "b^2 is not found"
+          b2 (:,:,:,lv)=0d0
+       endif
+
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_nuf",link_exists,error)
+       if(link_exists)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_nuf"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
+          ch_nuf(:,:,:,lv) = buf3d_real4_1(:,:,:)
+       else
+          if(lv==lv_min)write(6,*) "ch_nuf is not found"
+          ch_nuf (:,:,:,lv)=0d0
+       endif
+
+       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_naf",link_exists,error)
+       if(link_exists)then
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_naf"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
+          ch_naf(:,:,:,lv) = buf3d_real4_1(:,:,:)
+       else
+          if(lv==lv_min)write(6,*) "ch_naf is not found"
+          ch_naf (:,:,:,lv)=0d0
+       endif
        
        
        if(sum_err>0)then
@@ -613,7 +669,7 @@ contains
 
     do lv=lv_min,lv_max
        !$omp parallel default(none) &
-       !$omp shared(kd,ku,jd,ju,ld,lv,qrho,qb,ut,ye,sen,tem,vlx,vly,vlz)
+       !$omp shared(kd,ku,jd,ju,ld,lv,qrho,qb,ut,ye,sen,tem,vlx,vly,vlz,b2,pres,hhh)
        !$omp do
        do k=kd,ku
           do j=jd,ju
@@ -626,6 +682,11 @@ contains
              vlx (j,k,ld,lv) = vlx (j,k,ld+1,lv)
              vly (j,k,ld,lv) = vly (j,k,ld+1,lv)
              vlz (j,k,ld,lv) =-vlz (j,k,ld+1,lv)
+
+             hhh (j,k,ld,lv) = hhh (j,k,ld+1,lv)
+             pres(j,k,ld,lv) = pres(j,k,ld+1,lv)
+             b2  (j,k,ld,lv) = b2  (j,k,ld+1,lv)
+             
           enddo
        enddo
        !$omp end do
@@ -641,69 +702,69 @@ contains
     integer :: j,k,l,lv, irho,irho1,iye,iye1,itemp,itemp1
     real(8) :: rhot,fyet,temt, ss,ssp,uu,uup,tt,ttp
 
-    do lv=lv_min,lv_max
-       !$omp parallel default(none) &
-       !$omp shared(lv,ld,lu,kd,ku,jd,ju,qrho,ye,tem,rho_e_min,rho_e,nrho,drhoi,ye_e_min,ye_e,nye,dyei,tem_e_min,tem_e,ntemp,dtemi, &
-       !$omp     pres_e, eps_e,pres,eps,hhh) &
-       !$omp private(j,k,l,rhot,fyet,temt,irho,irho1,uu,uup,iye,iye1,tt,ttp,itemp,itemp1,ss,ssp)
-       !$omp do
-       do l=ld,lu
-          do k=kd,ku
-             do j=jd,ju
+    ! do lv=lv_min,lv_max
+    !    !$omp parallel default(none) &
+    !    !$omp shared(lv,ld,lu,kd,ku,jd,ju,qrho,ye,tem,rho_e_min,rho_e,nrho,drhoi,ye_e_min,ye_e,nye,dyei,tem_e_min,tem_e,ntemp,dtemi, &
+    !    !$omp     pres_e, eps_e,pres,eps,hhh) &
+    !    !$omp private(j,k,l,rhot,fyet,temt,irho,irho1,uu,uup,iye,iye1,tt,ttp,itemp,itemp1,ss,ssp)
+    !    !$omp do
+    !    do l=ld,lu
+    !       do k=kd,ku
+    !          do j=jd,ju
 
-                rhot = qrho(j,k,l,lv)
-                fyet = ye  (j,k,l,lv)
-                temt = tem (j,k,l,lv)
+    !             rhot = qrho(j,k,l,lv)
+    !             fyet = ye  (j,k,l,lv)
+    !             temt = tem (j,k,l,lv)
 
-                irho = max(1   , min(nrho-1, int((log10(rhot)-rho_e_min)*drhoi)+1))
-                irho1= irho+1
-                uu   = max(0.d0, min(1.d0, (log10(rhot)-rho_e(irho))*drhoi))
-                uup  = 1.d0-uu
+    !             irho = max(1   , min(nrho-1, int((log10(rhot)-rho_e_min)*drhoi)+1))
+    !             irho1= irho+1
+    !             uu   = max(0.d0, min(1.d0, (log10(rhot)-rho_e(irho))*drhoi))
+    !             uup  = 1.d0-uu
 
-                iye  = max(1 , min(nye-1, int((fyet-ye_e_min  )*dyei) ))
-                iye1 = iye +1
-                tt   = max(0.d0, min(1.d0 ,     (fyet-ye_e(iye))*dyei))
-                ttp  = 1.d0-tt
+    !             iye  = max(1 , min(nye-1, int((fyet-ye_e_min  )*dyei) ))
+    !             iye1 = iye +1
+    !             tt   = max(0.d0, min(1.d0 ,     (fyet-ye_e(iye))*dyei))
+    !             ttp  = 1.d0-tt
 
-                itemp = max(1 , min(ntemp-1, int((log10(temt)-tem_e_min  )*dtemi)+1))
-                itemp1=itemp+1
-                ss    = max(0.d0, min(1.d0 ,     (log10(temt)-tem_e(itemp))*dtemi))
-                ssp   = 1.d0-ss
+    !             itemp = max(1 , min(ntemp-1, int((log10(temt)-tem_e_min  )*dtemi)+1))
+    !             itemp1=itemp+1
+    !             ss    = max(0.d0, min(1.d0 ,     (log10(temt)-tem_e(itemp))*dtemi))
+    !             ssp   = 1.d0-ss
 
-                if(irho<1.or.nrho-1<irho.or. &
-                     iye<1.or.nye-1<iye.or. &
-                     itemp<1.or.ntemp-1<itemp)then
-                   write(6,'(4i5)') j,k,l,lv
-                   write(6,'(3i5)') irho,itemp,iye
-                   write(6,'(99es12.4)') rhot, fyet, temt
-                endif
+    !             if(irho<1.or.nrho-1<irho.or. &
+    !                  iye<1.or.nye-1<iye.or. &
+    !                  itemp<1.or.ntemp-1<itemp)then
+    !                write(6,'(4i5)') j,k,l,lv
+    !                write(6,'(3i5)') irho,itemp,iye
+    !                write(6,'(99es12.4)') rhot, fyet, temt
+    !             endif
                 
-                pres(j,k,l,lv) = ssp *ttp *uup *pres_e(itemp ,iye ,irho )   &
-                               + ss  *ttp *uup *pres_e(itemp1,iye ,irho )   &
-                               + ssp *tt  *uup *pres_e(itemp ,iye1,irho )   &
-                               + ssp *ttp *uu  *pres_e(itemp ,iye ,irho1)   &
-                               + ss  *tt  *uup *pres_e(itemp1,iye1,irho )   &
-                               + ss  *ttp *uu  *pres_e(itemp1,iye ,irho1)   &
-                               + ssp *tt  *uu  *pres_e(itemp ,iye1,irho1)   &
-                               + ss  *tt  *uu  *pres_e(itemp1,iye1,irho1)
-                eps (j,k,l,lv) = ssp *ttp *uup * eps_e(itemp ,iye ,irho )   &
-                               + ss  *ttp *uup * eps_e(itemp1,iye ,irho )   &
-                               + ssp *tt  *uup * eps_e(itemp ,iye1,irho )   &
-                               + ssp *ttp *uu  * eps_e(itemp ,iye ,irho1)   &
-                               + ss  *tt  *uup * eps_e(itemp1,iye1,irho )   &
-                               + ss  *ttp *uu  * eps_e(itemp1,iye ,irho1)   &
-                               + ssp *tt  *uu  * eps_e(itemp ,iye1,irho1)   &
-                               + ss  *tt  *uu  * eps_e(itemp1,iye1,irho1)
+    !             pres(j,k,l,lv) = ssp *ttp *uup *pres_e(itemp ,iye ,irho )   &
+    !                            + ss  *ttp *uup *pres_e(itemp1,iye ,irho )   &
+    !                            + ssp *tt  *uup *pres_e(itemp ,iye1,irho )   &
+    !                            + ssp *ttp *uu  *pres_e(itemp ,iye ,irho1)   &
+    !                            + ss  *tt  *uup *pres_e(itemp1,iye1,irho )   &
+    !                            + ss  *ttp *uu  *pres_e(itemp1,iye ,irho1)   &
+    !                            + ssp *tt  *uu  *pres_e(itemp ,iye1,irho1)   &
+    !                            + ss  *tt  *uu  *pres_e(itemp1,iye1,irho1)
+    !             eps (j,k,l,lv) = ssp *ttp *uup * eps_e(itemp ,iye ,irho )   &
+    !                            + ss  *ttp *uup * eps_e(itemp1,iye ,irho )   &
+    !                            + ssp *tt  *uup * eps_e(itemp ,iye1,irho )   &
+    !                            + ssp *ttp *uu  * eps_e(itemp ,iye ,irho1)   &
+    !                            + ss  *tt  *uup * eps_e(itemp1,iye1,irho )   &
+    !                            + ss  *ttp *uu  * eps_e(itemp1,iye ,irho1)   &
+    !                            + ssp *tt  *uu  * eps_e(itemp ,iye1,irho1)   &
+    !                            + ss  *tt  *uu  * eps_e(itemp1,iye1,irho1)
 
-                eps (j,k,l,lv) = 1.d1**eps (j,k,l,lv) - 1.d0
-                pres(j,k,l,lv) = 1.d1**pres(j,k,l,lv)
-                hhh (j,k,l,lv) = 1.d0 + eps(j,k,l,lv) + pres(j,k,l,lv)/rhot/v_uni**2
-             enddo
-          enddo
-       enddo
-       !$omp end do
-       !$omp end parallel
-    enddo
+    !             eps (j,k,l,lv) = 1.d1**eps (j,k,l,lv) - 1.d0
+    !             pres(j,k,l,lv) = 1.d1**pres(j,k,l,lv)
+    !             hhh (j,k,l,lv) = 1.d0 + eps(j,k,l,lv) + pres(j,k,l,lv)/rhot/v_uni**2
+    !          enddo
+    !       enddo
+    !    enddo
+    !    !$omp end do
+    !    !$omp end parallel
+    ! enddo
 
 
     return
