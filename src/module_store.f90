@@ -87,14 +87,13 @@ contains
   end subroutine output_first
 
   subroutine output_stored_data(np,dir_out,nt_output)
+    use particle_data
     integer,intent(in) :: np,nt_output
     character(*),intent(in) :: dir_out
 
-    integer :: ip,it_out
+    integer :: ip,it_out,i
     integer :: unit
     character(10) :: str1
-
-    real(8),parameter :: mev_to_kelvin  = 1.160445d10, clight = 2.99792458d10
     
     !$omp parallel default(none) &
     !$omp   shared(np,nt_output,flag_evol_store,dir_out,time_store,var_p_store) &

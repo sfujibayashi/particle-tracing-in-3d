@@ -30,9 +30,10 @@ module particle_data
   integer,parameter :: index_hut = 23
   integer,parameter :: index_qb = 24
 
+  real(8),parameter :: mev_to_kelvin  = 1.160445d10, clight = 2.99792458d10
   character(len=14),parameter :: label_var(nvar_out) = ["x [cm]", "y [cm]", "z [cm]", "Vx [cm/s]", "Vy [cm/s]", "Vz [cm/s]", "rho [g/cm^3]", "T [K]", "Ye", "S [k_b/nuc]", "Ee [erg/cm^3]", "Ea [erg/cm^3]", "tau_e", "tau_a", "u_t", "h/c^2", "eta(nu_e)", "eta(nu_ebar)", "b^2 [G^2]", "P [dyn/cm^2]"]
 
-  real(8),parameter :: unit_var(nvar_out) = [1d0, 1d0, 1d0, clight, clight, clight, 1d0, mev_to_kelving, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0]
+  real(8),parameter :: unit_var(nvar_out) = [1d0, 1d0, 1d0, clight, clight, clight, 1d0, mev_to_kelvin, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0, 1d0]
 
   ! Their size is only np
   integer,allocatable :: flag_evol(:)
