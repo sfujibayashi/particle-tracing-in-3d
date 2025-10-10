@@ -25,7 +25,6 @@
 ${misc}
 
 cd ${dir_out}
-cp ${work_dir}/bin/${prog} ${exe}
 
 export OMP_NUM_THREADS=${OMP_NUM_THREADS}
 export SRUN_CPUS_PER_TASK=$OMP_NUM_THREADS
@@ -34,4 +33,3 @@ export OMP_PLACES=cores
 
 # Run the program:
 srun ${exe} > ptr_${model}${info}_${job}.lst
-rm ${exe}
