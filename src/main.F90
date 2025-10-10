@@ -715,7 +715,7 @@ program main
               count_pset = it_skip_pset
               write(6,'("# of particles set = ",i5,", v/c(max,min,ave) = ",3es12.4,", m(max,min,ave) = ",3es12.4,". Next: dt (s), skip = ",es12.4,i5)') np_set, v_max,v_min,v_average, m_max,m_min,m_average, dt*dble(it_skip_pset), it_skip_pset
               
-              write(unum,'(2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(var_p(index_dm,1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
+              write(unum,'(" ",2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(var_p(index_dm,1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
               flush(unum)
 
               ipu = ips
