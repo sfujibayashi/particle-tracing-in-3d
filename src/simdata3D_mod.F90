@@ -529,7 +529,7 @@ contains
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/P",link_exists,error)
        if(link_exists)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/P",buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          pres(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)*rho_uni*v_uni**2
+          pres(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)!*rho_uni*v_uni**2
        else
           if(lv==lv_min)write(6,*) "P is not found"
           sum_err = sum_err + 1
