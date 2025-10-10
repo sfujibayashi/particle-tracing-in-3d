@@ -58,7 +58,7 @@ contains
     use particle_data
     integer,intent(in) :: np
     character(*),intent(in) :: model, dir_out
-    integer :: ip,it_out
+    integer :: ip,it_out,i
     integer :: unit
     character(10) :: str1
     
@@ -75,7 +75,7 @@ contains
        write(unit,'("# model: ",a)') trim(model)
        write(unit,'("# particle mass:",es13.5," g, ut+1, hut+h_atm:",2es13.5)') var_p(index_dm,ip), var_p(index_ut1,ip), var_p(index_hut,ip)
        ! write(unit,'("#     Time [s]        x [cm]        y [cm]        z [cm]     Vx [cm/s]     Vy [cm/s]     Vz [cm/s]  rho [g/cm^3]         T [K]            Ye   S [k_b/nuc] Ee [erg/cm^3] Ea [erg/cm^3]         tau_e         tau_a           u_t         h/c^2")')
-       write(unit,'("#",99a14)') "Time [s]", label_var(1:nvar_out)
+       write(unit,'("#",99a14)') "Time [s]", (trim(label_var(i)),i=1,nvar_out)
        close(unit)
        
        !endif
@@ -105,9 +105,9 @@ contains
        open(newunit=unit,file=trim(dir_out)//"/traj_"//trim(str1)//".dat",status="old",position="append")
        do it_out = 1, nt_output
           if(flag_evol_store(ip,it_out)==1)then
-             write(unit,'(99es14.6)') &
+             write(unit,'(" ",99es14.6)') &
                   time_store(it_out), &
-                  var_p_store(1:20,ip,it_out)
+                  (var_p_store(i,ip,it_out)*unit_var(i), i=1,nvar_out)
           endif
           
        enddo
