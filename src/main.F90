@@ -645,7 +645,7 @@ program main
      write(unum,'("#",2a10,a15,a10,99a15)') "job", "it", "t", "np_set", "dM/dt", "M(tot)", "dM(set)", "dm(av)", "dm(max)", "dm(min)", "v(av)", "v(max)", "v(min)"
      fn = trim(dir_out)//"/analysis_"//trim(adjustl(str1))//".dat"
      open(newunit=unum2,file=fn,status="replace",action="write")
-     write(unum2,'("#",99a15)') "t", "Mej(geo)", "Mej(Bernoulli)", "Mej(hut+1<0)"
+     write(unum2,'("#",99a15)') "t","M(total)", "Mej(geo)", "Mej(Bernoulli)", "Mej(hut+1<0)"
      
      do it = it1, it2, step*it_skip
         
@@ -716,7 +716,8 @@ program main
               write(6,'("# of particles set = ",i5,", v/c(max,min,ave) = ",3es12.4,", m(max,min,ave) = ",3es12.4,". Next: dt (s), skip = ",es12.4,i5)') np_set, v_max,v_min,v_average, m_max,m_min,m_average, dt*dble(it_skip_pset), it_skip_pset
               
               write(unum,'(2i10,es15.7,i10,99es15.7)') job, it, time, np_set, m_average*dble(np_set)/(abs(dt)*dble(it_skip_pset)), sum(var_p(index_dm,1:ips)), m_average*dble(np_set), m_average, m_max, m_min, v_average, v_max,v_min
-              
+              flush(unum)
+
               ipu = ips
               
            endif

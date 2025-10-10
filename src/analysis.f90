@@ -240,5 +240,6 @@ subroutine analysis_3d_data(time,unum,rin,rfl)
   enddo
   
   write(unum,'(" ",99es15.7)') time, mass_total, mass_ejecta_geo, mass_ejecta_bernoulli, mass_ejecta_hut1
+  flush(unum)
   
 end subroutine analysis_3d_data
