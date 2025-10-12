@@ -67,7 +67,73 @@ module simdata3D
   integer,allocatable :: &
        ip_ejecta_vol(:,:,:,:)
 
+  character(64) :: &
+       name_qrho, &
+       name_ye  ,&
+       name_tem ,&
+       name_ut  ,&
+       name_qb  ,&
+       name_sen ,&
+       name_vlx ,&
+       name_vly ,&
+       name_vlz ,&
+       name_rne ,&
+       name_rae ,&
+       name_deptn,&
+       name_depta
+
+  character(64) :: &
+       name_alpha, &
+       name_rhog, &
+       name_www
+
+  character(64) :: &
+       name_qe ,&
+       name_pres ,&
+       name_eps ,&
+       name_hhh, &
+       name_che
+
+
+  logical :: &
+       exists_qrho, &
+       exists_ye  ,&
+       exists_tem ,&
+       exists_ut  ,&
+       exists_qb  ,&
+       exists_sen ,&
+       exists_vlx ,&
+       exists_vly ,&
+       exists_vlz ,&
+       exists_rne ,&
+       exists_rae ,&
+       exists_deptn,&
+       exists_depta
+
+  logical :: &
+       exists_alpha, &
+       exists_rhog, &
+       exists_www
+
+  logical :: &
+       exists_qe ,&
+       exists_pres ,&
+       exists_eps ,&
+       exists_hhh, &
+       exists_che
+
 contains
+
+  subroutine init_simdata3D(fn_para)
+    character(*),intent(in) :: fn_para
+    
+  !   call get_string_parameter(fn_para, "file_init", fn_init)
+  !   call get_double_parameter(fn_para, "fac_temp", fac_temp)
+  !   call get_logical_parameter(fn_para, "correct_mass", correct_mass)
+  !   call get_integer_parameter(fn_para, "nr", nr)
+    
+  end subroutine init_simdata3D
+
   subroutine get_ngrid_info(file_id)
     use hdf5
     use h5lt
