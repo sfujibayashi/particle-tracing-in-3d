@@ -19,6 +19,9 @@ subroutine partial_output_hdf(dir_out,job,it,t)
 
   integer :: j,k,l,lv
 
+  real(4),allocatable :: buf3d_real4_1(:,:,:)
+  integer,allocatable :: buf3d_integer_1(:,:,:)
+
   fn = trim(dir_out)//"/first.h5"
   call h5fcreate_f(fn, H5F_ACC_TRUNC_F, file_id, hdf_err)
   
@@ -33,7 +36,7 @@ subroutine partial_output_hdf(dir_out,job,it,t)
   kdat = ku-kd+1
   ldat = lu-ld_write+1
  
-
+  allocate(buf3d_real4_1(jdat,kdat,ldat),buf3d_integer_1(jdat,kdat,ldat))
   ! lv=lv_max
   ! l=ld+1
   ! do k=kd,ku,3
@@ -67,18 +70,28 @@ subroutine partial_output_hdf(dir_out,job,it,t)
      dims3(2) = kdat
      dims3(3) = ldat
 
-     call h5ltmake_dataset_float_f(group2_id, "density", 3, dims3, qrho(:,:,ld_write:lu,lv), hdf_err)
-     call h5ltmake_dataset_float_f(group2_id, "rho_star", 3, dims3, qb(:,:,ld_write:lu,lv), hdf_err)
-     call h5ltmake_dataset_float_f(group2_id, "u_t", 3, dims3, ut(:,:,ld_write:lu,lv), hdf_err)
-     call h5ltmake_dataset_float_f(group2_id, "ye", 3, dims3, ye(:,:,ld_write:lu,lv), hdf_err)
-     call h5ltmake_dataset_float_f(group2_id, "entropy", 3, dims3, sen(:,:,ld_write:lu,lv), hdf_err)
-     call h5ltmake_dataset_float_f(group2_id, "enthalpy", 3, dims3, hhh(:,:,ld_write:lu,lv), hdf_err)
-     call h5ltmake_dataset_float_f(group2_id, "temperature", 3, dims3, tem(:,:,ld_write:lu,lv), hdf_err)
-     call h5ltmake_dataset_float_f(group2_id, "vx", 3, dims3, vlx(:,:,ld_write:lu,lv), hdf_err)
-     call h5ltmake_dataset_float_f(group2_id, "vy", 3, dims3, vly(:,:,ld_write:lu,lv), hdf_err)
-     call h5ltmake_dataset_float_f(group2_id, "vz", 3, dims3, vlz(:,:,ld_write:lu,lv), hdf_err)
-
-     call h5ltmake_dataset_int_f  (group2_id, "ip_ejecta", 3, dims3, ip_ejecta_vol(:,:,ld_write:lu,lv), hdf_err)
+     buf3d_real4_1(:,:,:) = qrho(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_float_f(group2_id, "density", 3, dims3, buf3d_real4_1, hdf_err)
+     buf3d_real4_1(:,:,:) = qb(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_float_f(group2_id, "rho_star", 3, dims3, buf3d_real4_1, hdf_err)
+     buf3d_real4_1(:,:,:) = ut(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_float_f(group2_id, "u_t", 3, dims3, buf3d_real4_1, hdf_err)
+     buf3d_real4_1(:,:,:) = ye(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_float_f(group2_id, "ye", 3, dims3, buf3d_real4_1, hdf_err)
+     buf3d_real4_1(:,:,:) = sen(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_float_f(group2_id, "entropy", 3, dims3, buf3d_real4_1, hdf_err)
+     buf3d_real4_1(:,:,:) = hhh(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_float_f(group2_id, "enthalpy", 3, dims3, buf3d_real4_1, hdf_err)
+     buf3d_real4_1(:,:,:) = tem(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_float_f(group2_id, "temperature", 3, dims3, buf3d_real4_1, hdf_err)
+     buf3d_real4_1(:,:,:) = vlx(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_float_f(group2_id, "vx", 3, dims3, buf3d_real4_1, hdf_err)
+     buf3d_real4_1(:,:,:) = vly(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_float_f(group2_id, "vy", 3, dims3, buf3d_real4_1, hdf_err)
+     buf3d_real4_1(:,:,:) = vlz(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_float_f(group2_id, "vz", 3, dims3, buf3d_real4_1, hdf_err)
+     buf3d_integer_1(:,:,:) = ip_ejecta_vol(:,:,ld_write:lu,lv)
+     call h5ltmake_dataset_int_f  (group2_id, "ip_ejecta", 3, dims3, buf3d_integer_1, hdf_err)
      
      call h5gclose_f(group_id, hdf_err)
      call h5gclose_f(group2_id, hdf_err)
@@ -87,5 +100,5 @@ subroutine partial_output_hdf(dir_out,job,it,t)
 
   call h5fclose_f(file_id, hdf_err)
 
-  
+  deallocate(buf3d_real4_1, buf3d_integer_1)
 end subroutine partial_output_hdf

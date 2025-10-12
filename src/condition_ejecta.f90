@@ -1,111 +1,119 @@
-logical function condition_ejecta(j,k,l,lv,rfl,rin,hhh_crit)
-  use simdata3D
-  use particle_data
-  
+module ejecta_mod
   implicit none
-  integer,intent(in) :: j,k,l,lv
-  real(8),intent(in) :: rfl,rin,hhh_crit
+contains
 
-  logical :: condition_ejecta_geo, condition_ejecta_bernoulli
-  ! condition_ejecta = .false.
+  logical function condition_ejecta(j,k,l,lv,rfl,rin,hhh_crit)
+    use simdata3D
+    use particle_data
 
-  ! if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-hhh_crit> 0.d0  &
-  !      .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
-  !      .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
-  !      !.and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>rin &
-  !      )then
-  !    condition_ejecta=.true.
-  ! endif
+    implicit none
+    integer,intent(in) :: j,k,l,lv
+    real(8),intent(in) :: rfl,rin,hhh_crit
 
-  !condition_ejecta = condition_ejecta_geo(j,k,l,lv,rfl,rin)
-  condition_ejecta = condition_ejecta_bernoulli(j,k,l,lv,rfl,rin)
+    ! logical :: condition_ejecta_geo, condition_ejecta_bernoulli
+    ! condition_ejecta = .false.
 
-  return
-end function condition_ejecta
+    ! if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-hhh_crit> 0.d0  &
+    !      .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
+    !      .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
+    !      !.and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>rin &
+    !      )then
+    !    condition_ejecta=.true.
+    ! endif
 
-
-logical function condition_ejecta_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
-  use simdata3D
-  use particle_data
-  
-  implicit none
-  integer,intent(in) :: j,k,l,lv
-  real(8),intent(in) :: rfl,rin,hhh_crit
-
-  condition_ejecta_bernoulli = .false.
-
-  if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-hhh_crit> 0.d0  &
-       ! .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
-       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
-       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin &
-       )then
-     condition_ejecta_bernoulli = .true.
-  endif
-
-  return
-end function condition_ejecta_bernoulli
+    !condition_ejecta = condition_ejecta_geo(j,k,l,lv,rfl,rin)
+    condition_ejecta = condition_ejecta_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
+    
+    return
+  end function condition_ejecta
 
 
-logical function condition_ejecta_hut1(j,k,l,lv,rfl,rin,hhh_crit)
-  use simdata3D
-  use particle_data
-  
-  implicit none
-  integer,intent(in) :: j,k,l,lv
-  real(8),intent(in) :: rfl,rin,hhh_crit
+  logical function condition_ejecta_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
+    use simdata3D
+    use particle_data
 
-  condition_ejecta_hut1 = .false.
+    implicit none
+    integer,intent(in) :: j,k,l,lv
+    real(8),intent(in) :: rfl,rin,hhh_crit
 
-  if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-1d0> 0.d0  &
-       ! .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
-       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
-       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin &
-       )then
-     condition_ejecta_hut1 = .true.
-  endif
+    real(8) :: r2
 
-  return
-end function condition_ejecta_hut1
+    condition_ejecta_bernoulli = .false.
+    r2 = x(j,lv)**2+y(k,lv)**2+z(l,lv)**2
+    if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-hhh_crit> 0.d0  &
+         ! .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
+         .and. r2<rfl**2 &
+         .and. r2>=rin**2 &
+         )then
+       condition_ejecta_bernoulli = .true.
+    endif
+
+    return
+  end function condition_ejecta_bernoulli
 
 
-logical function condition_ejecta_bernoulli_positive_velocity(j,k,l,lv,rfl,rin,hhh_crit)
-  use simdata3D
-  use particle_data
-  
-  implicit none
-  integer,intent(in) :: j,k,l,lv
-  real(8),intent(in) :: rfl,rin,hhh_crit
+  logical function condition_ejecta_hut1(j,k,l,lv,rfl,rin,hhh_crit)
+    use simdata3D
+    use particle_data
 
-  condition_ejecta_bernoulli_positive_velocity = .false.
+    implicit none
+    integer,intent(in) :: j,k,l,lv
+    real(8),intent(in) :: rfl,rin,hhh_crit
 
-  if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-hhh_crit> 0.d0  &
-       .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
-       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
-       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin &
-       )then
-     condition_ejecta_bernoulli_positive_velocity = .true.
-  endif
+    condition_ejecta_hut1 = .false.
 
-  return
-end function condition_ejecta_bernoulli_positive_velocity
+    if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-1d0> 0.d0  &
+                                ! .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
+         .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
+         .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin &
+         )then
+       condition_ejecta_hut1 = .true.
+    endif
 
-logical function condition_ejecta_geo(j,k,l,lv,rfl,rin)
-  use simdata3D
-  use particle_data
-  
-  implicit none
-  integer,intent(in) :: j,k,l,lv
-  real(8),intent(in) :: rfl,rin
+    return
+  end function condition_ejecta_hut1
 
-  condition_ejecta_geo = .false.
 
-  if(ut(j,k,l,lv)+1d0 < 0.d0  &
-       !.and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
-       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
-       .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin &
-       )then
-     condition_ejecta_geo =.true.
-  endif
-  
-  return
-end function condition_ejecta_geo
+  logical function condition_ejecta_bernoulli_positive_velocity(j,k,l,lv,rfl,rin,hhh_crit)
+    use simdata3D
+    use particle_data
+
+    implicit none
+    integer,intent(in) :: j,k,l,lv
+    real(8),intent(in) :: rfl,rin,hhh_crit
+
+    condition_ejecta_bernoulli_positive_velocity = .false.
+
+    if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-hhh_crit> 0.d0  &
+         .and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
+         .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
+         .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin &
+         )then
+       condition_ejecta_bernoulli_positive_velocity = .true.
+    endif
+
+    return
+  end function condition_ejecta_bernoulli_positive_velocity
+
+  logical function condition_ejecta_geo(j,k,l,lv,rfl,rin)
+    use simdata3D
+    use particle_data
+
+    implicit none
+    integer,intent(in) :: j,k,l,lv
+    real(8),intent(in) :: rfl,rin
+
+    condition_ejecta_geo = .false.
+
+    if(ut(j,k,l,lv)+1d0 < 0.d0  &
+                                !.and. vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv) > 0.d0 &
+         .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)<rfl &
+         .and. sqrt(x(j,lv)**2+y(k,lv)**2+z(l,lv)**2)>=rin &
+         )then
+       condition_ejecta_geo =.true.
+    endif
+
+    return
+  end function condition_ejecta_geo
+
+end module ejecta_mod

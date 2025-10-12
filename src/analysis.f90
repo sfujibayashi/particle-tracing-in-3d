@@ -184,6 +184,7 @@ end subroutine output_profile
 subroutine analysis_3d_data(time,unum,rin,rfl)
   use simdata3D
   use module_eos, only: hhh_min
+  use ejecta_mod
   implicit none
   real(8),intent(in) :: time
   integer,intent(in) :: unum
@@ -195,7 +196,7 @@ subroutine analysis_3d_data(time,unum,rin,rfl)
   integer :: j,k,l,lv
   real(8) :: dm
 
-  logical :: condition_ejecta_geo, condition_ejecta_bernoulli, condition_ejecta_hut1
+  ! logical :: condition_ejecta_geo, condition_ejecta_bernoulli, condition_ejecta_hut1
   
   hhh_crit = hhh_min
   
@@ -220,7 +221,7 @@ subroutine analysis_3d_data(time,unum,rin,rfl)
                  mass_total = mass_total + dm
               endif
 
-              if(condition_ejecta_geo(j,k,l,lv,rfl,rin,hhh_crit))then
+              if(condition_ejecta_geo(j,k,l,lv,rfl,rin))then
                  mass_ejecta_geo = mass_ejecta_geo + dm
               endif
 
