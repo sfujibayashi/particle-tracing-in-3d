@@ -121,10 +121,10 @@ program main
 
   block
     use inputparser
-    
+
     call get_string_parameter(fn_para, "model", model)
-    call get_integer_parameter(fn_para, "job_min", job_min)
-    call get_integer_parameter(fn_para, "job_max", job_max)
+    call get_integer_parameter(fn_para, "job_min", job_min_global)
+    call get_integer_parameter(fn_para, "job_max", job_max_global)
     call get_string_parameter(fn_para, "dir_read", dir_read)
     call get_string_parameter(fn_para, "dir_out", dir_out)
     call get_logical_parameter(fn_para, "mode_backward", mode_backward)
