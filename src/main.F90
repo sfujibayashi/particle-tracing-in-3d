@@ -22,6 +22,7 @@ program main
 
   !logical,parameter :: mode_backward = .true.
   !logical,parameter :: mode_volbased = .true.
+  character(256) :: fn_para
 
   ! skip the timestep
   integer :: it_skip
@@ -87,7 +88,7 @@ program main
   integer,allocatable :: nstep_job(:)
   
   integer :: job_restart, it_restart, it_prv
-  character(1) :: restart
+  logical:: restart
   logical :: first
   character(200) :: fn_read
 
@@ -113,41 +114,84 @@ program main
   ! stop
   dir_out = "."
 
+  fn_para = trim(dir_out)//"/ptr.para"
   ! open(10,file="para.dat",status="old",action="read")
   ! read(10,*);read(10,'(a)') dir_out
   ! close(10)
 
-  open(10,file=trim(dir_out)//"/parameters.dat",status="old",action="read")
-  read(10,*);read(10,'(a)') model
-  read(10,*);read(10,*) job_min_global
-  read(10,*);read(10,*) job_max_global
-  read(10,*);read(10,'(a)') dir_read
-  read(10,*);read(10,'(a)') dir_out
-  read(10,*);read(10,*) mode_backward
-  read(10,*);read(10,*) mode_volbased
-  
-  read(10,*);read(10,*) it_start
-  read(10,*);read(10,*) it_skip
-  read(10,*);read(10,*) it_skip_out
-  read(10,*);read(10,*) n_theta
-  read(10,*);read(10,*) rfl
-  read(10,*);read(10,*) rin
-  read(10,*);read(10,*) mass_crit; mass_crit = mass_crit*msun
-  read(10,*);read(10,*) mass_min; mass_min = mass_min*msun
-  read(10,*);read(10,'(a)') fn_eos
-  read(10,*);read(10,*) nrho_in, nye_in, ntemp_in
-  read(10,*);read(10,*) incr_next
+  block
+    use inputparser
+    
+    call get_string_parameter(fn_para, "model", model)
+    call get_integer_parameter(fn_para, "job_min", job_min)
+    call get_integer_parameter(fn_para, "job_max", job_max)
+    call get_string_parameter(fn_para, "dir_read", dir_read)
+    call get_string_parameter(fn_para, "dir_out", dir_out)
+    call get_logical_parameter(fn_para, "mode_backward", mode_backward)
+    call get_logical_parameter(fn_para, "mode_volbased", mode_volbased)
 
-  read(10,*);read(10,*) restart
-  if(restart=="Y")then
-     read(10,*);read(10,*) job_restart
-     read(10,*);read(10,*) it_restart
-     if(it_restart/=0)then
-        write(6,*) "finite it_restart is not supported yet. sorry!"
-        stop
-     endif
-  endif
-  close(10)
+    call get_integer_parameter(fn_para, "it_start", it_start)
+    call get_integer_parameter(fn_para, "it_skip", it_skip)
+    call get_integer_parameter(fn_para, "it_skip_out", it_skip_out)
+    call get_integer_parameter(fn_para, "n_theta", n_theta)
+
+    call get_double_parameter(fn_para, "rfl", rfl)
+    call get_double_parameter(fn_para, "rin", rin)
+    call get_double_parameter(fn_para, "mass_crit", mass_crit); mass_crit = mass_crit*msun
+    call get_double_parameter(fn_para, "mass_min", mass_min); mass_min = mass_min*msun
+
+    call get_string_parameter(fn_para, "fn_eos", fn_eos)
+    call get_integer_parameter(fn_para, "nrho", nrho_in)
+    call get_integer_parameter(fn_para, "ntemp", ntemp_in)
+    call get_integer_parameter(fn_para, "nye", nye_in)
+
+    
+    call get_integer_parameter(fn_para, "incr_next", incr_next)
+
+    call get_logical_parameter(fn_para, "restart", restart)
+
+    if(restart)then
+       call get_integer_parameter(fn_para, "job_restart", job_restart)
+       call get_integer_parameter(fn_para, "it_restart", it_restart)
+       if(it_restart/=0)then
+          write(6,*) "finite it_restart is not supported yet. sorry!"
+          stop
+       endif
+    endif
+  end block
+
+  
+  ! open(10,file=trim(dir_out)//"/parameters.dat",status="old",action="read")
+  ! read(10,*);read(10,'(a)') model
+  ! read(10,*);read(10,*) job_min_global
+  ! read(10,*);read(10,*) job_max_global
+  ! read(10,*);read(10,'(a)') dir_read
+  ! read(10,*);read(10,'(a)') dir_out
+  ! read(10,*);read(10,*) mode_backward
+  ! read(10,*);read(10,*) mode_volbased
+  
+  ! read(10,*);read(10,*) it_start
+  ! read(10,*);read(10,*) it_skip
+  ! read(10,*);read(10,*) it_skip_out
+  ! read(10,*);read(10,*) n_theta
+  ! read(10,*);read(10,*) rfl
+  ! read(10,*);read(10,*) rin
+  ! read(10,*);read(10,*) mass_crit; mass_crit = mass_crit*msun
+  ! read(10,*);read(10,*) mass_min; mass_min = mass_min*msun
+  ! read(10,*);read(10,'(a)') fn_eos
+  ! read(10,*);read(10,*) nrho_in, nye_in, ntemp_in
+  ! read(10,*);read(10,*) incr_next
+
+  ! read(10,*);read(10,*) restart
+  ! if(restart=="Y")then
+  !    read(10,*);read(10,*) job_restart
+  !    read(10,*);read(10,*) it_restart
+  !    if(it_restart/=0)then
+  !       write(6,*) "finite it_restart is not supported yet. sorry!"
+  !       stop
+  !    endif
+  ! endif
+  ! close(10)
 
   if(mode_backward)then
      job_max = job_max_global
@@ -156,7 +200,7 @@ program main
      job_min = job_min_global
      job_max = min(job_max_global, job_min+incr_next-1)
   endif
-     
+
   fn = trim(dir_out)//"/restart_info.dat"
   if(access(fn," ")==0)then
      open(10,file=fn,status="old",action="read")
@@ -164,7 +208,7 @@ program main
      read(10,*) job_max
      read(10,*) restart
      close(10)
-     if(restart=="Y")then
+     if(restart)then
         if(mode_backward)then
            job_restart = job_max+1
         else
@@ -172,11 +216,11 @@ program main
         endif
      endif
   endif
-  
-  
+
+
   write(*,'("model name      : ",a)') trim(model)
   write(*,'("job             : ",2i5)') job_min,job_max
-  write(*,'("restart flag    : ",a)') restart
+  write(*,'("restart flag    : ",L)') restart
   write(*,'("data read from  : ",a)') trim(dir_read)
   write(*,'("result saved in : ",a)') trim(dir_out)
   
@@ -324,7 +368,7 @@ program main
 
      job_start = job_max
      
-     if(it_start==0.or.restart=="Y")it_start = nstep_job(job_start)
+     if(it_start==0.or.restart)it_start = nstep_job(job_start)
      
   elseif(.not.mode_backward)then
      job1 = job_min
@@ -439,6 +483,8 @@ program main
   write(6,'("Last    time step: job, it = ",i3,i10, ", t = ",es13.5," s")') job2,1,tms(1)*time_unit_h5
 
 
+  call init_simdata3D(fn_para)
+  
   fn = filename(job_start)
   call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 
@@ -451,7 +497,7 @@ program main
   
   call h5fclose_f(file_id, error)
 
-  if (restart=='N')then
+  if (.not.restart)then
 !!! ips: accumulated number of particle. ipu: 
      first = .true.
      time = 0d0
@@ -496,7 +542,7 @@ program main
 ! !!!
 
 
-  elseif(restart=='Y')then
+  elseif(restart)then
 
      first = .false.
 
@@ -618,7 +664,7 @@ program main
 
      if(mode_backward)then
 
-        if    (restart=="N".and.job==job1)then
+        if    (.not.restart.and.job==job1)then
            it1 = it_start
         else
            it1 = nstep_job(job)-count_skip
@@ -627,7 +673,7 @@ program main
 
      else
 
-        if    (restart=="N".and.job==job1)then
+        if    (.not.restart.and.job==job1)then
            it1 = it_start
         else
            it1 = count_skip
@@ -927,7 +973,7 @@ program main
   endif
   write(10,*) job_min
   write(10,*) job_max
-  write(10,*) "Y"
+  write(10,*) "T"
   close(10)
   
   call ascii(model,dir_out,it_skip_out)
