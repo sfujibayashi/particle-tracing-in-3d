@@ -2,6 +2,7 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
   use simdata3D
   use particle_data
   use divide
+  use ejecta_mod
   implicit none
   integer,intent(in) :: lv,ib
   integer,intent(inout) :: jjd,jju,kkd,kku,lld,llu,ip
@@ -9,7 +10,7 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
   real(8),intent(inout) :: mass_traj
 
   integer :: j,k,l
-  logical :: condition_ejecta
+  ! logical :: condition_ejecta
 
   integer :: jd_divided8(8),ju_divided8(8),kd_divided8(8),ku_divided8(8),ld_divided8(8),lu_divided8(8)
   integer :: i8
@@ -38,7 +39,7 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
               comx = comx + vol3D(j,k,l,lv)*qb(j,k,l,lv)*x(j,lv)
               comy = comy + vol3D(j,k,l,lv)*qb(j,k,l,lv)*y(k,lv)
               comz = comz + vol3D(j,k,l,lv)*qb(j,k,l,lv)*z(l,lv)
-
+              
               vr = (vlx(j,k,l,lv)*x(j,lv) + vly(j,k,l,lv)*y(k,lv) + vlz(j,k,l,lv)*z(l,lv))/sqrt(x(j,lv)**2 + y(k,lv)**2 + z(l,lv)**2 + 1.d0)
               
               vr_av  = vr_av  + vr   *vol3D(j,k,l,lv)*qb(j,k,l,lv)
@@ -52,9 +53,11 @@ recursive subroutine recursive_division(ib,lv,jjd,jju,kkd,kku,lld,llu,ip,rfl,rin
   !$omp end parallel
 
   if(mass > 0.d0)then
+
      vr_av  = vr_av /mass
      vr2_av = vr2_av/mass
-     sigmav = sqrt( vr2_av - vr_av**2 )
+     ! write(6,*) mass, vr2_av,  vr_av**2
+     sigmav = sqrt( max(vr2_av - vr_av**2, 1d-10) )
      rho_av = mass/vol
   else
      vr_av  = 0.d0

@@ -5,9 +5,10 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
   use module_eos
   use divide
   use io
+  use ejecta_mod
   implicit none
 !!! functions
-  logical :: condition_ejecta, condition_ejecta_geo
+  ! logical :: condition_ejecta, condition_ejecta_geo
 
 
   integer,intent(in) :: ib
@@ -301,10 +302,12 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
        integer,parameter :: n_entr = 100
        real(8),parameter :: dlogentr=(logentr_max-logentr_min)/dble(n_entr)
        
-       real(8) :: histogram_ye_entr_total(n_ye,n_entr), histogram_ye_entr_vel_ejecta(n_ye,n_entr,n_vel), histogram_ye_entr_vel_ejectah(n_ye,n_entr,n_vel), histogram_ye_entr_vel_particles(n_ye,n_entr,n_vel), histogram_ye_entr_vel_particlesh(n_ye,n_entr,n_vel)
+       real(8),allocatable :: histogram_ye_entr_total(:,:), histogram_ye_entr_vel_ejecta(:,:,:), histogram_ye_entr_vel_ejectah(:,:,:), histogram_ye_entr_vel_particles(:,:,:), histogram_ye_entr_vel_particlesh(:,:,:)
        real(8) :: hist_v_ye(n_ye), hist_v_entr(n_entr), hist_v_vel(n_vel)
        
        integer :: i_ye, i_vel, i_entr
+
+       allocate(histogram_ye_entr_total(n_ye,n_entr), histogram_ye_entr_vel_ejecta(n_ye,n_entr,n_vel), histogram_ye_entr_vel_ejectah(n_ye,n_entr,n_vel), histogram_ye_entr_vel_particles(n_ye,n_entr,n_vel), histogram_ye_entr_vel_particlesh(n_ye,n_entr,n_vel))
 
        histogram_ye_entr_vel_particlesh(:,:,:) = 0d0
        histogram_ye_entr_vel_particles(:,:,:) = 0d0
@@ -536,6 +539,8 @@ subroutine set_ejecta_inside_3D_divide(ib,rfl,rin,mass_crit,mass_min,npv)
        !    enddo
        ! enddo
        ! close(unit_num)
+
+       deallocate(histogram_ye_entr_total, histogram_ye_entr_vel_ejecta, histogram_ye_entr_vel_ejectah, histogram_ye_entr_vel_particles, histogram_ye_entr_vel_particlesh)
 
      end block
   endif
