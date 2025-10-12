@@ -23,7 +23,7 @@ system="sakura"; username="shofu"; work_dir="/%s/ptmp/" % (system) +username
 
 #model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 #model="BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling"; job_min=88; job_max=88; nickname="BHBLpMHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
-model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_reduced_lv14_to_lv13_run2"; job_min=346; job_max=346; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_reduced_lv14_to_lv13_run2"; job_min=344; job_max=346; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
 fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
 #fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
@@ -42,18 +42,18 @@ n_theta = 9
 it_start= 0
 it_skip = 1
 it_skip_out = 1 #it_skip
-rfl=3e8
+rfl=1e9
 rin=0.0
 mass_crit = 1e-5
 mass_min  = 1e-12
 backward="T"
 volumebased="F"
 
-restart="N"
+restart="F"
 
-incr_next=1
+incr_next=10
 
-info="3e8cm"
+info="1e9cm"
 
 #info="3e8km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
@@ -261,7 +261,7 @@ with open(dir_out + "/ptr.para",mode="w") as f:
     f.write("incr_next = %d\n" % (incr_next))
 
     f.write("# Restart flag:\n")
-    f.write("restart = \"%s\"\n" % (restart))
+    f.write("restart = %s\n" % (restart))
     f.write("# job number of checkpoint file:\n")
     f.write("job_restart = %d\n" % (0))
     f.write("# time step of checkpoint file:\n")
@@ -299,7 +299,7 @@ list_replace=[
 
 
 #list_job = [job for job in range(job_min,job_max+1)]
-njob = int((job_max-job_min+1)/incr_next)
+njob = int((job_max-job_min+1)/incr_next) + 1
 
 
 for job in range(1,njob+1):
@@ -367,11 +367,12 @@ run=input('Submit job? [y/n] :')
 if run=='n' or run=='N':
    print("will not be submitted")
 elif run=='y' or run=='Y':
+   print(njob)
    #for job in list_job:
    for job in range(1,njob+1):
       
       fn_sub = "sub_ptr_%s%s_%i.sh" % (model,info,job)
-      
+      print(job, fn_sub)
       if if_cont or job>1:
          pid = utils.find_id(username, nickname, job-1)
          if pid==0:
@@ -383,6 +384,7 @@ elif run=='y' or run=='Y':
             os.system(cmd)
       else:
          cmd = "sbatch %s" % (fn_sub)
+         print(cmd)
          os.system(cmd)
          pass
       pass

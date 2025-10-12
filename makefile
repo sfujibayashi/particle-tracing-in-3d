@@ -15,7 +15,7 @@ FXX := ${COMPILER_NAME}
 # compiler option
 
 FFLAGS:=${OPTION}
-#FFLAGS += -O0 -CB -traceback -g -fpe0 -check uninit # -warn unused
+# FFLAGS += -O0 -CB -traceback -g -fpe0 -check uninit -check pointers # -warn unused
 FFLAGS += -diag-disable=10121 #-z noexecstack #-h ipafrom=vis_fcn.f90:atm_fnc.f90
 FFLAGS += -module $(OBJ_DIR)
 
@@ -40,13 +40,13 @@ divide.f90\
 module_rho_ye.f90\
 module_restart_hdf.f90\
 module_flux_sample.f90\
+condition_ejecta.f90\
 main.f90\
 coorindex3D.f90\
 evolution_particle_3D.f90\
 set_ejecta_inside_3D_divide.f90\
 set_ejecta_uniform.f90\
 recursive_division.f90\
-condition_ejecta.f90\
 module_store.f90\
 ascii.f90\
 subroutine_analysis.f90\
