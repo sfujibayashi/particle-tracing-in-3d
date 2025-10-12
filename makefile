@@ -28,6 +28,7 @@ LIBS :=
 
 # source file
 SRC:=\
+input_parser.f90\
 unit_mod.f90\
 const_mod.f90\
 module_eos.f90\
