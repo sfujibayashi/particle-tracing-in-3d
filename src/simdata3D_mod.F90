@@ -451,8 +451,8 @@ contains
 
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor",link_exists,error)
        if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,rhog (:,:,:,lv),dims3,error)
-          rhog (:,:,:,lv)=1d0/rhog (:,:,:,lv)
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,buf3d_real4_1,dims3,error)
+          rhog (:,:,ld_read:lu,lv)=1d0/buf3d_real4_1 (:,:,:)
        else
           if(lv==lv_min)write(6,*) "conformal factor is not found"
           rhog (:,:,:,lv)=1d0
@@ -461,7 +461,8 @@ contains
 
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor",link_exists,error)
        if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor"     ,www (:,:,:,lv),dims3,error)
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor"     ,buf3d_real4_1,dims3,error)
+          www(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
        else
           if(lv==lv_min)write(6,*) "Lorentz factor is not found"
           block
@@ -503,7 +504,7 @@ contains
             integer :: j,k,l
             !$omp parallel
             !$omp do
-            do l=ld,lu
+            do l=ld_read,lu
                do k=kd,ku
                   do j=jd,ju
                      ! qb(j,k,l,lv) = qrho(j,k,l,lv)/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
@@ -552,7 +553,7 @@ contains
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b^2",link_exists,error)
        if(link_exists)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b^2"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          b2(:,:,:,lv) = buf3d_real4_1(:,:,:)
+          b2(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
        else
           if(lv==lv_min)write(6,*) "b^2 is not found"
           b2 (:,:,:,lv)=0d0
@@ -561,7 +562,7 @@ contains
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_nuf",link_exists,error)
        if(link_exists)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_nuf"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          ch_nuf(:,:,:,lv) = buf3d_real4_1(:,:,:)
+          ch_nuf(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
        else
           if(lv==lv_min)write(6,*) "ch_nuf is not found"
           ch_nuf (:,:,:,lv)=0d0
@@ -570,7 +571,7 @@ contains
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_naf",link_exists,error)
        if(link_exists)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_naf"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          ch_naf(:,:,:,lv) = buf3d_real4_1(:,:,:)
+          ch_naf(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
        else
           if(lv==lv_min)write(6,*) "ch_naf is not found"
           ch_naf (:,:,:,lv)=0d0
@@ -656,7 +657,7 @@ contains
 
     do lv=lv_min,lv_max
        !$omp parallel default(none) &
-       !$omp shared(kd,ku,jd,ju,ld,lv,qrho,qb,ut,ye,sen,tem,vlx,vly,vlz,b2,pres,hhh)
+       !$omp shared(kd,ku,jd,ju,ld,lv,qrho,qb,ut,ye,sen,tem,vlx,vly,vlz,b2,pres,hhh,ch_nuf,ch_naf)
        !$omp do
        do k=kd,ku
           do j=jd,ju
@@ -673,7 +674,8 @@ contains
              hhh (j,k,ld,lv) = hhh (j,k,ld+1,lv)
              pres(j,k,ld,lv) = pres(j,k,ld+1,lv)
              b2  (j,k,ld,lv) = b2  (j,k,ld+1,lv)
-             
+             ch_nuf  (j,k,ld,lv) = ch_nuf  (j,k,ld+1,lv)
+             ch_naf  (j,k,ld,lv) = ch_naf  (j,k,ld+1,lv)
           enddo
        enddo
        !$omp end do
