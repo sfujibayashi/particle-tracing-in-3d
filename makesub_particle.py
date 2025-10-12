@@ -17,8 +17,9 @@ system="yamazaki"; username="sfujibayashi"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
 # model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
 
-#model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
-model="BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling"; job_min=88; job_max=88; nickname="BHBLpMHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+# model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=347; job_max=358; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling"; job_min=347; job_max=358; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+#model="BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD"; job_min=88; job_max=88; nickname="BHBLpMHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
 # parameters #
 n_theta = 9
@@ -27,7 +28,7 @@ it_start= 0
 it_skip = 1
 it_skip_out = 1 #it_skip
 rfl=3e8
-rin=1e7
+rin=0.0
 mass_crit = 1e-5
 mass_min  = 1e-12
 backward="T"
@@ -37,9 +38,9 @@ restart="N"
 
 incr_next=10
 
-info="3e8cm"
+# info="test"
 
-#info="3e8km"
+info="3e8km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
 #info="bind_%ims%i" % (it_skip,n_theta)
 #info = "forward_close"
@@ -51,8 +52,8 @@ if info!="":
 
 # fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
 #fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
-#fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
-fn_eos = "/scratch/sfujibayashi/EOS/EOS_BHBLpTim_rho453_temp156_ye061_ierd076_knuc376"; nrho=453; nye=60; ntemp=156
+fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
+#fn_eos = "/scratch/sfujibayashi/EOS/EOS_BHBLpTim_rho453_temp156_ye061_ierd076_knuc376"; nrho=453; nye=60; ntemp=156
 
 
 with open("src/macro.h",mode="w") as f:
@@ -117,8 +118,8 @@ if not os.path.exists(dir_std):
     os.system(cmd)
 
 dir_exists=False
-# dir_out  = work_dir + "/" + model + "/Analysis_ptr/data" + info
-dir_out  = "./"
+dir_out  = work_dir + "/" + model + "/Analysis_ptr/data" + info
+# dir_out  = "./"
 if os.path.exists(dir_out):
     print("directory exists :",dir_out)
     dir_exists=True
@@ -128,7 +129,8 @@ else:
 
 #dir_read = work_dir + "/" + model + "/hdf5"
 #dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
-dir_read = "/scratch/kiuchi/BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling/hdf5/"
+#dir_read = "/scratch/kiuchi/BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling/hdf5/"
+dir_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling/hdf5/"
 
 if dir_exists:
     run=input('Directory already exists. Overwrite parameter files? [y/n] :')
@@ -154,7 +156,7 @@ with open(dir_out + "/parameters.dat",mode="w") as f:
     f.write("# data read from:\n")
     f.write("%s\n" % (dir_read))
     f.write("# result saved in:\n")
-    f.write("%s\n" % (dir_out))
+    f.write("%s\n" % ("./"))
     
     f.write("# Evolving backward?:\n")
     f.write("%s\n" % (backward))
