@@ -939,10 +939,10 @@ program main
 
   if(mode_backward)then
      job_max = job2-1
-     job_min = max(job_min_global, job_max-incr_next+1)
+     job_min = max(job_min_global, job_min-incr_next+1)
   else
      job_min = job2+1
-     job_max = min(job_max_global, job_min+incr_next-1)
+     job_max = min(job_max_global, job_max+incr_next-1)
   endif
   fn = trim(dir_out)//"/restart_info.dat"
   open(10,file=fn,status="replace",action="write")
