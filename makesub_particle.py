@@ -12,8 +12,8 @@ import utils
 
 if_cont=False
 
-# system="yamazaki"; username="sfujibayashi"; work_dir="/scratch/" + username
-system="sakura"; username="shofu"; work_dir="/%s/ptmp/" % (system) +username
+system="yamazaki"; username="sfujibayashi"; work_dir="/scratch/" + username
+# system="sakura"; username="shofu"; work_dir="/%s/ptmp/" % (system) +username
 
 #model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=1; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145"; coord="STAGGERED"; sym="MIRROR"
@@ -23,22 +23,23 @@ system="sakura"; username="shofu"; work_dir="/%s/ptmp/" % (system) +username
 
 
 # # model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=347; job_max=358; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
-# model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling"; job_min=347; job_max=358; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling"; job_min=347; job_max=358; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 # #model="BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD"; job_min=88; job_max=88; nickname="BHBLpMHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
 #model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 #model="BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling"; job_min=88; job_max=88; nickname="BHBLpMHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
-model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_reduced_lv14_to_lv13_run2"; job_min=344; job_max=346; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+# model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_reduced_lv14_to_lv13_run2"; job_min=344; job_max=346; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
-fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
+#fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
 #fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
-#fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
+fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
 #fn_eos = "/scratch/sfujibayashi/EOS/EOS_BHBLpTim_rho453_temp156_ye061_ierd076_knuc376"; nrho=453; nye=60; ntemp=156
 
 #dir_read = work_dir + "/" + model + "/hdf5"
 #dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
-dir_read = "/sakura/ptmp/kiuchikn/" + model + "/hdf5_"
+#dir_read = "/sakura/ptmp/kiuchikn/" + model + "/hdf5_"
 #dir_read = "/scratch/kiuchi/BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling/hdf5/"
+dir_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling/hdf5/"
 
 # parameters #
 n_theta = 9
@@ -47,7 +48,7 @@ it_start= 0
 it_skip = 1
 it_skip_out = 1 #it_skip
 
-rfl=3e8
+rfl=1e9
 rin=0.0
 mass_crit = 1e-5
 mass_min  = 1e-12
@@ -58,7 +59,7 @@ restart="F"
 
 incr_next=10
 
-info="3e8km"
+info="1e9km"
 #info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
 #info="bind_%ims%i" % (it_skip,n_theta)
 #info = "forward_close"
@@ -88,7 +89,7 @@ OMP_NUM_THREADS=CPUs_per_task
 whour=24
 wmin=00
 wsecond=00
-compf="h5pfc"
+compf="h5fc"
 option="-convert big_endian -mcmodel=large -shared-intel -fpic -qopenmp -xCORE-AVX512 -qopt-zmm-usage=high"
 
 prog="ptr.out"
@@ -271,51 +272,6 @@ with open(dir_out + "/ptr.para",mode="w") as f:
     pass
 
     
-with open("sub_script_sakura",mode="r") as f:
-    lines=f.readlines()
-    pass
-
-list_replace=[
-["${dir_std}",dir_std],
-["${dir_err}",dir_err],
-["${nickname}",nickname],
-["${cjob}","ptr"],
-["${queue}",queue],
-["${nodes}","%i" % (nodes)],
-["${MPI_per_node}","%i" % (MPI_per_node)],
-["${CPUs_per_task}","%i" % (CPUs_per_task)],
-["${mail}","sho.fujibayashi@gmail.com"],
-["${hour}","%02i" % (whour)],
-["${min}","%02i" % (wmin)],
-["${second}","%02i" % (wsecond)],
-["${second}","%02i" % (wsecond)],
-["${dir_out}",dir_out],
-["${work_dir}",work_dir],
-["${prog}",prog],
-["${exe}","ptr.out"],
-["${OMP_NUM_THREADS}","%i" % (OMP_NUM_THREADS)],
-["${model}",model],
-["${info}",info],
-["${misc}",misc]
-]
-
-
-#list_job = [job for job in range(job_min,job_max+1)]
-njob = int((job_max-job_min+1)/incr_next) + 1
-
-
-for job in range(1,njob+1):
-   with open("sub_ptr_%s%s_%i.sh" % (model,info,job) ,mode="w") as f:
-      for line in lines:
-         line1=line
-         for rep_pair in list_replace:
-            #print(rep_pair[0],rep_pair[1])
-            line1=line1.replace(rep_pair[0],rep_pair[1])
-         line1=line1.replace("${job}","%i" %(job))
-         f.write(line1)
-         pass
-      pass
-   pass
 # Ask compile or not
 
 if_compile=input('Compile the code? [y/n] :')
@@ -361,6 +317,57 @@ elif run=='y' or run=='Y':
       pass
 else:
    print("not specified. stop.")
+   pass
+
+if system=="yamazaki":
+   sys.exit()
+   pass
+
+
+with open("sub_script_sakura",mode="r") as f:
+    lines=f.readlines()
+    pass
+
+list_replace=[
+["${dir_std}",dir_std],
+["${dir_err}",dir_err],
+["${nickname}",nickname],
+["${cjob}","ptr"],
+["${queue}",queue],
+["${nodes}","%i" % (nodes)],
+["${MPI_per_node}","%i" % (MPI_per_node)],
+["${CPUs_per_task}","%i" % (CPUs_per_task)],
+["${mail}","sho.fujibayashi@gmail.com"],
+["${hour}","%02i" % (whour)],
+["${min}","%02i" % (wmin)],
+["${second}","%02i" % (wsecond)],
+["${second}","%02i" % (wsecond)],
+["${dir_out}",dir_out],
+["${work_dir}",work_dir],
+["${prog}",prog],
+["${exe}","ptr.out"],
+["${OMP_NUM_THREADS}","%i" % (OMP_NUM_THREADS)],
+["${model}",model],
+["${info}",info],
+["${misc}",misc]
+]
+
+
+#list_job = [job for job in range(job_min,job_max+1)]
+njob = int((job_max-job_min+1)/incr_next) + 1
+
+
+for job in range(1,njob+1):
+   with open("sub_ptr_%s%s_%i.sh" % (model,info,job) ,mode="w") as f:
+      for line in lines:
+         line1=line
+         for rep_pair in list_replace:
+            #print(rep_pair[0],rep_pair[1])
+            line1=line1.replace(rep_pair[0],rep_pair[1])
+         line1=line1.replace("${job}","%i" %(job))
+         f.write(line1)
+         pass
+      pass
    pass
    
 # Ask submit or not
