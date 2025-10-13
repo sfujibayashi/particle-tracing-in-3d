@@ -12,23 +12,30 @@ import utils
 
 if_cont=False
 
+# Select system
+
 # system="yamazaki"; username="sfujibayashi"; work_dir="/scratch/" + username
 system="sakura"; username="shofu"; work_dir="/%s/ptmp/" % (system) +username
+
+# Select model name, max/min job, job-nickname (it is used to identify job-ID), and options (for grid structure, symmetry, and output formats)
 
 #model="SFHoTim276_13_14_0025_150mstg_B0_HLLC"; job_min=1; job_max=18; nickname="1314"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_200mstg_B0_HLLC"; job_min=12; job_max=12; nickname="125145l"; coord="STAGGERED"; sym="MIRROR"
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
 # model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
-
 #model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 #model="BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling"; job_min=88; job_max=88; nickname="BHBLpMHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
-model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_reduced_lv14_to_lv13_run2"; job_min=344; job_max=346; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_reduced_lv14_to_lv13_run2"; job_min=346; job_max=346; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+
+# Select EOS (as the entropy, enthalpy and pressure can be read from the 3D data, it is currently unnecessary. But select one. Otherwise the code stops)
 
 fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_DD2Tim326_TF"; nrho=426; nye=60; ntemp=131
 #fn_eos = "/sakura/ptmp/shofu/EOS/EOS_Hempel_SFHoTim326_TF"; nrho=408; nye=60; ntemp=131
 #fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60; ntemp=131
 #fn_eos = "/scratch/sfujibayashi/EOS/EOS_BHBLpTim_rho453_temp156_ye061_ierd076_knuc376"; nrho=453; nye=60; ntemp=156
+
+# Select the base of the path to the 3D data. The path to the data with a job will be (this base + job number)/raw3d.h5
 
 #dir_read = work_dir + "/" + model + "/hdf5"
 #dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
@@ -36,30 +43,34 @@ dir_read = "/sakura/ptmp/kiuchikn/" + model + "/hdf5_"
 #dir_read = "/scratch/kiuchi/BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling/hdf5/"
 
 
-# parameters #
+# Select the parameters for the run.
+
+# n_theta here is actually "Nside" of HEALPix grid.
 n_theta = 9
-#n_theta = 64
+# it_start should be 0, which set the initial snapshot to be the first one of the first job for forward-tracing, and the last snapshot of the last job for back-tracing case.
 it_start= 0
+# it_skip is the number every which the snapshot is read for tracing. it_skip=1 reads and uses every snapshot and it_skip=2 uses every two snapshot. It is for testing time-interval-dependence (merely used though).
 it_skip = 1
-it_skip_out = 1 #it_skip
-rfl=1e9
+# it_skip_out=1 outputs data_???_?????.h5 every time.
+it_skip_out = 1
+# rfl sets the extraction radius of the flux-based particles. For volume-vased particle, the ejecta outside this radius are not counted.
+rfl=1.5e8
+# rin sets the radius inside which the ejecta are not counted.
 rin=0.0
+# mass_crit is the mass (in solar mass) of the volume until which the volume is divided. The volume-based particles should have the mass below this value.
 mass_crit = 1e-5
+# mass_min is the mass (in solar mass) under which the particle is not counted.
 mass_min  = 1e-12
+# backward controls whether the run back-trace the particle. if it is "F", it does forward tracing.
 backward="T"
+# volumebased controls whether flux-based particles are set. it it is "F", it places flux-based particles **AS WELL AS VOLUME-BASED ONES**.
 volumebased="F"
-
+# restart = "F" if it is the first run of TP. restart = "T" if you want to continue PT from a checkpoint file.
 restart="F"
-
-incr_next=10
-
-info="1e9cm"
-
-#info="3e8km"
-#info="sk%i_th%i_r%7.1e_omp" % (it_skip,n_theta,rfl)
-#info="bind_%ims%i" % (it_skip,n_theta)
-#info = "forward_close"
-#info = "ana"
+# incr_next divides the whole run into (job_max - job_min + 1)/incr_next. It is for a very long PT that can last over wall-time limit. Typically, PT of ~150 time steps (~ 3 jobs) takes ~ 1 hour.
+incr_next=100
+# label of the directory in which the output will be done. The name of the directory will be data_(info)
+info="1.5e8cm"
 
 print("sub info = ",info)
 if info!="":
@@ -73,9 +84,10 @@ with open("src/macro.h",mode="w") as f:
    pass
 
 if not os.path.exists(fn_eos):
-    print("EOS file does not exists!")
-    sys.exit()
-
+   print("EOS file does not exists!")
+   sys.exit()
+   pass
+# assuming it is on Sakura...
 queue="p.sakura"
 misc=""
 nodes=1
@@ -166,108 +178,117 @@ if dir_exists:
 #     f.write("# result saved in:\n")
 #     f.write("%s\n" % (dir_out))
 
-with open(dir_out + "/parameters.dat",mode="w") as f:
-    f.write("# model name:\n")
-    f.write("%s\n" % (model))
-    f.write("# job_min:\n")
-    f.write("%i\n" % (job_min))
-    f.write("# job_max:\n")
-    f.write("%i\n" % (job_max))
+# with open(dir_out + "/parameters.dat",mode="w") as f:
+#     f.write("# model name:\n")
+#     f.write("%s\n" % (model))
+#     f.write("# job_min:\n")
+#     f.write("%i\n" % (job_min))
+#     f.write("# job_max:\n")
+#     f.write("%i\n" % (job_max))
     
-    f.write("# data read from:\n")
-    f.write("%s\n" % (dir_read))
-    f.write("# result saved in:\n")
-    f.write("%s\n" % (dir_out))
+#     f.write("# data read from:\n")
+#     f.write("%s\n" % (dir_read))
+#     f.write("# result saved in:\n")
+#     f.write("%s\n" % (dir_out))
     
-    f.write("# Evolving backward?:\n")
-    f.write("%s\n" % (backward))
-    f.write("# Particles are set in a volume-based way?:\n")
-    f.write("%s\n" % (volumebased))
+#     f.write("# Evolving backward?:\n")
+#     f.write("%s\n" % (backward))
+#     f.write("# Particles are set in a volume-based way?:\n")
+#     f.write("%s\n" % (volumebased))
 
-    f.write("# number of snapshort where the trace starts (from the first/last if it is 0):\n")
-    f.write("%i\n" % (it_start))
-    f.write("# interval of trace:\n")
-    f.write("%i\n" % (it_skip))
-    f.write("# interval of output:\n")
-    f.write("%i\n" % (it_skip_out))
-    f.write("# angular resolution for particle setting:\n")
-    f.write("%i\n" % (n_theta))
-    f.write("# R_out (where flux-based particles are set):\n")
-    f.write("%e\n" % (rfl))
-    f.write("# R_in:\n")
-    f.write("%e\n" % (rin))
-    f.write("# M_crit (volume-based particle mass should be below):\n")
-    f.write("%e\n" % (mass_crit))
-    f.write("# M_min  (volume-based particle mass should be above):\n")
-    f.write("%e\n" % (mass_min))
+#     f.write("# number of snapshort where the trace starts (from the first/last if it is 0):\n")
+#     f.write("%i\n" % (it_start))
+#     f.write("# interval of trace:\n")
+#     f.write("%i\n" % (it_skip))
+#     f.write("# interval of output:\n")
+#     f.write("%i\n" % (it_skip_out))
+#     f.write("# angular resolution for particle setting:\n")
+#     f.write("%i\n" % (n_theta))
+#     f.write("# R_out (where flux-based particles are set):\n")
+#     f.write("%e\n" % (rfl))
+#     f.write("# R_in:\n")
+#     f.write("%e\n" % (rin))
+#     f.write("# M_crit (volume-based particle mass should be below):\n")
+#     f.write("%e\n" % (mass_crit))
+#     f.write("# M_min  (volume-based particle mass should be above):\n")
+#     f.write("%e\n" % (mass_min))
 
-    f.write("# EOS file:\n")
-    f.write("%s\n" % (fn_eos))
-    f.write("# index of rho, ye, temp:\n")
-    f.write("%i %i %i\n" % (nrho,nye,ntemp))
-    f.write("# incrementation in the next job:\n")
-    f.write("%i\n" % (incr_next))
+#     f.write("# EOS file:\n")
+#     f.write("%s\n" % (fn_eos))
+#     f.write("# index of rho, ye, temp:\n")
+#     f.write("%i %i %i\n" % (nrho,nye,ntemp))
+#     f.write("# incrementation in the next job:\n")
+#     f.write("%i\n" % (incr_next))
 
-    f.write("# Restart flag:\n")
-    f.write("%s\n" % (restart))
-    f.write("# job number of checkpoint file:\n")
-    f.write("%i\n" % (0))
-    f.write("# time step of checkpoint file:\n")
-    f.write("%i\n" % (0))
-    pass
+#     f.write("# Restart flag:\n")
+#     f.write("%s\n" % (restart))
+#     f.write("# job number of checkpoint file:\n")
+#     f.write("%i\n" % (0))
+#     f.write("# time step of checkpoint file:\n")
+#     f.write("%i\n" % (0))
+#     pass
 
 with open(dir_out + "/ptr.para",mode="w") as f:
-    f.write("# model name:\n")
-    f.write("model = \"%s\"\n" % (model))
-    f.write("# job_min:\n")
-    f.write("job_min = %d\n" % (job_min))
-    f.write("# job_max:\n")
-    f.write("job_max = %d\n" % (job_max))
-    
-    f.write("# data read from:\n")
-    f.write("dir_read = \"%s\"\n" % (dir_read))
-    f.write("# result saved in:\n")
-    f.write("dir_out  = \"%s\"\n" % (dir_out))
-    
-    f.write("# Evolving backward?:\n")
-    f.write("mode_backward = %s\n" % (backward))
-    f.write("# Particles are set in a volume-based way?:\n")
-    f.write("mode_volbased = %s\n" % (volumebased))
+   f.write("# model name:\n")
+   f.write("model = \"%s\"\n" % (model))
+   f.write("# job_min:\n")
+   f.write("job_min = %d\n" % (job_min))
+   f.write("# job_max:\n")
+   f.write("job_max = %d\n" % (job_max))
+   
+   f.write("# data read from:\n")
+   f.write("dir_read = \"%s\"\n" % (dir_read))
+   f.write("# result saved in:\n")
+   f.write("dir_out  = \"%s\"\n" % (dir_out))
+   
+   f.write("# Evolving backward?:\n")
+   f.write("mode_backward = %s\n" % (backward))
+   f.write("# Particles are set in a volume-based way?:\n")
+   f.write("mode_volbased = %s\n" % (volumebased))
 
-    f.write("# number of snapshort where the trace starts (from the first/last if it is 0):\n")
-    f.write("it_start = %d\n" % (it_start))
-    f.write("# interval of trace:\n")
-    f.write("it_skip = %d\n" % (it_skip))
-    f.write("# interval of output:\n")
-    f.write("it_skip_out = %d\n" % (it_skip_out))
-    f.write("# angular resolution for particle setting:\n")
-    f.write("n_theta = %d\n" % (n_theta))
-    f.write("# R_out (where flux-based particles are set):\n")
-    f.write("rfl = %e\n" % (rfl))
-    f.write("# R_in:\n")
-    f.write("rin = %e\n" % (rin))
-    f.write("# M_crit (volume-based particle mass should be below):\n")
-    f.write("mass_crit = %e\n" % (mass_crit))
-    f.write("# M_min  (volume-based particle mass should be above):\n")
-    f.write("mass_min = %e\n" % (mass_min))
+   f.write("# number of snapshort where the trace starts (from the first/last if it is 0):\n")
+   f.write("it_start = %d\n" % (it_start))
+   f.write("# interval of trace:\n")
+   f.write("it_skip = %d\n" % (it_skip))
+   f.write("# interval of output:\n")
+   f.write("it_skip_out = %d\n" % (it_skip_out))
+   f.write("# angular resolution for particle setting:\n")
+   f.write("n_theta = %d\n" % (n_theta))
+   f.write("# R_out (where flux-based particles are set):\n")
+   f.write("rfl = %e\n" % (rfl))
+   f.write("# R_in:\n")
+   f.write("rin = %e\n" % (rin))
+   f.write("# M_crit (volume-based particle mass should be below):\n")
+   f.write("mass_crit = %e\n" % (mass_crit))
+   f.write("# M_min  (volume-based particle mass should be above):\n")
+   f.write("mass_min = %e\n" % (mass_min))
 
-    f.write("# EOS file:\n")
-    f.write("fn_eos = \"%s\"\n" % (fn_eos))
-    f.write("# index of rho, ye, temp:\n")
-    f.write("nrho = %d\n" % (nrho))
-    f.write("ntemp= %d\n" % (ntemp))
-    f.write("nye  = %d\n" % (nye))
-    f.write("# incrementation in the next job:\n")
-    f.write("incr_next = %d\n" % (incr_next))
+   f.write("# EOS file:\n")
+   f.write("fn_eos = \"%s\"\n" % (fn_eos))
+   f.write("# index of rho, ye, temp:\n")
+   f.write("nrho = %d\n" % (nrho))
+   f.write("ntemp= %d\n" % (ntemp))
+   f.write("nye  = %d\n" % (nye))
+   f.write("# incrementation in the next job:\n")
+   f.write("incr_next = %d\n" % (incr_next))
 
-    f.write("# Restart flag:\n")
-    f.write("restart = %s\n" % (restart))
-    f.write("# job number of checkpoint file:\n")
-    f.write("job_restart = %d\n" % (0))
-    f.write("# time step of checkpoint file:\n")
-    f.write("it_restart = %d\n" % (0))
-    pass
+   f.write("# Restart flag:\n")
+   f.write("restart = %s\n" % (restart))
+   f.write("# job number of checkpoint file:\n")
+   f.write("job_restart = %d\n" % (0))
+   f.write("# time step of checkpoint file:\n")
+   f.write("it_restart = %d\n" % (0))
+   pass
 
+with open(dir_out + "/restart_info.dat",mode="w") as f:
+   f.write("# Restart flag:\n")
+   f.write("restart = %s\n" % (restart))
+   f.write("# job_min:\n")
+   f.write("job_min = %d\n" % (job_min))
+   f.write("# job_max:\n")
+   f.write("job_max = %d\n" % (job_max))
+   
+   pass
     
 with open("sub_script_sakura",mode="r") as f:
     lines=f.readlines()
