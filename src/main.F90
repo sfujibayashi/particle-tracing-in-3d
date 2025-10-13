@@ -159,40 +159,7 @@ program main
        endif
     endif
   end block
-
   
-  ! open(10,file=trim(dir_out)//"/parameters.dat",status="old",action="read")
-  ! read(10,*);read(10,'(a)') model
-  ! read(10,*);read(10,*) job_min_global
-  ! read(10,*);read(10,*) job_max_global
-  ! read(10,*);read(10,'(a)') dir_read
-  ! read(10,*);read(10,'(a)') dir_out
-  ! read(10,*);read(10,*) mode_backward
-  ! read(10,*);read(10,*) mode_volbased
-  
-  ! read(10,*);read(10,*) it_start
-  ! read(10,*);read(10,*) it_skip
-  ! read(10,*);read(10,*) it_skip_out
-  ! read(10,*);read(10,*) n_theta
-  ! read(10,*);read(10,*) rfl
-  ! read(10,*);read(10,*) rin
-  ! read(10,*);read(10,*) mass_crit; mass_crit = mass_crit*msun
-  ! read(10,*);read(10,*) mass_min; mass_min = mass_min*msun
-  ! read(10,*);read(10,'(a)') fn_eos
-  ! read(10,*);read(10,*) nrho_in, nye_in, ntemp_in
-  ! read(10,*);read(10,*) incr_next
-
-  ! read(10,*);read(10,*) restart
-  ! if(restart=="Y")then
-  !    read(10,*);read(10,*) job_restart
-  !    read(10,*);read(10,*) it_restart
-  !    if(it_restart/=0)then
-  !       write(6,*) "finite it_restart is not supported yet. sorry!"
-  !       stop
-  !    endif
-  ! endif
-  ! close(10)
-
   if(mode_backward)then
      job_max = job_max_global
      job_min = max(job_min_global, job_max-incr_next+1)
@@ -203,11 +170,19 @@ program main
 
   fn = trim(dir_out)//"/restart_info.dat"
   if(access(fn," ")==0)then
-     open(10,file=fn,status="old",action="read")
-     read(10,*) job_min
-     read(10,*) job_max
-     read(10,*) restart
-     close(10)
+     block
+       use inputparser
+       
+       call get_integer_parameter(fn, "job_min", job_min)
+       call get_integer_parameter(fn, "job_max", job_max)
+       call get_logical_parameter(fn, "restart", restart)
+     end block
+
+     ! open(10,file=fn,status="old",action="read")
+     ! read(10,*) job_min
+     ! read(10,*) job_max
+     ! read(10,*) restart
+     ! close(10)
      if(restart)then
         if(mode_backward)then
            job_restart = job_max+1
@@ -962,18 +937,18 @@ program main
   ! write(11,'(99es15.7)') mass_crit/1.989d33, mass_min/1.989d33
   close(11)
 
-  fn = trim(dir_out)//"/restart_info.dat"
-  open(10,file=fn,status="replace",action="write")
   if(mode_backward)then
      job_max = job2-1
-     job_min = max(job_min_global, job_max-incr_next+1)
+     job_min = max(job_min_global, job_min-incr_next+1)
   else
      job_min = job2+1
-     job_max = min(job_max_global, job_min+incr_next-1)
+     job_max = min(job_max_global, job_max+incr_next-1)
   endif
-  write(10,*) job_min
-  write(10,*) job_max
-  write(10,*) "T"
+  fn = trim(dir_out)//"/restart_info.dat"
+  open(10,file=fn,status="replace",action="write")
+  write(10,'("job_min = ",i)') job_min
+  write(10,'("job_max = ",i)') job_max
+  write(10,'("restart = ",a)') "T"
   close(10)
   
   call ascii(model,dir_out,it_skip_out)

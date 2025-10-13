@@ -551,10 +551,11 @@ contains
        
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/lapse",link_exists,error)
        if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/lapse"     ,alpha (:,:,:,lv),dims3,error)
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/lapse"     ,buf3d_real4_1,dims3,error)
+          alpha(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
        else
           if(lv==lv_min)write(6,*) "lapse is not found"
-          alpha (:,:,:,lv)=0d0
+          alpha (:,:,:,lv)=1d0
        endif
 
 
