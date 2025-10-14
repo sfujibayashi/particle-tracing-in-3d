@@ -116,4 +116,27 @@ contains
     return
   end function condition_ejecta_geo
 
+  logical function condition_bound_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
+    use simdata3D
+    use particle_data
+
+    implicit none
+    integer,intent(in) :: j,k,l,lv
+    real(8),intent(in) :: rfl,rin,hhh_crit
+
+    real(8) :: r2
+
+    condition_bound_bernoulli = .false.
+    r2 = x(j,lv)**2+y(k,lv)**2+z(l,lv)**2
+    if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-hhh_crit < 0.d0  &
+         .and. r2<rfl**2 &
+         .and. r2>=rin**2 &
+         )then
+       condition_bound_bernoulli = .true.
+    endif
+
+    return
+  end function condition_bound_bernoulli
+
+
 end module ejecta_mod
