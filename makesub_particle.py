@@ -46,6 +46,7 @@ fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60;
 #dir_read = "/sakura/ptmp/kiuchikn/" + model + "/hdf5_"
 #dir_read = "/scratch/kiuchi/BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling/hdf5/"
 #dir_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling/hdf5/"
+dir_read = "/scratch/sfujibayashi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling/hdf5/orig_"
 
 # Select the parameters for the run.
 
