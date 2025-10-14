@@ -63,7 +63,7 @@ subroutine partial_output_hdf(dir_out,job,it,t)
      call h5gcreate_f(group_id, "data"//trim(adjustl(str2)) , group2_id, hdf_err)
      
      dims1(1) = 1
-     tms(1) = t
+     tms(1) = t/time_unit_h5
      call h5ltmake_dataset_float_f(group2_id,"time", 1, dims1, tms, hdf_err)
 
      dims3(1) = jdat
@@ -80,11 +80,11 @@ subroutine partial_output_hdf(dir_out,job,it,t)
      call h5ltmake_dataset_float_f(group2_id, "entropy", 3, dims3, buf3d_real4_1, hdf_err)
      buf3d_real4_1(:,:,:) = tem(:,:,ld_write:lu,lv)
      call h5ltmake_dataset_float_f(group2_id, "temperature", 3, dims3, buf3d_real4_1, hdf_err)
-     buf3d_real4_1(:,:,:) = vlx(:,:,ld_write:lu,lv)
+     buf3d_real4_1(:,:,:) = vlx(:,:,ld_write:lu,lv)*vel_unit_h5
      call h5ltmake_dataset_float_f(group2_id, "vx", 3, dims3, buf3d_real4_1, hdf_err)
-     buf3d_real4_1(:,:,:) = vly(:,:,ld_write:lu,lv)
+     buf3d_real4_1(:,:,:) = vly(:,:,ld_write:lu,lv)*vel_unit_h5
      call h5ltmake_dataset_float_f(group2_id, "vy", 3, dims3, buf3d_real4_1, hdf_err)
-     buf3d_real4_1(:,:,:) = vlz(:,:,ld_write:lu,lv)
+     buf3d_real4_1(:,:,:) = vlz(:,:,ld_write:lu,lv)*vel_unit_h5
      call h5ltmake_dataset_float_f(group2_id, "vz", 3, dims3, buf3d_real4_1, hdf_err)
      buf3d_real4_1(:,:,:) = 1d0/rhog(:,:,ld_write:lu,lv)
      call h5ltmake_dataset_float_f(group2_id, "conformal factor", 3, dims3, buf3d_real4_1, hdf_err)
