@@ -27,7 +27,7 @@ system="yamazaki"; username="sfujibayashi"; work_dir="/scratch/" + username
 #model="SFHoTim276_125_145_0025_250mstg_B0_HLLC"; job_min=14; job_max=14; nickname="125145ll"; coord="STAGGERED"; sym="MIRROR"
 # model="DD2Tim326_Q4_M135_a75_0056_270m_B5e16_Hon5png"; job_min=1; job_max=116; nickname="Q4B5H"; coord="NONSTAGGERED"; sym="MIRROR"; dformat="NONFUGAKU"
 # # model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=347; job_max=358; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
-model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling"; job_min=347; job_max=358; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
+model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling"; job_min=346; job_max=346; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 # #model="BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD"; job_min=88; job_max=88; nickname="BHBLpMHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
 
 #model="DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS"; job_min=299; job_max=299; nickname="DD2MHD"; coord="STAGGERED"; sym="MIRROR"; dformat="FUGAKU"
@@ -45,7 +45,7 @@ fn_eos = "/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"; nrho=426; nye=60;
 #dir_read = "/sakura/ptmp/khaya/" + model + "/hdf5/"
 #dir_read = "/sakura/ptmp/kiuchikn/" + model + "/hdf5_"
 #dir_read = "/scratch/kiuchi/BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD_lv14to13_Mag_Cowling/hdf5/"
-dir_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling/hdf5/"
+#dir_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling/hdf5/"
 
 # Select the parameters for the run.
 
@@ -58,7 +58,7 @@ it_skip = 1
 # it_skip_out=1 outputs data_???_?????.h5 every time.
 it_skip_out = 1
 # rfl sets the extraction radius of the flux-based particles. For volume-vased particle, the ejecta outside this radius are not counted.
-rfl=1.5e8
+rfl=1.0e9
 # rin sets the radius inside which the ejecta are not counted.
 rin=0.0
 # mass_crit is the mass (in solar mass) of the volume until which the volume is divided. The volume-based particles should have the mass below this value.
@@ -68,13 +68,13 @@ mass_min  = 1e-12
 # backward controls whether the run back-trace the particle. if it is "F", it does forward tracing.
 backward="T"
 # volumebased controls whether flux-based particles are set. it it is "F", it places flux-based particles **AS WELL AS VOLUME-BASED ONES**.
-volumebased="F"
+volumebased="T"
 # restart = "F" if it is the first run of TP. restart = "T" if you want to continue PT from a checkpoint file.
 restart="F"
 # incr_next divides the whole run into (job_max - job_min + 1)/incr_next. It is for a very long PT that can last over wall-time limit. Typically, PT of ~150 time steps (~ 3 jobs) takes ~ 1 hour.
 incr_next=100
 # label of the directory in which the output will be done. The name of the directory will be data_(info)
-info="1.5e8cm"
+info="bound"
 
 print("sub info = ",info)
 if info!="":
