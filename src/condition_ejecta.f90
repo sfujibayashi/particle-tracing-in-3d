@@ -22,7 +22,8 @@ contains
     ! endif
 
     !condition_ejecta = condition_ejecta_geo(j,k,l,lv,rfl,rin)
-    condition_ejecta = condition_ejecta_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
+    !condition_ejecta = condition_ejecta_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
+    condition_ejecta = condition_bound_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
     
     return
   end function condition_ejecta
@@ -131,6 +132,7 @@ contains
     if(-ut(j,k,l,lv)*hhh(j,k,l,lv)-hhh_crit < 0.d0  &
          .and. r2<rfl**2 &
          .and. r2>=rin**2 &
+         .and. qrho(j,k,l,lv) < 1d14 &
          )then
        condition_bound_bernoulli = .true.
     endif
