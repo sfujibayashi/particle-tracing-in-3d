@@ -4,6 +4,8 @@ import sys
 #import subprocess
 import os
 import glob
+import argparse
+
 from scipy.interpolate import interp2d
 
 import matplotlib.pyplot as plt
@@ -43,8 +45,8 @@ t_uni = 1.606200647186321e-6
 msun = 1.989e33
 
 
-ntraj_per_fig=100
-skip=1
+ntraj_per_fig=1000
+skip=10
 alpha=0.3
 
 #model = "DD2Tim326_Q4_M135_a75_0056_400m_B3e15_Hon_an20231126"; submodel = "ns9"
@@ -57,8 +59,31 @@ alpha=0.3
 # dir_read = "/raven/ptmp/shofu/"+model+"/Analysis_ptr/data"+submodel
 # dir_out  = "/raven/ptmp/shofu/"+model+"/Analysis_ptr/fig"+submodel
 
-dir_read = "/scratch/sfujibayashi/Particle_trace_data/BHBLpTim326_13625_13625_45km_12.5mstg_B15_HLLD/ptr/data_sk1_th36_r1.0e+09_test"
-dir_fig = "./fig"
+parser = argparse.ArgumentParser()
+parser.add_argument('--dir_read', required=False, default=".", type=str)
+parser.add_argument('--dir_fig', required=False, default="./fig", type=str)
+
+args = parser.parse_args()
+dir_read = args.dir_read
+dir_fig = args.dir_fig
+
+#dir_read = "/sakura/ptmp/kiuchikn/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_reduced_lv14_to_lv13_run2/Analysis_ptr/data_3.0e8cm"
+#dir_fig = "./fig_3.0e8cm"
+
+
+fn="anim.sh"
+with open(fn, mode="w") as f:
+    f.write("ffmpeg -y -pattern_type glob -i '%s/rho_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/rho.mp4\n" % (dir_fig, dir_fig))
+    f.write("ffmpeg -y -pattern_type glob -i '%s/temp_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/temp.mp4\n" % (dir_fig, dir_fig))
+    f.write("ffmpeg -y -pattern_type glob -i '%s/entr_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/entr.mp4\n" % (dir_fig, dir_fig))
+    f.write("ffmpeg -y -pattern_type glob -i '%s/ye_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/ye.mp4\n" % (dir_fig, dir_fig))
+    f.write("ffmpeg -y -pattern_type glob -i '%s/r_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/r.mp4\n" % (dir_fig, dir_fig))
+    f.write("ffmpeg -y -pattern_type glob -i '%s/x_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/x.mp4\n" % (dir_fig, dir_fig))
+    f.write("ffmpeg -y -pattern_type glob -i '%s/y_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/y.mp4\n" % (dir_fig, dir_fig))
+    f.write("ffmpeg -y -pattern_type glob -i '%s/z_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/z.mp4\n" % (dir_fig, dir_fig))
+    f.write("ffmpeg -y -pattern_type glob -i '%s/rhoT_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/rhoT.mp4\n" % (dir_fig, dir_fig))
+    pass
+
 
 if not os.path.exists(dir_fig):
     os.system('mkdir -p %s' % (dir_fig) )
@@ -122,6 +147,33 @@ for i in range(nfig):
     ax_r.set_xlabel("$t$ (s)")
     ax_r.set_ylabel("$r$ (cm)")
 
+    fig_x = plt.figure(figsize=(10.0, 10.0*0.625))
+    ax_x  = fig_x.add_subplot(111)
+    #ax_x.set_xlim(0.004,0.1)
+    #ax_x.set_ylim(0.1,100.0)
+    ax_x.set_xscale("linear")
+    ax_x.set_yscale("linear")
+    ax_x.set_xlabel("$t$ (s)")
+    ax_x.set_ylabel("$x$ (cm)")
+
+    fig_y = plt.figure(figsize=(10.0, 10.0*0.625))
+    ax_y  = fig_y.add_subplot(111)
+    #ax_y.set_xlim(0.004,0.1)
+    #ax_y.set_ylim(0.1,100.0)
+    ax_y.set_xscale("linear")
+    ax_y.set_yscale("linear")
+    ax_y.set_xlabel("$t$ (s)")
+    ax_y.set_ylabel("$y$ (cm)")
+
+    fig_z = plt.figure(figsize=(10.0, 10.0*0.625))
+    ax_z  = fig_z.add_subplot(111)
+    #ax_z.set_xlim(0.004,0.1)
+    #ax_z.set_ylim(0.1,100.0)
+    ax_z.set_xscale("linear")
+    ax_z.set_yscale("linear")
+    ax_z.set_xlabel("$t$ (s)")
+    ax_z.set_ylabel("$z$ (cm)")
+
     fig_rhoT = plt.figure(figsize=(10.0, 10.0*0.625))
     ax_rhoT  = fig_rhoT.add_subplot(111)
     ax_rhoT.set_ylim(1e1,1e13)
@@ -155,6 +207,9 @@ for i in range(nfig):
         ax_entr.plot(t,entr,color=col,alpha=alpha)
         ax_ye.plot(t,ye,color=col,alpha=alpha)
         ax_r.plot(t,r,color=col,alpha=alpha)
+        ax_x.plot(t,x,color=col,alpha=alpha)
+        ax_y.plot(t,y,color=col,alpha=alpha)
+        ax_z.plot(t,z,color=col,alpha=alpha)
         ax_rhoT.plot(rho,temp*1e-9,color=col,alpha=alpha)
         pass
 
@@ -166,6 +221,9 @@ for i in range(nfig):
     cbar=fig_entr.colorbar(s_map,pad=0.01, ax=ax_entr); cbar.set_label("particle id",rotation = -90, labelpad= 30)
     cbar=fig_ye.colorbar(s_map,pad=0.01, ax=ax_ye); cbar.set_label("particle id",rotation = -90, labelpad= 30)
     cbar=fig_r.colorbar(s_map,pad=0.01, ax=ax_r); cbar.set_label("particle id",rotation = -90, labelpad= 30)
+    cbar=fig_x.colorbar(s_map,pad=0.01, ax=ax_x); cbar.set_label("particle id",rotation = -90, labelpad= 30)
+    cbar=fig_y.colorbar(s_map,pad=0.01, ax=ax_y); cbar.set_label("particle id",rotation = -90, labelpad= 30)
+    cbar=fig_z.colorbar(s_map,pad=0.01, ax=ax_z); cbar.set_label("particle id",rotation = -90, labelpad= 30)
     cbar=fig_rhoT.colorbar(s_map,pad=0.01, ax=ax_rhoT); cbar.set_label("particle id",rotation = -90, labelpad= 30)
     #cbar.set_ticks([6.0/6.0, 7.0/6.0, 8.0/6.0, 9.0/6.0, 10.0/6.0])
     #cbar.ax.set_yticklabels(["1", "7/6", "4/3", "3/2", "5/3"])
@@ -175,6 +233,9 @@ for i in range(nfig):
     fig_entr.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
     fig_ye.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
     fig_r.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
+    fig_x.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
+    fig_y.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
+    fig_z.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
     fig_rhoT.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
 
     fig_rho.savefig(dir_fig + "/rho_%06d.png" % (i))
@@ -182,6 +243,9 @@ for i in range(nfig):
     fig_entr.savefig(dir_fig + "/entr_%06d.png" % (i))
     fig_ye.savefig(dir_fig + "/ye_%06d.png" % (i))
     fig_r.savefig(dir_fig + "/r_%06d.png" % (i))
+    fig_x.savefig(dir_fig + "/x_%06d.png" % (i))
+    fig_y.savefig(dir_fig + "/y_%06d.png" % (i))
+    fig_z.savefig(dir_fig + "/z_%06d.png" % (i))
     fig_rhoT.savefig(dir_fig + "/rhoT_%06d.png" % (i))
 
     plt.close(fig_rho)
@@ -189,6 +253,9 @@ for i in range(nfig):
     plt.close(fig_entr)
     plt.close(fig_ye)
     plt.close(fig_r)
+    plt.close(fig_x)
+    plt.close(fig_y)
+    plt.close(fig_z)
     plt.close(fig_rhoT)
     
     pass
