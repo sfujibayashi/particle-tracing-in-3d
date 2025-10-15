@@ -282,6 +282,9 @@ with open(dir_out + "/ptr.para",mode="w") as f:
    f.write("job_restart = %d\n" % (0))
    f.write("# time step of checkpoint file:\n")
    f.write("it_restart = %d\n" % (0))
+
+   f.write("make_ascii_file = F\n")
+   f.write("do_only_analysis = F\n")
    pass
 
 with open(dir_out + "/restart_info.dat",mode="w") as f:

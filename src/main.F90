@@ -42,6 +42,11 @@ program main
   integer :: incr_next
   ! whether reading file for pset timing
   logical :: read_pset_file = .false.
+  ! whether only ASCII file generation
+  logical :: make_ascii_file
+  ! whether only analysis of ascii files
+  logical :: do_only_analysis
+  
 
   integer :: step
 
@@ -198,10 +203,23 @@ program main
   write(*,'("restart flag    : ",L)') restart
   write(*,'("data read from  : ",a)') trim(dir_read)
   write(*,'("result saved in : ",a)') trim(dir_out)
+
+  block
+    use inputparser
+
+    call get_logical_parameter(fn_para, "make_ascii_file", make_ascii_file)
+    call get_logical_parameter(fn_para, "do_only_analysis", do_only_analysis)
+  end block
   
-  ! call ascii(model,dir_out,it_skip_out)
-  ! call tr_analysis(model,dir_out)
-  ! stop
+  if(make_ascii_file)then
+     call ascii(model,dir_out,it_skip_out)
+  endif
+  if(do_only_analysis)then
+     call tr_analysis(model,dir_out)
+  endif
+  if(make_ascii_file .or. do_only_analysis)then
+     stop
+  endif
 
   
   write(6,'("it_skip, it_skip_out      : ",2i5)') it_skip,it_skip_out
