@@ -467,6 +467,11 @@ contains
     write(str2,'(i10)') it
 
     call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+    if(error/=0)then
+       write(6,*) "Failed to find Dataset"
+       write(6,'(a)') trim(adjustl(str2))
+       stop
+    endif
     t = tms(1)*time_unit_h5
     
     ldat = (lu-ld_read+1)

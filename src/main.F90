@@ -532,7 +532,7 @@ program main
      ipu = 0
      ips = 0
      call read_checkpoint_hdf(fn,job_prv,it_prv,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read)
-     !fn_read = "/scratch/kiuchi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling/hdf5/346/raw3d.h5"
+     !fn_read = "/scratch/sfujibayashi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling/hdf5/346/raw3d.h5"
      !job_prv=346; it_prv = 1
 
      write(6,*)
@@ -627,7 +627,11 @@ program main
 
      fn = filename(job)
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
-     
+     if(error/=0)then
+        write(6,*) "Failed to open hdf5 file"
+        write(6,'(a)') trim(fn)
+        stop
+     endif
      if(job==job_min)then
         it0 = 0
      else
@@ -651,7 +655,7 @@ program main
         if    (.not.restart.and.job==job1)then
            it1 = it_start
         else
-           it1 = count_skip
+           it1 = 1+count_skip
         endif
         it2 = nstep_job(job)
         
@@ -697,7 +701,7 @@ program main
            write(6,*) "first-time task"
            call output_profile(dir_out,time)
            !call print_data(time,job,it)
-           call partial_output_hdf(dir_out, job, it, time)
+           !call partial_output_hdf(dir_out, job, it, time)
            !stop
 
            ! call set_ejecta_uniform(rfl,rin,mass_crit,mass_min,npv)
@@ -939,10 +943,10 @@ program main
 
   if(mode_backward)then
      job_max = job2-1
-     job_min = max(job_min_global, job_min-incr_next+1)
+     job_min = max(job_min_global, job_max-incr_next+1)
   else
      job_min = job2+1
-     job_max = min(job_max_global, job_max+incr_next-1)
+     job_max = min(job_max_global, job_min+incr_next-1)
   endif
   fn = trim(dir_out)//"/restart_info.dat"
   open(10,file=fn,status="replace",action="write")
