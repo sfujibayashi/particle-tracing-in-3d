@@ -181,13 +181,9 @@ program main
        call get_integer_parameter(fn, "job_min", job_min)
        call get_integer_parameter(fn, "job_max", job_max)
        call get_logical_parameter(fn, "restart", restart)
+
      end block
 
-     ! open(10,file=fn,status="old",action="read")
-     ! read(10,*) job_min
-     ! read(10,*) job_max
-     ! read(10,*) restart
-     ! close(10)
      if(restart)then
         if(mode_backward)then
            job_restart = job_max+1
@@ -815,13 +811,23 @@ program main
            !    endif
            ! enddo
            ! close(11)
-           
-           if    (it-it_skip==0)then
-              count_skip = 0
-           elseif(it-it_skip< 0)then
-              count_skip = it_skip - it
+
+           if(mode_backward)then
+              if    (it-it_skip==0)then
+                 count_skip = 0
+              elseif(it-it_skip< 0)then
+                 count_skip = it_skip - it
+              else
+                 count_skip = nstep_job(job)-it+it_skip
+              endif
            else
-              count_skip = nstep_job(job)-it+it_skip
+              if    (it+it_skip == nstep_job(job)+1)then
+                 count_skip = 0
+              elseif(it+it_skip >  nstep_job(job)+1)then
+                 count_skip = it+it_skip - (nstep_job(job)+1)
+              else
+                 count_skip = it+it_skip - 1
+              endif
            endif
            !if(nstep_job(job)-count_skip < 0) count_skip = count_skip - it_skip
            write(str1,'(i3.3)') job
