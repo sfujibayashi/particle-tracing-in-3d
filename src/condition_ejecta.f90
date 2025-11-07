@@ -22,8 +22,8 @@ contains
     ! endif
 
     !condition_ejecta = condition_ejecta_geo(j,k,l,lv,rfl,rin)
-    !condition_ejecta = condition_ejecta_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
-    condition_ejecta = condition_bound_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
+    condition_ejecta = condition_ejecta_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
+    !condition_ejecta = condition_bound_bernoulli(j,k,l,lv,rfl,rin,hhh_crit)
     
     return
   end function condition_ejecta

@@ -16,7 +16,7 @@ FXX := ${COMPILER_NAME}
 # compiler option
 
 FFLAGS:=${OPTION}
-FFLAGS += -O0 -CB -traceback -g -fpe0 -check uninit -check pointers # -warn unused
+# FFLAGS += -O0 -CB -traceback -g -fpe0 -check uninit -check pointers # -warn unused
 FFLAGS += -diag-disable=10121
 FFLAGS += -module $(OBJ_DIR)
 
