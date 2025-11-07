@@ -290,6 +290,12 @@ program main
      
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 
+     if(error/=0)then
+        write(6,'(a)') "File open error for..."
+        write(6,'(a)') trim(fn)
+        stop
+     endif
+
      it = 0
      setnum: do
         it = it + 1
@@ -304,9 +310,20 @@ program main
      tms(:)=0.d0
      write(str2,'(i10)') 1
      call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+     if(error/=0)then
+        write(6,'(a)') "Time read error. Stop."
+        stop
+     endif
+
      t_min = tms(1)*time_unit_h5
+
      write(str2,'(i10)') nstep_job(job)
      call H5LTread_dataset_float_f(file_id,"/level1/data"//trim(adjustl(str2))//"/time",tms,dims1,error)
+     if(error/=0)then
+        write(6,'(a)') "Time read error. Stop."
+        stop
+     endif
+
      t_max = tms(1)*time_unit_h5
 
      write(6,'("job, steps in job, time(min,max) = ",2i4,2es12.4)') job,nstep_job(job),t_min,t_max
@@ -539,6 +556,11 @@ program main
      !write(str2,'(i6.6)') it_restart
      !fn = trim(dir_out) // "/data_"//trim(str1)//"_"//trim(str2)//".h5"
      fn = trim(dir_out) // "/res_"//trim(str1)//".h5"
+
+     if(access(fn," ")/=0)then
+        write(6,*) "Checkpoint file not found. Stop."
+        stop
+     endif
 
 !!! set ips and ipu
 !!! allocate particle var.
