@@ -85,7 +85,7 @@ bins_T = np.logspace(9.0, 11.0, 101)
 alpha=0.7
 
 T_thr = 7.0e9; str1="7GK"
-R_thr = 3.0e8
+R_thr = 1.5e8; str2="1500\\mathrm{km}"
 
 
 for fn_data in list_file:
@@ -93,8 +93,6 @@ for fn_data in list_file:
 
     ntraj = np.asarray(f1['/np'])[0]
     time = np.asarray(f1['/time'])[0]
-
-    print("# of tracers = %10d, time = %e" % (ntraj,time))
     
     dm_p = np.asarray(f1['/dm_p'])/msun
     x_p = np.asarray(f1['/x_p'])
@@ -113,10 +111,13 @@ for fn_data in list_file:
     # vlr_p = np.sqrt(vlx_p**2 + vly_p**2 + vlz_p**2)*clight
     vlr_p = (vlx_p*x_p + vly_p*y_p + vlz_p*z_p)/r_p * clight
     
-    mass_lt3e8cm = np.sum(dm_p[r_p < 3.0e8])
+    mass_tot     = np.sum(dm_p)
+    mass_lt_thr = np.sum(dm_p[r_p < R_thr])
     mass_gt3GK   = np.sum(dm_p[tem_p > 3.0e9])
-    label_r = "$M(r<3\\times10^8\\mathrm{cm})=%6.3f M_\\odot$" % (mass_lt3e8cm)
+    label_r = "$M(r<%s)=%6.3f M_\\odot$" % (str2,mass_lt_thr)
     label_T = "$M(T>3\\mathrm{GK})=%6.3f M_\\odot$" % (mass_gt3GK)
+
+    print("# of tracers = %10d, time = %e, M(ej) = %e" % (ntraj,time,mass_tot))
     ####
 
     color = cmap_time(norm_time(time))
