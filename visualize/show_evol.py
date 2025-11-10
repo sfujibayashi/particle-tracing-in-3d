@@ -47,8 +47,8 @@ msun = 1.989e33
 
 
 ntraj_per_fig=1000
-skip=10
-alpha=0.3
+skip=100
+alpha=0.4
 
 #model = "DD2Tim326_Q4_M135_a75_0056_400m_B3e15_Hon_an20231126"; submodel = "ns9"
 
@@ -85,10 +85,9 @@ with open(fn, mode="w") as f:
     f.write("ffmpeg -y -pattern_type glob -i '%s/vx_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/vx.mp4\n" % (dir_fig, dir_fig))
     f.write("ffmpeg -y -pattern_type glob -i '%s/vy_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/vy.mp4\n" % (dir_fig, dir_fig))
     f.write("ffmpeg -y -pattern_type glob -i '%s/vz_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/vz.mp4\n" % (dir_fig, dir_fig))
+    f.write("ffmpeg -y -pattern_type glob -i '%s/vr_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/vr.mp4\n" % (dir_fig, dir_fig))
     f.write("ffmpeg -y -pattern_type glob -i '%s/rhoT_??????.png' -vf \"pad=ceil(iw/2)*2:ceil(ih/2)*2\" -pix_fmt yuv420p %s/rhoT.mp4\n" % (dir_fig, dir_fig))
     pass
-sys.exit()
-
 
 if not os.path.exists(dir_fig):
     os.system('mkdir -p %s' % (dir_fig) )
@@ -231,6 +230,17 @@ for i in range(nfig):
     ax_vz.xaxis.set_major_locator(MaxNLocator(nbins=4,min_n_ticks=2))
     ax_vz.xaxis.set_minor_locator(AutoMinorLocator(4))
 
+    fig_vr = plt.figure(figsize=(10.0, 10.0*0.625))
+    ax_vr  = fig_vr.add_subplot(111)
+    #ax_vr.set_xlim(0.004,0.1)
+    ax_vr.set_ylim(1e7,3e10)
+    ax_vr.set_xscale("linear")
+    ax_vr.set_yscale("log")
+    ax_vr.set_xlabel("$t$ (s)")
+    ax_vr.set_ylabel("$v^r$ (cm/s)")
+    #ax_vr.xaxis.set_major_locator(MaxNLocator(nbins=4,min_n_ticks=2))
+    #ax_vr.xaxis.set_minor_locator(AutoMinorLocator(4))
+
     fig_rhoT = plt.figure(figsize=(10.0, 10.0*0.625))
     ax_rhoT  = fig_rhoT.add_subplot(111)
     ax_rhoT.set_ylim(1e1,1e13)
@@ -260,6 +270,7 @@ for i in range(nfig):
         entr = np.loadtxt(fn,comments="#",usecols=(10))
         
         r = np.sqrt(x**2+y**2+z**2)
+        vr = (vx*x + vy*y + vz*z)/r
 
         col = cmap_ip(norm_ip(ip))
 
@@ -274,7 +285,13 @@ for i in range(nfig):
         ax_vx.plot(t,vx,color=col,alpha=alpha)
         ax_vy.plot(t,vy,color=col,alpha=alpha)
         ax_vz.plot(t,vz,color=col,alpha=alpha)
+        ax_vr.plot(t,vr,color=col,alpha=alpha)
         ax_rhoT.plot(rho,temp*1e-9,color=col,alpha=alpha)
+
+        t_extend = np.linspace(t[-1], t[-1] + (t[-1]-t[0])*0.3, 10)
+        rho_extend = rho[-1]*(t_extend/t[-1])**(-3)
+        ax_rho.plot(t_extend,rho_extend,color=col,alpha=alpha, ls="dashed")
+
         pass
 
 
@@ -291,6 +308,7 @@ for i in range(nfig):
     cbar=fig_vx.colorbar(s_map,pad=0.01, ax=ax_vx); cbar.set_label("particle id",rotation = -90, labelpad= 30)
     cbar=fig_vy.colorbar(s_map,pad=0.01, ax=ax_vy); cbar.set_label("particle id",rotation = -90, labelpad= 30)
     cbar=fig_vz.colorbar(s_map,pad=0.01, ax=ax_vz); cbar.set_label("particle id",rotation = -90, labelpad= 30)
+    cbar=fig_vr.colorbar(s_map,pad=0.01, ax=ax_vr); cbar.set_label("particle id",rotation = -90, labelpad= 30)
     cbar=fig_rhoT.colorbar(s_map,pad=0.01, ax=ax_rhoT); cbar.set_label("particle id",rotation = -90, labelpad= 30)
     #cbar.set_ticks([6.0/6.0, 7.0/6.0, 8.0/6.0, 9.0/6.0, 10.0/6.0])
     #cbar.ax.set_yticklabels(["1", "7/6", "4/3", "3/2", "5/3"])
@@ -306,6 +324,7 @@ for i in range(nfig):
     fig_vx.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
     fig_vy.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
     fig_vz.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
+    fig_vr.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
     fig_rhoT.subplots_adjust(left=0.15,bottom=0.15,right=0.95, top=0.95)
 
     fig_rho.savefig(dir_fig + "/rho_%06d.png" % (i))
@@ -319,6 +338,7 @@ for i in range(nfig):
     fig_vx.savefig(dir_fig + "/vx_%06d.png" % (i))
     fig_vy.savefig(dir_fig + "/vy_%06d.png" % (i))
     fig_vz.savefig(dir_fig + "/vz_%06d.png" % (i))
+    fig_vr.savefig(dir_fig + "/vr_%06d.png" % (i))
     fig_rhoT.savefig(dir_fig + "/rhoT_%06d.png" % (i))
 
     plt.close(fig_rho)
@@ -332,6 +352,7 @@ for i in range(nfig):
     plt.close(fig_vx)
     plt.close(fig_vy)
     plt.close(fig_vz)
+    plt.close(fig_vr)
     plt.close(fig_rhoT)
 
     pass
