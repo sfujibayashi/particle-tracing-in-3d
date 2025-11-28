@@ -173,10 +173,37 @@ contains
     call H5LTread_dataset_double_f(file_id,"/ut_p"   , var_p(index_ut,1:ipu),dims1,error)
     call H5LTread_dataset_double_f(file_id,"/hhh_p"  , var_p(index_hhh,1:ipu),dims1,error)
 
-    call h5ltread_dataset_double_f(file_id, "/ch_nuf_p", var_p(index_ch_nuf,1:ipu),dims1, error)
-    call h5ltread_dataset_double_f(file_id, "/ch_naf_p", var_p(index_ch_naf,1:ipu),dims1, error)
-    call h5ltread_dataset_double_f(file_id, "/b2_p"    , var_p(index_b2,1:ipu),dims1, error)
-    call h5ltread_dataset_double_f(file_id, "/pres_p"  , var_p(index_pres,1:ipu),dims1, error)
+    block
+      logical :: link_exists
+      
+      call h5lexists_f(file_id,"/ch_nuf_p",link_exists,error)
+      if(link_exists)then
+         call h5ltread_dataset_double_f(file_id, "/ch_nuf_p", var_p(index_ch_nuf,1:ipu),dims1, error)
+      else
+         var_p(index_ch_nuf,1:ipu) = 0d0
+      endif
+
+      call h5lexists_f(file_id,"/ch_naf_p",link_exists,error)
+      if(link_exists)then
+         call h5ltread_dataset_double_f(file_id, "/ch_naf_p", var_p(index_ch_naf,1:ipu),dims1, error)
+      else
+         var_p(index_ch_naf,1:ipu) = 0d0
+      endif
+
+      call h5lexists_f(file_id,"/b2_p",link_exists,error)
+      if(link_exists)then
+         call h5ltread_dataset_double_f(file_id, "/b2_p"    , var_p(index_b2,1:ipu),dims1, error)
+               else
+         var_p(index_b2,1:ipu) = 0d0
+      endif
+
+      call h5lexists_f(file_id,"/pres_p",link_exists,error)
+      if(link_exists)then
+         call h5ltread_dataset_double_f(file_id, "/pres_p"  , var_p(index_pres,1:ipu),dims1, error)
+               else
+         var_p(index_pres,1:ipu) = 0d0
+      endif
+    end block
 
 
     if(present(fn_read))then
