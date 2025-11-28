@@ -126,7 +126,7 @@ contains
             enddo
          enddo
          h_min_tab(iye) = hm
-         write(6,*) ye_e(iye), hm
+         ! write(6,*) ye_e(iye), hm
       enddo
     end block
     
