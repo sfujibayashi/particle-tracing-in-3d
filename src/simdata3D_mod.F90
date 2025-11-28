@@ -519,7 +519,7 @@ contains
        vly (:,:,ld_read:lu,lv) = buf3d_real4_7(:,:,:)/vel_unit_h5
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,buf3d_real4_8,dims3,error); sum_err = sum_err + error
        vlz (:,:,ld_read:lu,lv) = buf3d_real4_8(:,:,:)/vel_unit_h5
-
+       
        call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor",link_exists,error)
        if(link_exists)then
           call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,buf3d_real4_1,dims3,error)
@@ -537,13 +537,16 @@ contains
        else
           if(lv==lv_min)write(6,*) "Lorentz factor is not found"
           block
+            real(8),parameter :: wmax=10d0
+            real(8),parameter :: v2max = 1d0 - 1d0/wmax
             integer :: j,k,l
+            
             !$omp parallel
             !$omp do
             do l=ld,lu
                do k=kd,ku
                   do j=jd,ju
-                     www(j,k,l,lv) = 1d0/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
+                     www(j,k,l,lv) = 1d0/sqrt(1d0 - min(v2max,(vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2)) )
                   enddo
                enddo
             enddo
@@ -675,10 +678,13 @@ contains
     ! block
     !   integer :: j,k,l
     !   lv=lv_max
-    !   l=ld+1
-    !   do k=kd,ku,3
-    !      do j=jd,ju,3
-    !         write(99,'(99es12.4)') x(j,lv), y(k,lv), qb(j,k,l,lv), qrho(j,k,l,lv), ut(j,k,l,lv)
+    !   do l=ld_read,lu
+    !      write(99,*)
+    !      do k=kd,ku,10
+    !         write(99,*)
+    !         do j=jd,ju,10
+    !            write(99,'(99es12.4)') x(j,lv), y(k,lv), z(l,lv), qb(j,k,l,lv), qrho(j,k,l,lv), ut(j,k,l,lv), rhog(j,k,l,lv), www(j,k,l,lv)
+    !         enddo
     !      enddo
     !   enddo
     ! end block
