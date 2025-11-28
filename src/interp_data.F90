@@ -165,7 +165,7 @@ contains
 
 
   subroutine interp_data()
-    use simdata3D
+    use simdata3D,only : x,y,z,vlx,vly,vlz,coorindex3D
 
     integer :: j,k,l,lv,lv0, j1,k1,l1, ld_read, j0,k0,l0
     real(8) :: xx, yy, zz
@@ -180,6 +180,11 @@ contains
 #endif
     
     do lv=lv_min,lv_max
+       !$omp parallel default(none)&
+!        !$omp num_threads(1) &
+       !$omp shared(lv,ld_read,lu,kd,ku,jd,ju,x,y,z,x_ip,y_ip,z_ip,vlx,vly,vlz,vlx_ip,vly_ip,vlz_ip) &
+       !$omp private(xx,yy,zz,lv0,j0,k0,l0,j1,k1,l1,vlx_i,vly_i,vlz_i,x0,y0,z0,x1,y1,z1)
+       !$omp do
        do l=ld_read,lu
           do k=kd,ku
              do j=jd,ju
@@ -194,6 +199,16 @@ contains
                 k0=k1-1
                 l0=l1-1
 
+                x1 = (xx-x(j0,lv0))/(x(j1,lv0)-x(j0,lv0))
+                x0 = 1.d0-x1
+                y1 = (yy-y(k0,lv0))/(y(k1,lv0)-y(k0,lv0))
+                y0 = 1.d0-y1
+                z1 = (zz-z(l0,lv0))/(z(l1,lv0)-z(l0,lv0))
+                z0 = 1.d0-z1
+
+                ! if(mod(l-ld_read,10)==0.and.mod(k-kd,10)==0.and.mod(j-jd,10)==0)then
+                !    write(6,*) x1,y1,z1
+                ! endif
                 vlx_i = x1*y1*z1* vlx(j1,k1,l1,lv0) &
                      + x0*y1*z1* vlx(j0,k1,l1,lv0) &
                      + x1*y0*z1* vlx(j1,k0,l1,lv0) &
@@ -226,7 +241,9 @@ contains
              enddo
           enddo
        enddo
-
+       !$omp end do
+       !$omp end parallel
+       write(6,*) "lv=",lv,"done"
     enddo
 
 
@@ -286,7 +303,7 @@ contains
 
        ! t-dependent data
 
-       write(str2,'(i10)') 1
+       write(str2,'(i10)') it
        call h5gcreate_f(group_id, "data"//trim(adjustl(str2)) , group2_id, hdf_err)
 
        dims1(1) = 1
