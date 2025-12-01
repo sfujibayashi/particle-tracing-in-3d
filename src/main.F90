@@ -586,7 +586,7 @@ program main
      fn = fn_read
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
 !!! read sim data for the previous-step velocity
-     call read_simdata(file_id,it_prv,time)
+     call read_simdata(file_id,it_prv,time,read_only_velocity=.true.)
      call h5fclose_f(file_id, error)
 
      ! time = 2.806648016d-01

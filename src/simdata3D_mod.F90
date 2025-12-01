@@ -436,7 +436,7 @@ contains
     
   end subroutine allocate_simdata
 
-  subroutine read_simdata(file_id,it,t)
+  subroutine read_simdata(file_id,it,t,read_only_velocity)
     use hdf5
     use h5lt
     use unit
@@ -444,6 +444,7 @@ contains
     INTEGER(HID_T),intent(in) :: file_id
     integer,intent(in)  :: it
     real(8),intent(out) :: t
+    logical,intent(in),optional :: read_only_velocity
 
     integer :: error, sum_err
     integer(HSIZE_T) :: dims1(1),dims3(3)
@@ -455,6 +456,13 @@ contains
     integer :: lv_max_present
     logical :: link_exists
 
+    logical :: read_only_velocity0
+
+    if(present(read_only_velocity))then
+       read_only_velocity0 = read_only_velocity
+    else
+       read_only_velocity0 = .false.
+    endif
 
     ld_read=ld
 
@@ -503,162 +511,169 @@ contains
         
        !write(6,*) "/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density"
        sum_err = 0
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density",buf3d_real4_1,dims3,error); sum_err = sum_err + error
-       qrho(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/u_t"    ,buf3d_real4_2,dims3,error); sum_err = sum_err + error
-       ut  (:,:,ld_read:lu,lv) = buf3d_real4_2(:,:,:)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Ye"     ,buf3d_real4_3,dims3,error); sum_err = sum_err + error
-       ye  (:,:,ld_read:lu,lv) = buf3d_real4_3(:,:,:)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/entropy",buf3d_real4_4,dims3,error); sum_err = sum_err + error
-       sen (:,:,ld_read:lu,lv) = buf3d_real4_4(:,:,:)
-       call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/temperature",buf3d_real4_5,dims3,error); sum_err = sum_err + error
-       tem (:,:,ld_read:lu,lv) = buf3d_real4_5(:,:,:)
+
+
+
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vx"     ,buf3d_real4_6,dims3,error); sum_err = sum_err + error
        vlx (:,:,ld_read:lu,lv) = buf3d_real4_6(:,:,:)/vel_unit_h5
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vy"     ,buf3d_real4_7,dims3,error); sum_err = sum_err + error
        vly (:,:,ld_read:lu,lv) = buf3d_real4_7(:,:,:)/vel_unit_h5
        call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/vz"     ,buf3d_real4_8,dims3,error); sum_err = sum_err + error
        vlz (:,:,ld_read:lu,lv) = buf3d_real4_8(:,:,:)/vel_unit_h5
-       
-       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor",link_exists,error)
-       if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,buf3d_real4_1,dims3,error)
-          rhog (:,:,ld_read:lu,lv)=1d0/buf3d_real4_1 (:,:,:)
-       else
-          if(lv==lv_min)write(6,*) "conformal factor is not found"
-          rhog (:,:,:,lv)=1d0
-       endif
-       ! rhog (:,:,:,lv)=1d0
 
-       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor",link_exists,error)
-       if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor"     ,buf3d_real4_1,dims3,error)
-          www(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+       if(read_only_velocity0)then
+          if(lv==lv_min)write(6,*) "read only velocity..."
        else
-          if(lv==lv_min)write(6,*) "Lorentz factor is not found"
-          block
-            real(8),parameter :: wmax=10d0
-            real(8),parameter :: v2max = 1d0 - 1d0/wmax
-            integer :: j,k,l
-            
-            !$omp parallel
-            !$omp do
-            do l=ld,lu
-               do k=kd,ku
-                  do j=jd,ju
-                     www(j,k,l,lv) = 1d0/sqrt(1d0 - min(v2max,(vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2)) )
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/density",buf3d_real4_1,dims3,error); sum_err = sum_err + error
+          qrho(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/u_t"    ,buf3d_real4_2,dims3,error); sum_err = sum_err + error
+          ut  (:,:,ld_read:lu,lv) = buf3d_real4_2(:,:,:)
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Ye"     ,buf3d_real4_3,dims3,error); sum_err = sum_err + error
+          ye  (:,:,ld_read:lu,lv) = buf3d_real4_3(:,:,:)
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/entropy",buf3d_real4_4,dims3,error); sum_err = sum_err + error
+          sen (:,:,ld_read:lu,lv) = buf3d_real4_4(:,:,:)
+          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/temperature",buf3d_real4_5,dims3,error); sum_err = sum_err + error
+          tem (:,:,ld_read:lu,lv) = buf3d_real4_5(:,:,:)
+          
+          call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor",link_exists,error)
+          if(link_exists)then
+             call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/conformal factor"     ,buf3d_real4_1,dims3,error)
+             rhog (:,:,ld_read:lu,lv)=1d0/buf3d_real4_1 (:,:,:)
+          else
+             if(lv==lv_min)write(6,*) "conformal factor is not found"
+             rhog (:,:,:,lv)=1d0
+          endif
+          ! rhog (:,:,:,lv)=1d0
+
+          call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor",link_exists,error)
+          if(link_exists)then
+             call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/Lorentz factor"     ,buf3d_real4_1,dims3,error)
+             www(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+          else
+             if(lv==lv_min)write(6,*) "Lorentz factor is not found"
+             block
+               real(8),parameter :: wmax=10d0
+               real(8),parameter :: v2max = 1d0 - 1d0/wmax
+               integer :: j,k,l
+
+               !$omp parallel
+               !$omp do
+               do l=ld,lu
+                  do k=kd,ku
+                     do j=jd,ju
+                        www(j,k,l,lv) = 1d0/sqrt(1d0 - min(v2max,(vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2)) )
+                     enddo
                   enddo
                enddo
-            enddo
-            !$omp end do
-            !$omp end parallel
-          end block
+               !$omp end do
+               !$omp end parallel
+             end block
 
-          ! www (:,:,:,lv)=1d0
-       endif
-       
-       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/lapse",link_exists,error)
-       if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/lapse"     ,buf3d_real4_1,dims3,error)
-          alpha(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
-       else
-          if(lv==lv_min)write(6,*) "lapse is not found"
-          alpha (:,:,:,lv)=1d0
-       endif
+             ! www (:,:,:,lv)=1d0
+          endif
 
+          call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/lapse",link_exists,error)
+          if(link_exists)then
+             call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/lapse"     ,buf3d_real4_1,dims3,error)
+             alpha(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+          else
+             if(lv==lv_min)write(6,*) "lapse is not found"
+             alpha (:,:,:,lv)=1d0
+          endif
 
 
-       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",link_exists,error)
-       if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          qb(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
-          ! qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
-       else
-          if(lv==lv_min)write(6,*) "rho_star is not found"
-          block
-            integer :: j,k,l
-            !$omp parallel
-            !$omp do
-            do l=ld_read,lu
-               do k=kd,ku
-                  do j=jd,ju
-                     ! qb(j,k,l,lv) = qrho(j,k,l,lv)/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
-                     qb(j,k,l,lv) = qrho(j,k,l,lv)*www(j,k,l,lv)/rhog(j,k,l,lv)**3
+
+          call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",link_exists,error)
+          if(link_exists)then
+             call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/rho_star",buf3d_real4_1,dims3,error); sum_err = sum_err + error
+             qb(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+             ! qb(:,:,:,lv) = qb(:,:,:,lv) *rho_uni
+          else
+             if(lv==lv_min)write(6,*) "rho_star is not found"
+             block
+               integer :: j,k,l
+               !$omp parallel
+               !$omp do
+               do l=ld_read,lu
+                  do k=kd,ku
+                     do j=jd,ju
+                        ! qb(j,k,l,lv) = qrho(j,k,l,lv)/sqrt(1d0 - ( vlx(j,k,l,lv)**2 + vly(j,k,l,lv)**2 + vlz(j,k,l,lv)**2 ) )
+                        qb(j,k,l,lv) = qrho(j,k,l,lv)*www(j,k,l,lv)/rhog(j,k,l,lv)**3
+                     enddo
                   enddo
                enddo
-            enddo
-            !$omp end do
-            !$omp end parallel
-          end block
-       endif
+               !$omp end do
+               !$omp end parallel
+             end block
+          endif
 
-       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/enthalpy",link_exists,error)
-       if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/enthalpy",buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          hhh(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
-       else
-          if(lv==lv_min)write(6,*) "enthalpy is not found"
-          sum_err = sum_err + 1
-       endif
+          call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/enthalpy",link_exists,error)
+          if(link_exists)then
+             call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/enthalpy",buf3d_real4_1,dims3,error); sum_err = sum_err + error
+             hhh(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+          else
+             if(lv==lv_min)write(6,*) "enthalpy is not found"
+             sum_err = sum_err + 1
+          endif
 
 
-       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/P",link_exists,error)
-       if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/P",buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          pres(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)!*rho_uni*v_uni**2
-       else
-          if(lv==lv_min)write(6,*) "P is not found"
-          ! sum_err = sum_err + 1
-       endif
-       
-       ! call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em1f",link_exists,error)
-       ! if(link_exists)then
-       !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em1f"     ,bx (:,:,:,lv),dims3,error)
-       !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em2f"     ,by (:,:,:,lv),dims3,error)
-       !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em3f"     ,bz (:,:,:,lv),dims3,error)
-       !    bx(:,:,:,lv) = bx(:,:,:,lv)*sqrt(rho_uni*v_uni**2)
-       !    by(:,:,:,lv) = by(:,:,:,lv)*sqrt(rho_uni*v_uni**2)
-       !    bz(:,:,:,lv) = bz(:,:,:,lv)*sqrt(rho_uni*v_uni**2)
-       ! else
-       !    bx (:,:,:,lv)=0d0
-       !    by (:,:,:,lv)=0d0
-       !    bz (:,:,:,lv)=0d0
-       ! endif
-       
-       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b^2",link_exists,error)
-       if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b^2"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          b2(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
-       else
-          if(lv==lv_min)write(6,*) "b^2 is not found"
-          b2 (:,:,:,lv)=0d0
-       endif
+          call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/P",link_exists,error)
+          if(link_exists)then
+             call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/P",buf3d_real4_1,dims3,error); sum_err = sum_err + error
+             pres(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)!*rho_uni*v_uni**2
+          else
+             if(lv==lv_min)write(6,*) "P is not found"
+             ! sum_err = sum_err + 1
+          endif
 
-       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_nuf",link_exists,error)
-       if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_nuf"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          ch_nuf(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
-       else
-          if(lv==lv_min)write(6,*) "ch_nuf is not found"
-          ch_nuf (:,:,:,lv)=0d0
-       endif
+          ! call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em1f",link_exists,error)
+          ! if(link_exists)then
+          !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em1f"     ,bx (:,:,:,lv),dims3,error)
+          !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em2f"     ,by (:,:,:,lv),dims3,error)
+          !    call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/em3f"     ,bz (:,:,:,lv),dims3,error)
+          !    bx(:,:,:,lv) = bx(:,:,:,lv)*sqrt(rho_uni*v_uni**2)
+          !    by(:,:,:,lv) = by(:,:,:,lv)*sqrt(rho_uni*v_uni**2)
+          !    bz(:,:,:,lv) = bz(:,:,:,lv)*sqrt(rho_uni*v_uni**2)
+          ! else
+          !    bx (:,:,:,lv)=0d0
+          !    by (:,:,:,lv)=0d0
+          !    bz (:,:,:,lv)=0d0
+          ! endif
 
-       call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_naf",link_exists,error)
-       if(link_exists)then
-          call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_naf"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
-          ch_naf(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
-       else
-          if(lv==lv_min)write(6,*) "ch_naf is not found"
-          ch_naf (:,:,:,lv)=0d0
+          call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b^2",link_exists,error)
+          if(link_exists)then
+             call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/b^2"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
+             b2(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+          else
+             if(lv==lv_min)write(6,*) "b^2 is not found"
+             b2 (:,:,:,lv)=0d0
+          endif
+
+          call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_nuf",link_exists,error)
+          if(link_exists)then
+             call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_nuf"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
+             ch_nuf(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+          else
+             if(lv==lv_min)write(6,*) "ch_nuf is not found"
+             ch_nuf (:,:,:,lv)=0d0
+          endif
+
+          call h5lexists_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_naf",link_exists,error)
+          if(link_exists)then
+             call H5LTread_dataset_float_f(file_id,"/level"//trim(adjustl(str1))//"/data"//trim(adjustl(str2))//"/ch_naf"     ,buf3d_real4_1,dims3,error); sum_err = sum_err + error
+             ch_naf(:,:,ld_read:lu,lv) = buf3d_real4_1(:,:,:)
+          else
+             if(lv==lv_min)write(6,*) "ch_naf is not found"
+             ch_naf (:,:,:,lv)=0d0
+          endif
        endif
-       
        
        if(sum_err>0)then
           write(6,*) "Error in reading hdf5 file. STOP.",lv,sum_err
           stop
        endif
        
-       write(6,*) lv
+       write(6,*) lv, "done..."
 
     enddo loop_read
     ! !$omp end do
@@ -675,6 +690,14 @@ contains
     ! write(6,*) lv_max, lv_max_present
     call interp_finer(lv_max_present)
     ! stop
+
+    block
+      integer :: j,k,l
+      lv=lv_max
+      j=1; k=2; l=3
+      write(99,'(99es12.4)') x(j,lv), y(k,lv), z(l,lv), qb(j,k,l,lv), qrho(j,k,l,lv), ut(j,k,l,lv), rhog(j,k,l,lv)
+    end block
+
     ! block
     !   integer :: j,k,l
     !   lv=lv_max
