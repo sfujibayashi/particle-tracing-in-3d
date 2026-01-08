@@ -73,7 +73,7 @@ program main
   integer :: count_skip
 
   ! time
-  real(8) :: time, time_prv, dt
+  real(8) :: time, time_prv, dt, dt_prv
 
   ! particle
   integer :: ip,ips,ipu
@@ -721,8 +721,14 @@ program main
         call set_secondary
         if(first)then
            dt = 0.d0
+           dt_prv=0.d0
         else
+           dt_prv = dt
            dt = time - time_prv
+           if(abs(dt) > 2.d0*abs(dt_prv) .or. abs(dt_prv) > 2.d0*abs(dt))then
+              write(6,*) "Something wrong with time step. Please check!"
+              stop
+           endif
         endif
 
         call analysis_3d_data(time,unum2,rin,rfl)
