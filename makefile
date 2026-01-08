@@ -6,10 +6,20 @@ EXE_DIR := bin/
 SRC_DIR := src/
 OBJ_DIR := obj/
 
-# program file name
-PROG := $(EXE_DIR)ptr.out
-#PROG := $(EXE_DIR)interp.out
+MAKE_TARGET := ptr
+# MAKE_TARGET := interp
 
+
+# program file name
+ifeq ($(MAKE_TARGET),ptr)
+  PROG := $(EXE_DIR)ptr.out
+endif
+ifeq ($(MAKE_TARGET),interp)
+  PROG := $(EXE_DIR)interp.out
+endif
+ifndef PROG
+  $(error MAKE_TARGET is not set well. Specify ptr or interp)
+endif
 # compiler
 FXX := ${COMPILER_NAME}
 
@@ -28,6 +38,7 @@ LIBS :=
 %.o: %.mod
 
 # source file
+ifeq ($(MAKE_TARGET),ptr)
 SRC:=\
 input_parser.f90\
 unit_mod.f90\
@@ -54,14 +65,17 @@ subroutine_analysis.f90\
 analysis.f90\
 print_data.f90\
 partial_output_hdf.f90
+endif
 
-# SRC:=\
-# input_parser.f90\
-# unit_mod.f90\
-# module_eos.f90\
-# simdata3D_mod.f90\
-# interp_data.f90\
-# interpolation.f90
+ifeq ($(MAKE_TARGET),interp)
+SRC:=\
+input_parser.f90\
+unit_mod.f90\
+module_eos.f90\
+simdata3D_mod.f90\
+interp_data.f90\
+interpolation.f90
+endif
 
 SRC := $(addprefix $(SRC_DIR), $(SRC))
 
