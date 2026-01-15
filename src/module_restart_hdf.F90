@@ -3,13 +3,14 @@ module module_restart_hdf
   implicit none
 
 contains
-  subroutine save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read)
+  subroutine save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,dt,fn_read)
     use particle_data
     use hdf5
     use h5lt
 
     integer,intent(in) :: ipu,np,count_pset,count_out,count_skip,npv,job,it
     real(8),intent(in) :: time
+    real(8),intent(in) :: dt
     character(*),intent(in) :: fn
     character(*),intent(in),optional :: fn_read
     
@@ -50,6 +51,8 @@ contains
     allocate(buf1(1))
     buf1(1) = time
     call h5ltmake_dataset_double_f(file_id, "/time", 1, dims1, buf1, error)
+    buf1(1) = dt
+    call h5ltmake_dataset_double_f(file_id, "/dt", 1, dims1, buf1, error)
     deallocate(buf1)
 
 
@@ -99,7 +102,7 @@ contains
   end subroutine save_checkpoint_hdf
   
 
-  subroutine read_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read)
+  subroutine read_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,dt,fn_read)
     use particle_data
     use hdf5
     use h5lt
@@ -107,6 +110,7 @@ contains
     character(*),intent(in) :: fn
     integer,intent(out) :: ipu,np,count_pset,count_out,count_skip,job,it,npv
     real(8),intent(out) :: time
+    real(8),intent(out) :: dt
     character(*),intent(out),optional :: fn_read
 
     integer :: ip
@@ -142,6 +146,9 @@ contains
     count_skip=ibuf1(1)
     call H5LTread_dataset_int_f(file_id,"/npv",ibuf1,dims1,error)
     npv=ibuf1(1)
+
+    call H5LTread_dataset_double_f(file_id,"/dt",buf1,dims1,error)
+    dt=buf1(1)
     
     deallocate(ibuf1,buf1)
 

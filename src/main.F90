@@ -567,7 +567,7 @@ program main
 !!! read all particle data
      ipu = 0
      ips = 0
-     call read_checkpoint_hdf(fn,job_prv,it_prv,np,ipu,time,count_pset,count_out,count_skip,npv,fn_read)
+     call read_checkpoint_hdf(fn,job_prv,it_prv,np,ipu,time,count_pset,count_out,count_skip,npv,dt,fn_read)
      !fn_read = "/scratch/sfujibayashi/DD2Tim326_135_135_0028_12.5mstg_B15.5_HLLD_CT_GS_lv14_to_lv13_Cowling/hdf5/346/raw3d.h5"
      !job_prv=346; it_prv = 1
 
@@ -575,16 +575,27 @@ program main
      write(6,*) " -- Checkpoint file info -- "
      write(6,'("job,it  = ",2i5)') job_prv,it_prv
      write(6,'("np, npv = ",2i7)') np,npv
-     write(6,'("time    = ",es17.9)') time
+     write(6,'("time,dt = ",2es17.9)') time,dt
      write(6,'("counts  = ",3i5)') count_pset,count_out,count_skip
      write(6,'(a,a)') "file read: ",trim(fn_read)
      write(6,*) " -------------------------- "
      write(6,*)
 
+     if(access(fn_read," ")/=0)then
+        write(6,*) "HDF5 file to be read not found. Stop."
+        stop
+     endif
+     
      ips = ipu
      
      fn = fn_read
      call h5fopen_f(fn, H5F_ACC_RDONLY_F, file_id, error)
+     if(error/=0)then
+        write(6,*) "Failed to open hdf5 file"
+        write(6,'(a)') trim(fn)
+        stop
+     endif
+
 !!! read sim data for the previous-step velocity
      call read_simdata(file_id,it_prv,time,read_only_velocity=.true.)
      call h5fclose_f(file_id, error)
@@ -727,6 +738,8 @@ program main
            dt = time - time_prv
            if(abs(dt) > 2.d0*abs(dt_prv) .or. abs(dt_prv) > 2.d0*abs(dt))then
               write(6,*) "Something wrong with time step. Please check!"
+              write(6,*) "dt    ",dt
+              write(6,*) "dt_prv",dt_prv
               stop
            endif
         endif
@@ -861,7 +874,7 @@ program main
            write(str1,'(i3.3)') job
            write(str2,'(i6.6)') it
            fn = trim(dir_out) // "/data_"//trim(str1)//"_"//trim(str2)//".h5"
-           call save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,filename(job))
+           call save_checkpoint_hdf(fn,job,it,np,ipu,time,count_pset,count_out,count_skip,npv,dt,filename(job))
            
         endif
         
@@ -921,7 +934,7 @@ program main
      write(6,'("Output restart data")')
      write(str1,'(i3.3)') job
      fn = trim(dir_out) // "/res_"//trim(str1)//".h5"
-     call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,filename(job))
+     call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,dt,filename(job))
      
      
   enddo !end of this job

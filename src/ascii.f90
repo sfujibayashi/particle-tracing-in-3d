@@ -11,7 +11,7 @@ subroutine ascii(model, dir_read, it_skip_out)
   character(*),intent(in) :: model, dir_read
   integer,intent(in) :: it_skip_out
 
-  real(8) :: time
+  real(8) :: time,dt
   integer :: ipu,np,npv,np_buf,count_pset,count_out,count_skip,job,it,itt
   character(256) :: fn, dir_out, str1,str2,fn_hdf
 
@@ -67,7 +67,7 @@ subroutine ascii(model, dir_read, it_skip_out)
         fn = trim(dir_read) // "/data_"//trim(str1)//"_"//trim(str2)//".h5"
         if(access(fn," ")==0)then
            itt = itt + 1
-           call read_checkpoint_hdf(fn,job_buf,it_buf,np_buf,ipu,time,count_pset,count_out,count_skip,npv,fn_hdf)
+           call read_checkpoint_hdf(fn,job_buf,it_buf,np_buf,ipu,time,count_pset,count_out,count_skip,npv,dt,fn_hdf)
            write(6,'(4i8,es12.4)') job,it,itt,it_out,time
 
            if(first)then
