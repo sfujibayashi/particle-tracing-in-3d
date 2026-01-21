@@ -147,8 +147,17 @@ contains
     call H5LTread_dataset_int_f(file_id,"/npv",ibuf1,dims1,error)
     npv=ibuf1(1)
 
-    call H5LTread_dataset_double_f(file_id,"/dt",buf1,dims1,error)
-    dt=buf1(1)
+
+    block
+      logical :: link_exists
+      call h5lexists_f(file_id,"/dt",link_exists,error)
+      if(link_exists)then
+         call H5LTread_dataset_double_f(file_id,"/dt",buf1,dims1,error)
+         dt=buf1(1)
+      else
+         dt=0d0
+      endif
+    end block
     
     deallocate(ibuf1,buf1)
 
