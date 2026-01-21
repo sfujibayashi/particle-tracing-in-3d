@@ -736,7 +736,7 @@ program main
         else
            dt_prv = dt
            dt = time - time_prv
-           if(abs(dt) > 2.d0*abs(dt_prv) .or. abs(dt_prv) > 2.d0*abs(dt))then
+           if(abs(dt_prv)>0d0 .and. (abs(dt) > 2.d0*abs(dt_prv) .or. abs(dt_prv) > 2.d0*abs(dt)))then
               write(6,*) "Something wrong with time step. Please check!"
               write(6,*) "dt    ",dt
               write(6,*) "dt_prv",dt_prv
