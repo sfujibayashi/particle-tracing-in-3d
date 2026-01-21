@@ -45,7 +45,7 @@ contains
         ,xd_e   (ntemp,0:nye,nrho), xt_e  (ntemp,0:nye,nrho), xh_e  (ntemp,0:nye,nrho) )
     
     
-    open(20,file=trim(adjustl(fn)) ,status="old", action="read", form="binary")
+    open(20,file=trim(adjustl(fn)) ,status="old", action="read", form="binary", convert="big_endian")
 
     read(20) tem_e, ye_e, rho_e         &
          ,pres_e, eps_e, sen_e, cs_e &
