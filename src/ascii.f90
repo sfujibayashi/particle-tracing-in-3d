@@ -48,6 +48,10 @@ subroutine ascii(model, dir_read, it_skip_out)
         if(job_min/=0)exit jobs
      endif
      job=job+1
+     if(job>1000)then
+        write(6,*) "steps*.dat is no found"
+        stop
+     endif
   enddo jobs
   write(6,'("job:",i5,"--",i5)') job_min,job_max
 
@@ -72,7 +76,7 @@ subroutine ascii(model, dir_read, it_skip_out)
 
            if(first)then
               np=ipu
-              write(6,*) "# of particles:",np
+              write(6,*) "# of particles:",np, fn
               call allocate_store(np,mem_max)
               call output_first(np,model,dir_out)
 
