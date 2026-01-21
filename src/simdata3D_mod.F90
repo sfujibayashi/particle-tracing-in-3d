@@ -672,10 +672,15 @@ contains
           write(6,*) "Error in reading hdf5 file. STOP.",lv,sum_err
           stop
        endif
-       
-       write(6,*) lv, "done..."
 
+       if(lv==lv_min)then
+          write(6,'(a)',advance='no') "reading levels = "
+       endif
+       write(6,'(i3,",")',advance='no') lv
+
+       call flush(6)
     enddo loop_read
+    write(6,*) "done"
     ! !$omp end do
     ! !$omp end parallel
 
