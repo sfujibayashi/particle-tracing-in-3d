@@ -27,11 +27,12 @@ FXX := ${COMPILER_NAME}
 
 FFLAGS:=${OPTION}
 # FFLAGS += -O0 -CB -traceback -g -fpe0 -check uninit -check pointers # -warn unused
-FFLAGS += -diag-disable=10121
-FFLAGS += -module $(OBJ_DIR)
+#FFLAGS += -diag-disable=10121
+#FFLAGS += -module $(OBJ_DIR)
+FFLAGS += -J$(OBJ_DIR)
 
 # library link
-LIBS :=
+LIBS := -lhdf5_hl_fortran -lhdf5_hl
 
 # suffix rule
 .SUFFIXES: .f90 .F90 .o .mod
@@ -53,15 +54,14 @@ module_rho_ye.f90\
 module_restart_hdf.f90\
 module_flux_sample.f90\
 condition_ejecta.f90\
+subroutine_analysis.f90\
 main.f90\
-coorindex3D.f90\
 evolution_particle_3D.f90\
 set_ejecta_inside_3D_divide.f90\
 set_ejecta_uniform.f90\
 recursive_division.f90\
 module_store.f90\
 ascii.f90\
-subroutine_analysis.f90\
 analysis.f90\
 print_data.f90\
 partial_output_hdf.f90
@@ -101,16 +101,16 @@ $(PROG): $(OBJ_FILES)
 	$(FXX) $(FFLAGS) -o $@ $(OBJ_FILES) $(OMPFLAGS) $(LIBS)
 
 $(OBJ_DIR)%.o: $(SRC_DIR)%.f90
-	$(FXX) $(FFLAGS) $(OMPFLAGS) $(LIBS) -c $< -o $@
+	$(FXX) $(FFLAGS) $(OMPFLAGS) -c $< -o $@
 
 $(OBJ_DIR)%.o: $(SRC_DIR)%.F90
-	$(FXX) $(FFLAGS) $(OMPFLAGS) $(LIBS) -c $< -o $@
+	$(FXX) $(FFLAGS) $(OMPFLAGS) -c $< -o $@
 
 $(OBJ_DIR)%.mod: $(SRC_DIR)%.f90
-	$(FXX) $(FFLAGS) $(OMPFLAGS) $(LIBS) -c $< -o $@
+	$(FXX) $(FFLAGS) $(OMPFLAGS) -c $< -o $@
 
 $(OBJ_DIR)%.mod: $(SRC_DIR)%.F90
-	$(FXX) $(FFLAGS) $(OMPFLAGS) $(LIBS) -c $< -o $@
+	$(FXX) $(FFLAGS) $(OMPFLAGS) -c $< -o $@
 
 # clean rule
 .PHONY: clean

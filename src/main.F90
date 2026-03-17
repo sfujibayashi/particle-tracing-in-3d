@@ -211,7 +211,10 @@ program main
      call ascii(model,dir_out,it_skip_out)
   endif
   if(do_only_analysis)then
-     call tr_analysis(model,dir_out)
+     block
+       use analysis
+       call tr_analysis(model,dir_out)
+     end block
   endif
   if(make_ascii_file .or. do_only_analysis)then
      stop
@@ -1015,12 +1018,15 @@ program main
   endif
   fn = trim(dir_out)//"/restart_info.dat"
   open(10,file=fn,status="replace",action="write")
-  write(10,'("job_min = ",i)') job_min
-  write(10,'("job_max = ",i)') job_max
+  write(10,'("job_min = ",i5)') job_min
+  write(10,'("job_max = ",i5)') job_max
   write(10,'("restart = ",a)') "T"
   close(10)
   
   call ascii(model,dir_out,it_skip_out)
-  call tr_analysis(model,dir_out)
+  block
+    use analysis
+    call tr_analysis(model,dir_out)
+  end block
   
 end program main
