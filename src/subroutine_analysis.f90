@@ -260,7 +260,6 @@ contains
 
        write(str1,'(i8.8)') ip
        fn=trim(dir_read)//"/traj_"//trim(str1)//".dat"
-       write(6,*) fn
        if(access(fn," ") == 0)then
           open(newunit=nunit,file=fn,status="old",action="read")
           read(nunit,*)
@@ -347,14 +346,14 @@ contains
                 endif
 
                 ! 10GK
-                if( 10.d9 <= tem_p(it) .and. 10.d9 > tem_p(it+1) ) then
+                if( 10.d9 <= tem_p(it) .and. 10.d9 > tem_p(it+1) .and. it_10gk==0 ) then
                    it_10gk = it
-                   if(it_5gk/=it_10gk)it_5gk = 0
-                   if(it_3gk/=it_10gk)it_3gk = 0
-                   if(it_1gk/=it_10gk)it_1gk = 0
+                   ! if(it_5gk/=it_10gk)it_5gk = 0
+                   ! if(it_3gk/=it_10gk)it_3gk = 0
+                   ! if(it_1gk/=it_10gk)it_1gk = 0
 
-                   tem_max_af3gk = 0.d0
-                   time_50gk_25gk = 0.d0
+                   ! tem_max_af3gk = 0.d0
+                   ! time_50gk_25gk = 0.d0
                 endif
 
                 if( it_3gk > 0 .and. tem_max_af3gk < temp_gk)then
