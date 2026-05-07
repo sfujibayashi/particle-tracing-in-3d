@@ -335,26 +335,26 @@ contains
              ! time at which the particle crosses T = 5 GK
              if( it < it_max )then
 
-                if( 5.d9 <= tem_p(it) .and. 5.d9 > tem_p(it+1) ) then
-                   if(it_5gk==0)it_5gk=it
-                endif
-                if( 3.d9 <= tem_p(it) .and. 3.d9 > tem_p(it+1) ) then
-                   if(it_3gk==0)it_3gk=it
-                endif
-                if( 1.d9 <= tem_p(it) .and. 1.d9 > tem_p(it+1) .and. it_3gk > 0 ) then
-                   it_1gk=it
-                endif
+                ! if( 5.d9 <= tem_p(it) .and. 5.d9 > tem_p(it+1) ) then
+                !    if(it_5gk==0)it_5gk=it
+                ! endif
+                ! if( 3.d9 <= tem_p(it) .and. 3.d9 > tem_p(it+1) ) then
+                !    if(it_3gk==0)it_3gk=it
+                ! endif
+                ! if( 1.d9 <= tem_p(it) .and. 1.d9 > tem_p(it+1) .and. it_3gk > 0 ) then
+                !    it_1gk=it
+                ! endif
 
-                ! 10GK
-                if( 10.d9 <= tem_p(it) .and. 10.d9 > tem_p(it+1) .and. it_10gk==0 ) then
-                   it_10gk = it
-                   ! if(it_5gk/=it_10gk)it_5gk = 0
-                   ! if(it_3gk/=it_10gk)it_3gk = 0
-                   ! if(it_1gk/=it_10gk)it_1gk = 0
+                ! ! 10GK
+                ! if( 10.d9 <= tem_p(it) .and. 10.d9 > tem_p(it+1) .and. it_10gk==0 ) then
+                !    it_10gk = it
+                !    ! if(it_5gk/=it_10gk)it_5gk = 0
+                !    ! if(it_3gk/=it_10gk)it_3gk = 0
+                !    ! if(it_1gk/=it_10gk)it_1gk = 0
 
-                   ! tem_max_af3gk = 0.d0
-                   ! time_50gk_25gk = 0.d0
-                endif
+                !    ! tem_max_af3gk = 0.d0
+                !    ! time_50gk_25gk = 0.d0
+                ! endif
 
                 if( it_3gk > 0 .and. tem_max_af3gk < temp_gk)then
                    tem_max_af3gk = temp_gk
@@ -380,6 +380,36 @@ contains
 
              ! write(6,'(i7,3es12.4,i7)') it, qrho_p(it),tem_p(it),time(it), it_5gk
           enddo
+
+          ! T=10GK point
+          find_10GK:do it=it_max,2,-1
+             if( tem_p(it) >= 10.d9 .and. 10.d9 > tem_p(it+1) ) then
+                it_10gk = it
+                exit find_10GK
+             endif
+          enddo find_10GK
+
+          find_5GK:do it=it_10GK,it_max
+             if(  tem_p(it) >= 5.d9 .and. 5.d9 > tem_p(it+1) ) then
+                it_5gk=it
+                exit find_5GK
+             endif
+          enddo find_5GK
+
+          find_3GK:do it=it_10GK,it_max
+             if(  tem_p(it) >= 3.d9 .and. 3.d9 > tem_p(it+1) ) then
+                it_3gk=it
+                exit find_3GK
+             endif
+          enddo find_3GK
+
+          find_1GK:do it=it_10GK,it_max
+             if(  tem_p(it) >= 1.d9 .and. 1.d9 > tem_p(it+1) ) then
+                it_1gk=it
+                exit find_1GK
+             endif
+          enddo find_1GK
+             
 
           it_init = 1
           do it=1,it_max
@@ -416,7 +446,8 @@ contains
           ! important value for nuc. reaction
           it = it_5gk
           if(it>0)then
-             s1 = (5.d9-tem_p(it))/(tem_p(it+1)-tem_p(it))
+             ! s1 = (5.d9-tem_p(it))/(tem_p(it+1)-tem_p(it))
+             s1 = 0d0
              s0 = 1.d0-s1
              t_5gk = s1*time (it+1) + s0*time (it)
              s_5gk = s1*sen_p(it+1) + s0*sen_p(it)
@@ -439,7 +470,8 @@ contains
 
           it = it_10gk
           if(it>0)then
-             s1 = (10.d9-tem_p(it))/(tem_p(it+1)-tem_p(it))
+             !s1 = (10.d9-tem_p(it))/(tem_p(it+1)-tem_p(it))
+             s1 = 0d0
              s0 = 1.d0-s1
              t_10gk = s1*time (it+1) + s0*time (it)
              s_10gk = s1*sen_p(it+1) + s0*sen_p(it)
@@ -482,7 +514,8 @@ contains
 
           it = it_3gk
           if(it>0)then
-             s1 = (3.d9-tem_p(it))/(tem_p(it+1)-tem_p(it))
+             ! s1 = (3.d9-tem_p(it))/(tem_p(it+1)-tem_p(it))
+             s1 = 0d0
              s0 = 1.d0-s1
              t_3gk = s1*time (it+1) + s0*time (it)
              s_3gk = s1*sen_p(it+1) + s0*sen_p(it)
@@ -495,7 +528,8 @@ contains
 
           it = it_1gk
           if(it>0)then
-             s1 = (1.d9-tem_p(it))/(tem_p(it+1)-tem_p(it))
+             ! s1 = (1.d9-tem_p(it))/(tem_p(it+1)-tem_p(it))
+             s1 = 0d0
              s0 = 1.d0-s1
              t_1gk = s1*time (it+1) + s0*time (it)
              s_1gk = s1*sen_p(it+1) + s0*sen_p(it)
