@@ -28,8 +28,8 @@ FXX := ${COMPILER_NAME}
 FFLAGS:=${OPTION}
 # FFLAGS += -O0 -CB -traceback -g -fpe0 -check uninit -check pointers # -warn unused
 #FFLAGS += -diag-disable=10121
-#FFLAGS += -module $(OBJ_DIR)
-FFLAGS += -J$(OBJ_DIR)
+FFLAGS += -module $(OBJ_DIR)
+#FFLAGS += -J$(OBJ_DIR)
 
 # library link
 LIBS := -lhdf5_hl_fortran -lhdf5_hl
