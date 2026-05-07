@@ -46,7 +46,8 @@ program main
   logical :: make_ascii_file
   ! whether only analysis of ascii files
   logical :: do_only_analysis
-  
+  ! time of the end of tracing
+  real(8) :: t_end
 
   integer :: step
 
@@ -98,7 +99,7 @@ program main
   character(200) :: fn_read
 
   !!! 3D
-  real(8) :: tms_start,tms_end,t_min,t_max!,tms_glo_min,tms_glo_max
+  real(8) :: t_min,t_max!,tms_glo_min,tms_glo_max
   integer :: n_pset
   logical :: link_exists
   !real(8),allocatable :: tsta_job(:),tend_job(:),dt_job(:)
@@ -138,7 +139,10 @@ program main
     call get_integer_parameter(fn_para, "it_start", it_start)
     call get_integer_parameter(fn_para, "it_skip", it_skip)
     call get_integer_parameter(fn_para, "it_skip_out", it_skip_out)
+    call get_double_parameter(fn_para, "t_end", t_end)
+
     call get_integer_parameter(fn_para, "n_theta", n_theta)
+
 
     call get_double_parameter(fn_para, "rfl", rfl)
     call get_double_parameter(fn_para, "rin", rin)
@@ -258,8 +262,6 @@ program main
   write(6,'("EOS table        : ",a)') trim(fn_eos)
   write(6,'("nrho, nye, ntemp : ",3i5)') nrho_in,nye_in,ntemp_in
 
-  tms_end = 5.d0
-  
 ! !!!
   call readeos(fn_eos,nrho_in,ntemp_in,nye_in)
 
@@ -633,7 +635,7 @@ program main
 
   
 !!! LOOP !!!!
-  do job = job1,job2, step
+  loop_job:do job = job1,job2, step
 
      ! write(str1,'(i3.3)') job
      ! fn = trim(dir_out)//"/pset_"//trim(str1)//".h5"
@@ -888,7 +890,7 @@ program main
                    ( &
                    ! tem_p(ip,ittot)>5.d0.or. &
                    ! ittot==itt_min.or. &
-                   time*1.d3<tms_end) )then
+                   time<t_end) )then
                  
                  flag_evol(ip) = 0
                  
@@ -917,7 +919,8 @@ program main
            
         endif
         
-        if(sum(flag_evol(:))==0)goto 100
+        ! leave the main loop if there is no particle traced and no particle to be newly added.
+        if(mode_volbased.and.sum(flag_evol(:))==0) goto 100
 
         if(first) first = .false.
         if(count_out == 0) count_out = it_skip_out
@@ -940,7 +943,7 @@ program main
      call save_checkpoint_hdf(fn,job,it_save,np,ipu,time,count_pset,count_out,count_skip,npv,dt,filename(job))
      
      
-  enddo !end of this job
+  enddo loop_job !end of this job
 100 continue
   write(6,'("Tracing finished.")')
 
