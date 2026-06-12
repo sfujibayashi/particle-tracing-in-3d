@@ -13,7 +13,9 @@ program main
   character(256) :: fn_eos,fn_eosb,fn_enu,fn_ynu,dir_read,fn,fn_out,label
   character(10) :: str1
 
-  integer :: itt_min,itt_max,np,ip,it,nt
+  character(256) :: fn_caprate, fn_caprate_neg, fn_etanu
+
+  integer :: itt_min,itt_max,np,ip,it,nt,np_skip
   real(8),allocatable :: time(:),mass_p(:)
   real(8),allocatable :: x_p(:),y_p(:),z_p(:),&
        qrho_p(:),&
@@ -88,9 +90,34 @@ program main
   !call make_epcap_table(1d-2,1d3,1d-2,1d2,401,401)
   !stop
 
-  call init_weak_table("caprate.dat","caprate_negeta.dat")
-
-  call etanu_init("etanu_test.dat")
+  block
+    use inputparser
+    call get_string_parameter("parameters","dir_read",dir_read)
+    call get_string_parameter("parameters","label",label)
+    call get_logical_parameter("parameters","mass_weighted",mass_weighted)
+    call get_string_parameter("parameters","fn_eos",fn_eos)
+    call get_string_parameter("parameters","fn_eosb",fn_eosb)
+    write(6,*) fn_eosb
+    call get_integer_parameter("parameters","ntemp",ntemp)
+    call get_double_parameter("parameters","temp_min",temp_min)
+    call get_double_parameter("parameters","temp_max",temp_max)
+    write(6,*) ntemp, temp_min, temp_max
+    itt_min = 1
+    call get_integer_parameter("parameters","itt_max",itt_max)
+    call get_integer_parameter("parameters","np",np)
+    call get_integer_parameter("parameters","np_skip",np_skip)
+    write(6,*) itt_min, itt_max, np, np_skip
+    call get_string_parameter("parameters","fn_caprate",fn_caprate)
+    write(6,*)trim( fn_caprate)
+    call get_string_parameter("parameters","fn_caprate_neg",fn_caprate_neg)
+    call get_string_parameter("parameters","fn_etanu",fn_etanu)
+  end block
+  fn_enu="/data/scratch/sfujibayashi/EOS/enu_to_chnu2"
+  fn_ynu="/data/scratch/sfujibayashi/EOS/ynu_to_chnu"
+  
+  call init_weak_table(fn_caprate, fn_caprate_neg)
+  
+  call etanu_init(fn_etanu)
   ! rhoynu = 1d11*2d-2
   
   ! call etanu_eta_f3(rhoynu*6d23*1d-39/5d0**3*197d0**3*2d0*pi**2, eta_nu, f3_nu)
@@ -112,12 +139,13 @@ program main
   ! dir_read="/scratch/sfujibayashi/Particle_trace_data/data_2D_T20/data_bind_1ms128r2.0e+09"; label="T20_reduced"; mass_weighted=.true.
   ! dir_read="/scratch/sfujibayashi/Particle_trace_data/data_2D_AD20x2/data_bind_1ms128r2.0e+09"; label="AD20x2_reduced"; mass_weighted=.true.
   ! dir_read="/scratch/sfujibayashi/Particle_trace_data/data_2D_AD20x1/data_bind_1ms128r2.0e+09"; label="AD20x1_reduced"; mass_weighted=.true.
-  dir_read="/scratch/sfujibayashi/Particle_trace_data/data_2D_AD09x1/data_bind_1ms128r2.0e+09"; label="AD09x1_reduced"; mass_weighted=.true.
+  !dir_read="/scratch/sfujibayashi/Particle_trace_data/data_2D_AD09x1/data_bind_1ms128r2.0e+09"; label="AD09x1_reduced"; mass_weighted=.true.
   ! dir_read="/scratch/sfujibayashi/Particle_trace_data/data_2D_BHdisk/data_bind_1ms64r2.0e+09"; label="BHdisk"; mass_weighted=.true.
+
   
-  ntemp=20
-  temp_min = 0.4d0
-  temp_max = 3.d0
+  ! ntemp=20
+  ! temp_min = 0.4d0
+  ! temp_max = 3.d0
   allocate(temp_list(ntemp),np_temp_list(ntemp),ye_av_list(ntemp),ye2_av_list(ntemp),mass_temp_list(ntemp),eta_av_list(ntemp),eta2_av_list(ntemp),sen_av_list(ntemp),sen2_av_list(ntemp), &
        texp_av_list(ntemp),texp2_av_list(ntemp))
 
@@ -128,30 +156,17 @@ program main
      ! write(6,*) itemp,temp_list(itemp)
   enddo
 
-#ifdef DD2
-  write(6,*) "DD2 EOS used"
-  fn_eos ="/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TF_326"
-  fn_eosb="/scratch/sfujibayashi/EOS/EOS_Hempel_DD2Tim_TFB"
-#endif
-#ifdef SFHo
-  write(6,*) "SFHo EOS used"
-  fn_eos ="/scratch/sfujibayashi/EOS/EOS_Hempel_SFHoTim_TF_326"
-  fn_eosb="/scratch/sfujibayashi/EOS/EOS_Hempel_SFHoTim_TFB"
-#endif
-  fn_enu="/scratch/sfujibayashi/EOS/enu_to_chnu2"
-  fn_ynu="/scratch/sfujibayashi/EOS/ynu_to_chnu"
-
   call readeos(fn_eos,fn_eosb,fn_ynu,fn_enu)
 
-  ! write(*,*) "model = ", trim(cmodel)
-  open(10,file=trim(dir_read)//"/report_ptr.dat",status="old",action="read")
-  read(10,*); read(10,*) itt_min
-  read(10,*); read(10,*) itt_max
-  read(10,*); read(10,*)
-  read(10,*); read(10,*)
-  !read(10,*); read(10,*);read(10,*); read(10,*)
-  read(10,*);read(10,*) np
-  close(10)
+  ! ! write(*,*) "model = ", trim(cmodel)
+  ! open(10,file=trim(dir_read)//"/report_ptr.dat",status="old",action="read")
+  ! read(10,*); read(10,*) itt_min
+  ! read(10,*); read(10,*) itt_max
+  ! read(10,*); read(10,*)
+  ! read(10,*); read(10,*)
+  ! !read(10,*); read(10,*);read(10,*); read(10,*)
+  ! read(10,*);read(10,*) np
+  ! close(10)
 
   allocate(ut1(np),hut(np))
   open(11,file=trim(dir_read)//"/ana_traj.dat",status="old",action="read")
@@ -159,6 +174,7 @@ program main
   do ip=1,np
      read(11,*) buf(1:30)
      ut1(ip) = buf(16)
+     hut(ip) = buf(17)
   enddo
   close(11)
 
@@ -205,8 +221,8 @@ program main
 
   ! ip_current = 1
   np_active(:) = 0
-
-  do ip=1,np,2
+  
+  do ip=1,np,np_skip
      !write(6,*) ip
      !if(ut1(ip)>1d0) continue
      
@@ -366,7 +382,7 @@ program main
            je1 = je +1
            tt   = max(0.d0, min(1.d0 ,     (ye_tmp-ye_e(je))*dyei))
            ttp  = 1.d0-tt
-           
+
            eta_tmp = ssp *ttp *uup * che_e(ie ,je ,ke )   &
                    + ss  *ttp *uup * che_e(ie1,je ,ke )   &
                    + ssp *tt  *uup * che_e(ie ,je1,ke )   &
@@ -468,6 +484,8 @@ program main
   enddo
   !stop
 
+  ! output
+
   allocate( ye_lw_temp_list(ntemp),ye_med_temp_list(ntemp),ye_rw_temp_list(ntemp))
   allocate( eta_lw_temp_list(ntemp),eta_med_temp_list(ntemp),eta_rw_temp_list(ntemp))
   allocate( sen_lw_temp_list(ntemp),sen_med_temp_list(ntemp),sen_rw_temp_list(ntemp))
@@ -491,9 +509,18 @@ program main
 
   open(12,file="median_"//trim(label)//".dat",status="replace")
   write(12,'("#",99es12.4)') fac_lw,fac_med,fac_rw
-  
+  write(12,'("#",99a15)')  "T",&
+       "Ye(L)", "Ye(med)", "Ye(R)",&
+       "texp(L)", "texp(med)", "texp(R)",&
+       "Rcap(L)", "Rcap(med)", "Rcap(R)",&
+       "Rabs(L)", "Rabs(med)", "Rabs(R)",&
+       "Ye(eq,cap)(L)", "Ye(eq,cap)(med)", "Ye(eq,cap)(R)",&
+       "Ye(eq,abs)(L)", "Ye(eq,abs)(med)", "Ye(eq,abs)(R)",&
+       "Ye(mu=0)(L)", "Ye(mu=0)(med)", "Ye(mu=0)(R)",&
+       "eta(L)", "eta(med)", "eta(R)",&
+       "entr(L)", "entr(med)", "entr(R)"
   do itemp=1,ntemp
-     write(12,'(99es12.4)') temp_list(itemp), &
+     write(12,'(" ",99es15.7)') temp_list(itemp), &
           ye_lw_temp_list(itemp),ye_med_temp_list(itemp),ye_rw_temp_list(itemp), &
           texp_lw_temp_list(itemp),texp_med_temp_list(itemp),texp_rw_temp_list(itemp), &
           caprate_lw_temp_list(itemp),caprate_med_temp_list(itemp),caprate_rw_temp_list(itemp), &
