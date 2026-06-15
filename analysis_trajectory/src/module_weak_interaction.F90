@@ -477,8 +477,12 @@ contains
     character(1) :: str1
     integer :: i_temp,i_eta
     real(8) :: hoge
+    integer :: iostat
 
-    open(11,file=fn,status="old")
+    open(11,file=fn,status="old",action="read",iostat=iostat)
+    if(iostat/=0)then
+       write(6,*) "something went wrong: fn=",trim(fn)
+    endif
     read(11,*) str1,n_temp,n_eta
 
     allocate(&
@@ -517,7 +521,10 @@ contains
     caprate_dlogtemp = caprate_logtemp(2) - caprate_logtemp(1)
 
     ! negative eta
-    open(11,file=fnn,status="old")
+    open(11,file=fnn,status="old",action="read",iostat=iostat)
+    if(iostat/=0)then
+       write(6,*) "something went wrong: fn=",trim(fn)
+    endif
     read(11,*)
     
     allocate(&
