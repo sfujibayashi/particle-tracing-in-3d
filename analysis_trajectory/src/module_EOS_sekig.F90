@@ -1,30 +1,37 @@
-module module_EOS_sekig
+module module_eos
 #include "macro.h"
   implicit none
 
   integer :: ied,ieu,ked,keu,jed,jeu
-#ifdef Timmes
-  ! --- Nuc. EOS + Timmes EOS
-  ! -- Full Range
-  parameter(ied =1, ieu =131 )
-  parameter(jed =1, jeu =61 )
-#ifdef SFHo
-  parameter(ked =1, keu =408) ! --- SFHo+Timmes
-#else
-  parameter(ked =1, keu =426) ! --- DD2+Timmes
-#endif
 
-#else
-  ! -- Full Range
-  parameter(ied =1, ieu =81 )
-  parameter(jed =1, jeu =61 )
-#ifdef SFHo
-  parameter(ked =1, keu =308) ! --- SFHo+Timmes
-#else
-  parameter(ked =1, keu =326) ! --- DD2+Timmes
-#endif
+parameter(ied=1,jed=1,ked=1)
+
+! parameter(ieu=131, keu=403, jeu=61)
+
+parameter(ieu=131, keu=408, jeu=61)
+
+! #ifdef Timmes
+!   ! --- Nuc. EOS + Timmes EOS
+!   ! -- Full Range
+!   parameter(ied =1, ieu =131 )
+!   parameter(jed =1, jeu =61 )
+! #ifdef SFHo
+!   parameter(ked =1, keu =408) ! --- SFHo+Timmes
+! #else
+!   parameter(ked =1, keu =426) ! --- DD2+Timmes
+! #endif
+
+! #else
+!   ! -- Full Range
+!   parameter(ied =1, ieu =81 )
+!   parameter(jed =1, jeu =61 )
+! #ifdef SFHo
+!   parameter(ked =1, keu =308) ! --- SFHo+Timmes
+! #else
+!   parameter(ked =1, keu =326) ! --- DD2+Timmes
+! #endif
   
-#endif
+! #endif
 
   real(8) :: rho_e_min,tem_e_min,ye_e_min,drho_e,dye_e,dtem_e,drhoi,dyei,dtemi
   parameter(drho_e =  0.04d0, drhoi=1.d0/drho_e)
@@ -53,22 +60,22 @@ module module_EOS_sekig
         ,xA_eb  (ied:ieu,jed:jeu,ked:keu), xy_eb (ied:ieu,jed:jeu,ked:keu)  &
         ,xd_eb  (ied:ieu,jed:jeu,ked:keu), xt_eb (ied:ieu,jed:jeu,ked:keu), xh_eb (ied:ieu,jed:jeu,ked:keu) 
 
-#ifdef Timmes
-  integer ::ierd,ieru,jerd,jeru,kerd,keru,knuc
-  ! --- High-density EOS region
-  parameter(ierd =51    , ieru =ieu )
-  parameter(jerd =jed, jeru =jeu )
-  parameter(kerd =101   , keru =keu )
+! #ifdef Timmes
+!   integer ::ierd,ieru,jerd,jeru,kerd,keru,knuc
+!   ! --- High-density EOS region
+!   parameter(ierd =51    , ieru =ieu )
+!   parameter(jerd =jed, jeru =jeu )
+!   parameter(kerd =101   , keru =keu )
 
-  ! --- above this density only Nuc. EOS is used in detehat,
-  ! --- i.e., the temperature search is performed above 0.1 MeV.
-  ! parameter(knuc = 276)
-  parameter(knuc = 326)
-  ! --- if Timmes EOS is not used, set knuc=0 and ierd=jerd=kerd=1.
+!   ! --- above this density only Nuc. EOS is used in detehat,
+!   ! --- i.e., the temperature search is performed above 0.1 MeV.
+!   ! parameter(knuc = 276)
+!   parameter(knuc = 326)
+!   ! --- if Timmes EOS is not used, set knuc=0 and ierd=jerd=kerd=1.
 
-  ! --- 1 for the region where beta-EOS is available, and 0 otherwise.
-  integer :: iflag_beos(ied:ieu,jed:jeu,ked:keu)
-#endif
+!   ! --- 1 for the region where beta-EOS is available, and 0 otherwise.
+!   integer :: iflag_beos(ied:ieu,jed:jeu,ked:keu)
+! #endif
 
   real(8) :: escn0,dscn,dscni,escn_min,esce0, dsce,dscei,esce_min
   integer :: inut,ient
@@ -95,7 +102,7 @@ contains
 
     integer :: inu
 
-    open(22,file=trim(adjustl(fn_ynu)) ,status='old',form='unformatted',access='stream')
+    open(22,file=trim(adjustl(fn_ynu)) ,status='old',form='unformatted',access='stream',convert="big_endian")
     read(22) escn, ech_nn, eprnn
     close(22)
 
@@ -103,11 +110,11 @@ contains
        escn(inu)=escn(inu)
     enddo
     
-    open(23,file=trim(adjustl(fn_enu)) ,status='old',form='unformatted',access='stream')
+    open(23,file=trim(adjustl(fn_enu)) ,status='old',form='unformatted',access='stream',convert="big_endian")
     read(23) esce, ech_ne, eprne, ynue, eave
     close(23)
     
-    open(20,file=trim(adjustl(fn_eos)) ,status='old',form='unformatted',access='stream')
+    open(20,file=trim(adjustl(fn_eos)) ,status='old',form='unformatted',access='stream',convert="big_endian")
     read(20) tem_e, ye_e, rho_e         &
          ,pres_e, eps_e, sen_e, cs_e &
          ,chn_e , chp_e, che_e       &
@@ -118,16 +125,16 @@ contains
     close(20)
 
     
-    open(21,file=trim(adjustl(fn_eosb)),status='old',form='unformatted',access='stream')
-    read(21)yl_eb                        &
-         ,pres_eb, eps_eb, sen_eb, cs_eb &
-         ,chn_eb , chp_eb, che_eb        &
-         ,aa_eb  , zz_eb                 &
-         ,xn_eb  , xp_eb , xA_eb         &
-         ,xd_eb  , xt_eb , xh_eb , xy_eb &
-         ,ye_eb  , yn_eb , ya_eb         &
-         ,ePnmin , eEnmin, eCnmin
-    close(21)
+    ! open(21,file=trim(adjustl(fn_eosb)),status='old',form='unformatted',access='stream')
+    ! read(21)yl_eb                        &
+    !      ,pres_eb, eps_eb, sen_eb, cs_eb &
+    !      ,chn_eb , chp_eb, che_eb        &
+    !      ,aa_eb  , zz_eb                 &
+    !      ,xn_eb  , xp_eb , xA_eb         &
+    !      ,xd_eb  , xt_eb , xh_eb , xy_eb &
+    !      ,ye_eb  , yn_eb , ya_eb         &
+    !      ,ePnmin , eEnmin, eCnmin
+    ! close(21)
 
     do ke=ked,keu
        rho_e(ke) = log10(rho_e(ke))
@@ -138,8 +145,8 @@ contains
 
     pres_e(:,:,:) = log10(pres_e(:,:,:))
     eps_e(:,:,:)  = log10(eps_e(:,:,:) + v_uni**2)
-    pres_eb(:,:,:) = log10(pres_eb(:,:,:))
-    eps_eb(:,:,:)  = log10(eps_eb(:,:,:) + v_uni**2)
+    ! pres_eb(:,:,:) = log10(pres_eb(:,:,:))
+    ! eps_eb(:,:,:)  = log10(eps_eb(:,:,:) + v_uni**2)
 
     rho_e_min=rho_e(ked)
     tem_e_min=tem_e(ied)
@@ -199,4 +206,4 @@ contains
     
   end subroutine interp_val
   
-end module module_EOS_sekig
+end module module_eos

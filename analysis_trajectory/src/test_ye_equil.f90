@@ -3,7 +3,7 @@ end module module_equilibrium_ye
 
 subroutine test_ye_equil
   use module_weak_interaction
-  use module_EOS_sekig
+  use module_eos
 
   implicit none
   
@@ -67,8 +67,8 @@ subroutine test_ye_equil
   ntem=100
   nrho=100
 
-  open(11,file="ye_equil_table.dat",status="replace")
-  
+  open(11,file="ye_equil_table.dat",status="replace",action="write")
+  write(11,'("#",99a15)') "rho", "T", "ye(equil)", "eta", "Xn", "Xp", "Rec", "Rpc", "Ye(munu=0)"
   do irho = 1,nrho
      write(11,*)
      do item=1,ntem
@@ -121,7 +121,7 @@ subroutine test_ye_equil
         call ye_equilibrium_capture(rho,tem,ye0,eta,xn,xp,ecap_nrate,pcap_nrate)
         call ye_equilibrium_munu0(rho,tem,ye_munu0)
         
-        write(11,'(99es13.4e3)') rho,tem,ye0,eta,xn,xp, ecap_nrate,pcap_nrate, ye_munu0
+        write(11,'(" ",99es15.6e3)') rho,tem,ye0,eta,xn,xp, ecap_nrate,pcap_nrate, ye_munu0
         ! write(6 ,'(99es13.4e3)') rho,tem,ye0,eta,xn,xp, ecap_nrate,pcap_nrate, ye_munu0
         !stop
      enddo
@@ -132,7 +132,7 @@ subroutine test_ye_equil
 end subroutine test_ye_equil
 
 subroutine nrate_cap(rho,tem,ye,eta,xn,xp,ecap_nrate, pcap_nrate)
-  use module_EOS_sekig
+  use module_eos
   use module_weak_interaction
 
   implicit none
@@ -222,7 +222,7 @@ subroutine nrate_cap(rho,tem,ye,eta,xn,xp,ecap_nrate, pcap_nrate)
 end subroutine nrate_cap
 
 subroutine nrate_cap_block(rho,tem,ye,eta_n,eta_a,eta, xn,xp,ecap_nrate, pcap_nrate)
-  use module_EOS_sekig
+  use module_eos
   use module_weak_interaction
 
   implicit none
@@ -314,7 +314,7 @@ subroutine nrate_cap_block(rho,tem,ye,eta_n,eta_a,eta, xn,xp,ecap_nrate, pcap_nr
 end subroutine nrate_cap_block
 
 subroutine ye_equilibrium_capture(rho,tem,ye,eta,xn,xp,ecap_nrate,pcap_nrate)
-  use module_EOS_sekig
+  use module_eos
   use module_weak_interaction
 
   implicit none
@@ -377,7 +377,7 @@ end subroutine ye_equilibrium_capture
 
 subroutine nrate_abs(rho,tem,ye,rne,rae,xn,xp,abs_n_nrate,abs_a_nrate)
   use unit, only : rho_uni, v_uni
-  use module_EOS_sekig
+  use module_eos
   use module_weak_interaction
 
   implicit none
@@ -616,7 +616,7 @@ end subroutine ye_equilibrium_abs
 
 
 subroutine munu_from_table(rho,tem,ye,munu)
-  use module_EOS_sekig
+  use module_eos
 
   implicit none
 
@@ -669,7 +669,7 @@ subroutine munu_from_table(rho,tem,ye,munu)
 end subroutine munu_from_table
 
 subroutine ye_munu0_linear(rho,tem,ye1,ye2,ye_munu0)
-  use module_EOS_sekig
+  use module_eos
 
   implicit none
 
@@ -729,7 +729,7 @@ subroutine ye_munu0_linear(rho,tem,ye1,ye2,ye_munu0)
 end subroutine ye_munu0_linear
 
 subroutine ye_equilibrium_munu0(rho,tem,ye_munu0)
-  use module_EOS_sekig
+  use module_eos
   implicit none
 
   real(8),intent(in) :: rho,tem
