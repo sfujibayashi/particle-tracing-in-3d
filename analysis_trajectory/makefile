@@ -3,20 +3,12 @@
 include make.inc
 
 EXE_DIR := bin/
-SRC_DIR := src/
 OBJ_DIR := obj/
 
-MAKE_TARGET := ptr
-# MAKE_TARGET := interp
+SRC_DIR := src/
+SRC2_DIR := ../src/
 
-
-# program file name
-ifeq ($(MAKE_TARGET),ptr)
-  PROG := $(EXE_DIR)ptr.out
-endif
-ifeq ($(MAKE_TARGET),interp)
-  PROG := $(EXE_DIR)interp.out
-endif
+PROG := $(EXE_DIR)a.out
 ifndef PROG
   $(error MAKE_TARGET is not set well. Specify ptr or interp)
 endif
@@ -39,50 +31,28 @@ LIBS := -lhdf5_hl_fortran -lhdf5_hl
 %.o: %.mod
 
 # source file
-ifeq ($(MAKE_TARGET),ptr)
-SRC:=\
-input_parser.f90\
-unit_mod.f90\
-const_mod.f90\
-module_eos.f90\
-io_mod.f90\
-simdata3D_mod.f90\
-particle_data_mod.f90\
-particle_set_mod.f90\
-divide.f90\
-module_rho_ye.f90\
-module_restart_hdf.f90\
-module_flux_sample.f90\
-condition_ejecta.f90\
-subroutine_analysis.f90\
-main.f90\
-evolution_particle_3D.f90\
-set_ejecta_inside_3D_divide.f90\
-set_ejecta_uniform.f90\
-recursive_division.f90\
-module_store.f90\
-ascii.f90\
-analysis.f90\
-print_data.f90\
-partial_output_hdf.f90
-endif
+MOD2 := module_eos.f90
+SRC2 :=
 
-ifeq ($(MAKE_TARGET),interp)
-SRC:=\
-input_parser.f90\
-unit_mod.f90\
-module_eos.f90\
-simdata3D_mod.f90\
-interp_data.f90\
-interpolation.f90
-endif
+MOD1:= input_parser.f90 unit_mod.f90 module_weak_interaction.f90 module_etanu.f90 #module_EOS_sekig.f90
 
-SRC := $(addprefix $(SRC_DIR), $(SRC))
+
+SRC1:= make_table.f90 test_weak_rate.f90 test_ye_equil.f90 sort_median.f90
+
+MOD :=
+MOD += $(addprefix $(SRC2_DIR), $(MOD2))
+MOD += $(addprefix $(SRC_DIR), $(MOD1))
+
+SRC :=
+SRC += $(addprefix $(SRC_DIR), $(SRC1))
+SRC += $(addprefix $(SRC2_DIR), $(SRC2))
+
+SRC := $(MOD) $(SRC)
 
 OBJ_FILES := $(addprefix $(OBJ_DIR),$(notdir $(SRC:.f90=.o)))
 MOD_FILES := $(addprefix $(OBJ_DIR),$(notdir $(MOD:.f90=.mod)))
 
-.PHONY: all dirs
+.PHONY: all dirs test
 
 all: dirs $(PROG)
 
@@ -111,6 +81,24 @@ $(OBJ_DIR)%.mod: $(SRC_DIR)%.f90
 
 $(OBJ_DIR)%.mod: $(SRC_DIR)%.F90
 	$(FXX) $(FFLAGS) $(OMPFLAGS) -c $< -o $@
+
+
+$(OBJ_DIR)%.o: $(SRC2_DIR)%.f90
+	$(FXX) $(FFLAGS) $(OMPFLAGS) -c $< -o $@
+
+$(OBJ_DIR)%.o: $(SRC2_DIR)%.F90
+	$(FXX) $(FFLAGS) $(OMPFLAGS) -c $< -o $@
+
+$(OBJ_DIR)%.mod: $(SRC2_DIR)%.f90
+	$(FXX) $(FFLAGS) $(OMPFLAGS) -c $< -o $@
+
+$(OBJ_DIR)%.mod: $(SRC2_DIR)%.F90
+	$(FXX) $(FFLAGS) $(OMPFLAGS) -c $< -o $@
+
+test:
+	@echo $(OBJ_FILES)
+	@echo $(SRC)
+	@echo $(SRC2)
 
 # clean rule
 .PHONY: clean

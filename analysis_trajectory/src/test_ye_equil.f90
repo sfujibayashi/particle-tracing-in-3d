@@ -3,7 +3,7 @@ end module module_equilibrium_ye
 
 subroutine test_ye_equil
   use module_weak_interaction
-  use module_eos
+  !use module_eos
 
   implicit none
   
@@ -326,6 +326,8 @@ subroutine ye_equilibrium_capture(rho,tem,ye,eta,xn,xp,ecap_nrate,pcap_nrate)
   real(8) :: ye1,ye2,ye0,f1,f2,f0
 
   integer :: itr,itrlim=30
+
+  real(8),parameter :: tol_ye=1d-6, tol_f=1d-6
   
   ye_min = 0.01d0
   ye_max = 0.60d0
@@ -333,12 +335,30 @@ subroutine ye_equilibrium_capture(rho,tem,ye,eta,xn,xp,ecap_nrate,pcap_nrate)
   ye1=ye_min
   ye2=ye_max
 
+  ! block
+  !   real(8) :: ye_test, rho_test, temp_test
+  !   integer :: i, n
+
+  !   rho_test = 1d7
+  !   temp_test = 2d0
+  !   n=1000
+  !   do i=1,n
+  !      ye_test = ye_min + (ye_max-ye_min)*dble(i-1)/dble(n-1)
+       
+  !      call nrate_cap(rho_test,temp_test,ye_test,eta,xn,xp,ecap_nrate,pcap_nrate)
+  !      f0 = (ecap_nrate - pcap_nrate)/(ecap_nrate + pcap_nrate)
+       
+  !      write(6,'(99es12.4)')  ye_test, f0, (ecap_nrate + pcap_nrate)
+       
+  !   enddo
+  !   stop
+  ! end block
+
   call nrate_cap(rho,tem,ye1,eta,xn,xp,ecap_nrate,pcap_nrate)
   f1 = (ecap_nrate - pcap_nrate)/(ecap_nrate + pcap_nrate)
   call nrate_cap(rho,tem,ye2,eta,xn,xp,ecap_nrate,pcap_nrate)
   f2 = (ecap_nrate - pcap_nrate)/(ecap_nrate + pcap_nrate)
 
-  !write(6,*) f1,f2
   !if(tem>4.99d0) write(6,'(99e12.4)')rho,tem,eta
   
   if(f1*f2>0d0)then
@@ -350,7 +370,7 @@ subroutine ye_equilibrium_capture(rho,tem,ye,eta,xn,xp,ecap_nrate,pcap_nrate)
      endif
 
   else
-     do itr=1,itrlim
+     find_ye:do itr=1,itrlim
         ye0 = 0.5d0*(ye1+ye2)
         call nrate_cap(rho,tem,ye0,eta,xn,xp,ecap_nrate,pcap_nrate)
 
@@ -364,9 +384,11 @@ subroutine ye_equilibrium_capture(rho,tem,ye,eta,xn,xp,ecap_nrate,pcap_nrate)
            ye2=ye0
         endif
 
-        !write(6,'(99es12.4)') ye1,ye0,ye2,f1,f0,f2
-
-     enddo
+        ! write(6,'(99es12.4)') ye1,ye0,ye2,f1,f0,f2, (ecap_nrate + pcap_nrate)
+        if(abs(f0) < tol_f)exit find_ye
+        if(abs(ye1-ye2) < tol_ye)exit find_ye
+        
+     enddo find_ye
   endif
 
   call nrate_cap(rho,tem,ye0,eta,xn,xp,ecap_nrate,pcap_nrate)
@@ -398,6 +420,10 @@ subroutine nrate_abs(rho,tem,ye,rne,rae,xn,xp,abs_n_nrate,abs_a_nrate)
   real(8),parameter :: f16=1d0/6d0, f56=5d0/6d0, f76=7d0/6d0, f23=2d0/3d0, f13=1d0/3d0, ppi=pi*pi, ppi2=ppi*ppi
   real(8) :: fmask,etax,fd5,fd4,fd3,fd2,ave53,ave43,ave32,ave23,ave54,eblk,blk
   real(8) :: fda3, ave33, dmnpx
+
+  real(8),parameter :: esce0=-47.d0, dscn=0.003d0, dscni =1.d0/dscn, dsce=0.002d0, dscei = 1.d0/dsce
+  integer,parameter :: inut=15001, ient = 20001
+  real(8) :: esce(1:ient), ech_ne(1:ient)
 
   call interp_coef(rho,tem,ye,irho,item,iye,uu,ss,tt)
   
@@ -682,10 +708,10 @@ subroutine ye_munu0_linear(rho,tem,ye1,ye2,ye_munu0)
   real(8) :: eta_e,mu_n,mu_p, munu_1, munu_2
 
   call interp_coef(rho,tem,ye1,irho,item,iye_1,uu,ss,tt)
-  iye_2  = max(jed , min(jeu-1, int((ye2-ye_e_min  )*dyei)+1))
+  iye_2  = max(1 , min(nye-1, int((ye2-ye_e_min  )*dyei)+1))
 
   if(iye_1/=iye_2)then
-     stop "not."
+     write(6,*) "not +1 difference?"
   endif
 
   iye_2=iye_1+1
@@ -787,3 +813,27 @@ subroutine ye_equilibrium_munu0(rho,tem,ye_munu0)
   
   ye_munu0 = ye0
 end subroutine ye_equilibrium_munu0
+
+subroutine interp_coef(rho,tem,ye,irho,item,iye,uu,ss,tt)
+  use module_eos
+  real(8),intent(in)  :: rho,tem,ye
+  real(8),intent(out) :: uu,ss,tt
+  integer,intent(out) :: irho,item,iye
+
+  !write(6,*) tem_e_min, rho_e_min, ye_e_min
+  ! write(6,*) dtemi, drhoi, dyei
+
+  item = max(1   , min(ntemp-1, int((log10(tem)-tem_e_min  )*dtemi)+1))
+  ss   = max(0.d0, min(1.d0 ,     (log10(tem)-tem_e(item))*dtemi))
+  
+  irho = max(1   , min(nrho-1, int((log10(rho)-rho_e_min  )*drhoi)+1))
+  uu   = max(0.d0, min(1.d0,      (log10(rho)-rho_e(irho))*drhoi))
+  
+  iye  = max(1   , min(nye-1, int((ye-ye_e_min  )*dyei)))
+  tt   = max(0.d0, min(1.d0 ,     (ye-ye_e(iye) )*dyei))
+
+  ! write(6,'(99es12.4)') tem_e(item), log10(tem), tem_e(item+1), ss
+  ! write(6,'(99es12.4)') rho_e(irho), log10(rho), rho_e(irho+1), uu
+  ! write(6,'(99es12.4)') ye_e(iye), ye, ye_e(iye+1), tt
+
+end subroutine interp_coef

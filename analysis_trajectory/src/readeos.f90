@@ -8,7 +8,7 @@ subroutine readeos(ceos,ceosb,cynu,cenu)
   character(200) :: fn
 
   open(20,file=trim(adjustl(ceos)) ,status='old',form='binary')
-  open(21,file=trim(adjustl(ceosb)),status='old',form='binary')
+  !open(21,file=trim(adjustl(ceosb)),status='old',form='binary')
   open(22,file=trim(adjustl(cynu)) ,status='old',form='binary')
   open(23,file=trim(adjustl(cenu)) ,status='old',form='binary')
   
@@ -70,24 +70,24 @@ subroutine readeos(ceos,ceosb,cynu,cenu)
 !       close(20)
 !----------
       ! --- set region where relativistic beta-equil. EOS is valid
-  iflag_beos = 0
-  do ie = ierd,ieru
-  do je = jerd,jeru
-  do ke = kerd,keru
-     iflag_beos(ie,je,ke)=1
-  enddo
-  enddo
-  enddo
-  ! ---
+  ! iflag_beos = 0
+  ! do ie = ierd,ieru
+  ! do je = jerd,jeru
+  ! do ke = kerd,keru
+  !    iflag_beos(ie,je,ke)=1
+  ! enddo
+  ! enddo
+  ! enddo
+  ! ! ---
 
-  read(21)yl_eb                          &
-         ,pres_eb, eps_eb, sen_eb, cs_eb &
-         ,chn_eb , chp_eb, che_eb        &
-         ,aa_eb  , zz_eb                 &
-         ,xn_eb  , xp_eb , xA_eb         &
-         ,xd_eb  , xt_eb , xh_eb , xy_eb &
-         ,ye_eb  , yn_eb , ya_eb         &
-         ,ePnmin , eEnmin, eCnmin
+  ! read(21)yl_eb                          &
+  !        ,pres_eb, eps_eb, sen_eb, cs_eb &
+  !        ,chn_eb , chp_eb, che_eb        &
+  !        ,aa_eb  , zz_eb                 &
+  !        ,xn_eb  , xp_eb , xA_eb         &
+  !        ,xd_eb  , xt_eb , xh_eb , xy_eb &
+  !        ,ye_eb  , yn_eb , ya_eb         &
+  !        ,ePnmin , eEnmin, eCnmin
   
 !   if(myrank==0)then
 !    do ie = ied,ieu
@@ -141,14 +141,14 @@ subroutine readeos(ceos,ceosb,cynu,cenu)
 !   enddo
 !   enddo
 
-  do ie = ied ,ieu
-  do je = jed ,jeu
-  do ke = ked ,keu
-     ye_eb(ie,je,ke) = yl_eb(je) - yn_eb(ie,je,ke) + ya_eb(ie,je,ke) 
-  enddo
-  enddo
-  enddo
-  close(21)
+  ! do ie = ied ,ieu
+  ! do je = jed ,jeu
+  ! do ke = ked ,keu
+  !    ye_eb(ie,je,ke) = yl_eb(je) - yn_eb(ie,je,ke) + ya_eb(ie,je,ke) 
+  ! enddo
+  ! enddo
+  ! enddo
+  ! close(21)
 
 !----------
 
@@ -173,9 +173,9 @@ subroutine readeos(ceos,ceosb,cynu,cenu)
      pres_e (ie,je,ke) = log10(pres_e (ie,je,ke)/rho_uni/v_uni**2)
      eps_e  (ie,je,ke) = log10( eps_e (ie,je,ke)/v_uni**2 + 1.d0)
      cs_e   (ie,je,ke) = log10(  cs_e (ie,je,ke))
-     pres_eb(ie,je,ke) = log10(pres_eb(ie,je,ke)/rho_uni/v_uni**2)
-     eps_eb (ie,je,ke) = log10( eps_eb(ie,je,ke)/v_uni**2 + 1.d0)
-     cs_eb  (ie,je,ke) = log10(  cs_eb(ie,je,ke))
+     ! pres_eb(ie,je,ke) = log10(pres_eb(ie,je,ke)/rho_uni/v_uni**2)
+     ! eps_eb (ie,je,ke) = log10( eps_eb(ie,je,ke)/v_uni**2 + 1.d0)
+     ! cs_eb  (ie,je,ke) = log10(  cs_eb(ie,je,ke))
   enddo
   enddo
   enddo
