@@ -39,6 +39,9 @@ contains
          rae_p (:),&
          deptn_p(:),&
          depta_p(:)
+    real(8) :: buf(100)
+    real(8) :: hhh_min_glo
+
     character(200) :: fn, str1,dir_out
 
     integer,parameter :: nflag=5
@@ -89,6 +92,11 @@ contains
 
     dir_out = dir_read
 
+    block
+      use module_eos
+      call get_h_min_glo(hhh_min_glo)
+    end block
+    
     write(6,*) "counting itt_max..."
 
     itt_min = 1
@@ -186,7 +194,7 @@ contains
          rne_p    (itt_min:itt_max),&
          rae_p    (itt_min:itt_max),&
          deptn_p  (itt_min:itt_max),&
-         depta_p  (itt_min:itt_max) )
+         depta_p  (itt_min:itt_max))
     allocate (n_cond(np) )
     allocate ( &
          mass_traj(np), &
@@ -237,8 +245,8 @@ contains
     !$omp   v_max_traj,x_ini_traj, y_ini_traj, z_ini_traj, rho_ini_traj, t_ini_traj, time_init, rho_max_traj, &
     !$omp   t_rho_max_traj, s_rho_max_traj, texp_rho_max_traj, ye_rho_max_traj, &
     !$omp   t_drip_traj, s_drip_traj, texp_drip_traj, ye_drip_traj, &
-    !$omp   s_tem_max_traj, texp_tem_max_traj, ye_tem_max_traj) &
-    !$omp private( fn,str1,nunit,it,time, x_p,y_p, z_p, vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, sen_p, rne_p, rae_p, &
+    !$omp   s_tem_max_traj, texp_tem_max_traj, ye_tem_max_traj, hhh_min_glo) &
+    !$omp private( fn,str1,nunit,it,time, x_p,y_p, z_p, vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, sen_p, rne_p, rae_p, ut_p, hhh_p, buf, &
     !$omp   it_max,it_tem_max,it_5gk,it_10gk,it_3gk,it_1gk, temp_gk, x_ini,y_ini,z_ini, &
     !$omp   smax_traj_7_0,smax_traj_7_4,smin_traj_7_0,smin_traj_7_4, r_fin, &
     !$omp   s1,s0,x_5gk, y_5gk, z_5gk, r_5gk, vx_5gk, vy_5gk, vz_5gk, vr_5gk, s_10gk, s_3gk, ye_3gk, s_1gk,ye_1gk, &
@@ -270,26 +278,31 @@ contains
 
           it=1
           do
-             read(nunit,*,end=99) &
-                  time(it), &
-                  x_p(it), &
-                  y_p(it), &
-                  z_p(it), &
-                  vlx_p(it), &
-                  vly_p(it), &
-                  vlz_p(it), &
-                  qrho_p(it), &
-                  tem_p(it), &
-                  ye_p(it), &
-                  sen_p(it), &
-                  rne_p(it), &
-                  rae_p(it)
+             read(nunit,*,end=99) buf(1:17)
+             time(it) = buf(1)
+             x_p(it) = buf(2)
+             y_p(it) = buf(3)
+             z_p(it) = buf(4)
+             vlx_p(it) = buf(5)
+             vly_p(it) = buf(6)
+             vlz_p(it) = buf(7)
+             qrho_p(it) = buf(8)
+             tem_p(it) = buf(9)
+             ye_p(it) = buf(10)
+             sen_p(it) = buf(11)
+             rne_p(it) = buf(12)
+             rae_p(it) = buf(13)
+             ut_p(it) = buf(16)
+             hhh_p(it) = buf(17)
 
              it = it + 1
           enddo
 99        continue
           close(nunit)
           it_max = it - 1
+          
+          ut1_fin_traj(ip) = ut_p(it_max) + 1d0
+          hut_fin_traj(ip) = hhh_p(it_max)*ut_p(it_max) + hhh_min_glo
 
           ! analysis of the trajectories
           smax_traj_7_0=0.d0
@@ -320,7 +333,7 @@ contains
                 it_tem_max = it
              endif
 
-             v_max = max(v_max, sqrt(sqrt(vlx_p(it)**2 + vly_p(it)**2 + vlz_p(it)**2)))
+             v_max = max(v_max, sqrt(vlx_p(it)**2 + vly_p(it)**2 + vlz_p(it)**2))
 
              ! max, minimum entropy values in 0 < T < 7
              if(0.d0 < temp_gk .and. temp_gk < 7.d9)then
