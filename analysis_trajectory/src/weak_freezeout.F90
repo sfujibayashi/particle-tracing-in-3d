@@ -53,6 +53,7 @@ program weak_freezeout
   ! Keep the same convention as the original program: one extra array slot.
   itt_max = itt_max + 1
   write(*,'("np, itt_min, itt_max=",3i7)') np, itt_min, itt_max
+  write(*,'(a)') "Tracer loop uses OpenMP when compiled with OpenMP enabled."
 
   allocate(result_time(nresult,np), result_dye(nresult,np))
   allocate(result_dng(nresult,np),  result_dnv(nresult,np))
@@ -82,8 +83,14 @@ program weak_freezeout
   open(newunit=nunit_out4, file=fn, status="replace", action="write")
   call write_header(nunit_out4)
 
-  ! This loop remains serial for now.  It can later be changed to an
-  ! OpenMP loop because process_one_tracer uses only local work arrays.
+  ! Each tracer is independent.  The result arrays are shared, but each
+  ! iteration writes only to its own ip column.  All work arrays inside
+  ! process_one_tracer are local to the calling thread.
+  !$omp parallel do default(none) schedule(dynamic,4) &
+  !$omp& shared(np_start,np,np_skip,mass_p,dir_read,itt_min,itt_max) &
+  !$omp& shared(dye_fo,dng_fo,dnv_fo) &
+  !$omp& shared(result_time,result_dye,result_dng,result_dnv,valid) &
+  !$omp& private(ip)
   do ip = np_start, np, np_skip
     call process_one_tracer( &
          ip, mass_p(ip), dir_read, itt_min, itt_max, &
@@ -91,6 +98,7 @@ program weak_freezeout
          result_time(:,ip), result_dye(:,ip), &
          result_dng(:,ip), result_dnv(:,ip), valid(ip))
   enddo
+  !$omp end parallel do
 
   ! Keep file output outside process_one_tracer.  This preserves particle
   ! ordering and avoids concurrent writes when the loop is parallelized.
@@ -184,19 +192,22 @@ contains
 
     ! Read the tracer trajectory.
     fn = trim(dir_read)//"/traj_"//trim(str1)//".dat"
-    write(6,'(a)') trim(fn)
 
     open(newunit=unit_traj, file=fn, status="old", &
          action="read", iostat=ios)
     if (ios /= 0) then
+      !$omp critical(log_output)
       write(6,*) "Error: cannot open trajectory file:", trim(fn)
+      !$omp end critical(log_output)
       return
     endif
 
     do it = 1, 4
       read(unit_traj,*,iostat=ios)
       if (ios /= 0) then
+        !$omp critical(log_output)
         write(6,*) "Error: incomplete trajectory header:", ip
+        !$omp end critical(log_output)
         close(unit_traj)
         return
       endif
@@ -207,14 +218,18 @@ contains
       read(unit_traj,*,iostat=ios) hoge(1:10)
       if (ios < 0) exit
       if (ios > 0) then
+        !$omp critical(log_output)
         write(6,*) "Error while reading trajectory:", ip, nt+1
+        !$omp end critical(log_output)
         close(unit_traj)
         return
       endif
 
       nt = nt + 1
       if (nt > itt_max) then
+        !$omp critical(log_output)
         write(6,*) "Error: trajectory exceeds itt_max:", ip, nt, itt_max
+        !$omp end critical(log_output)
         close(unit_traj)
         return
       endif
@@ -233,7 +248,9 @@ contains
     close(unit_traj)
 
     if (nt < 1) then
+      !$omp critical(log_output)
       write(6,*) "Error: empty trajectory:", ip
+      !$omp end critical(log_output)
       return
     endif
 
@@ -246,20 +263,26 @@ contains
     fn = "./weak/weak_"//trim(str1)//".dat"
     inquire(file=fn, exist=file_exists)
     if (.not.file_exists) then
+      !$omp critical(log_output)
       write(6,*) "File does not exist:", trim(fn)
+      !$omp end critical(log_output)
       return
     endif
 
     open(newunit=unit_traj, file=fn, status="old", &
          action="read", iostat=ios)
     if (ios /= 0) then
+      !$omp critical(log_output)
       write(6,*) "Error: cannot open weak-rate file:", trim(fn)
+      !$omp end critical(log_output)
       return
     endif
 
     read(unit_traj,*,iostat=ios)
     if (ios /= 0) then
+      !$omp critical(log_output)
       write(6,*) "Error: incomplete weak-rate header:", ip
+      !$omp end critical(log_output)
       close(unit_traj)
       return
     endif
@@ -267,19 +290,25 @@ contains
     do it = 1, nt
       read(unit_traj,*,iostat=ios) hoge(1:9)
       if (ios /= 0) then
+        !$omp critical(log_output)
         write(6,*) "Error: weak-rate row-count mismatch:", ip, it-1, nt
+        !$omp end critical(log_output)
         close(unit_traj)
         return
       endif
 
       if (.not.ieee_is_finite(hoge(8))) then
+        !$omp critical(log_output)
         write(6,*) "Warning: replacing invalid rec by zero:", &
              ip, it, hoge(8)
+        !$omp end critical(log_output)
         hoge(8) = 0d0
       endif
       if (.not.ieee_is_finite(hoge(9))) then
+        !$omp critical(log_output)
         write(6,*) "Warning: replacing invalid rpc by zero:", &
              ip, it, hoge(9)
+        !$omp end critical(log_output)
         hoge(9) = 0d0
       endif
 
@@ -335,7 +364,9 @@ contains
     enddo
 
     if (it_fo_time == 0) then
+      !$omp critical(log_output)
       write(6,*) "Warning: no timescale freeze-out point:", ip
+      !$omp end critical(log_output)
       it_fo_time = nt
     endif
 
