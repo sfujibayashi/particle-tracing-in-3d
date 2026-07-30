@@ -1,518 +1,477 @@
 program weak_freezeout
 
   use unit
-
   use, intrinsic :: ieee_arithmetic
 
   implicit none
 
-  real(8),parameter :: emev=0.51099996d0
-  real(8),parameter :: mev2t9= 1.160445d1
+  integer, parameter :: nresult = 18
 
-  character(256) :: dir_read,fn,fn_out,label
-  character(10) :: str1
+  character(256) :: dir_read, fn, label, prefix
+  integer :: itt_min, itt_max, np, ip, np_skip, np_start
+  integer :: nunit_out, nunit_out2, nunit_out3, nunit_out4
 
-  integer :: itt_min,itt_max,np,ip,it,nt,np_skip,np_start
-  real(8),allocatable :: time(:),mass_p(:)
-  real(8),allocatable :: x_p(:),y_p(:),z_p(:),&
-       vlx_p (:),&
-       vly_p (:),&
-       vlz_p (:),&
-       qrho_p(:),&
-       tem_p (:),&
-       ye_p  (:),&
-       qb_p  (:),&
-       rpc_p (:),&
-       rec_p (:)
-
-  real(8),allocatable :: lambda_ec(:), lambda_pc(:)
-  real(8),allocatable :: dye_rem(:), dng_rem(:), dnv_rem(:)
-
-  integer :: unit_traj, nunit_out, nunit_out2, nunit_out3, nunit_out4
-  logical :: file_exists
-  integer :: idx
-  real(8) :: hoge(99)
+  real(8), allocatable :: mass_p(:)
+  real(8), allocatable :: result_time(:,:), result_dye(:,:)
+  real(8), allocatable :: result_dng(:,:), result_dnv(:,:)
+  logical, allocatable :: valid(:)
 
   real(8) :: dye_fo, dng_fo, dnv_fo
-  character(256) :: prefix
+  real(8) :: hoge(99)
 
   block
     use inputparser
-    call get_string_parameter("parameters","dir_read",dir_read)
-    call get_string_parameter("parameters","label",label)
+
+    call get_string_parameter ("parameters", "dir_read", dir_read)
+    call get_string_parameter ("parameters", "label",    label)
+
     itt_min = 1
-    call get_integer_parameter("parameters","itt_max",itt_max)
-    call get_integer_parameter("parameters","np",np)
-    call get_integer_parameter("parameters","np_start",np_start)
-    call get_integer_parameter("parameters","np_skip",np_skip)
+    call get_integer_parameter("parameters", "itt_max",  itt_max)
+    call get_integer_parameter("parameters", "np",       np)
+    call get_integer_parameter("parameters", "np_start", np_start)
+    call get_integer_parameter("parameters", "np_skip",  np_skip)
 
-    call get_double_parameter("parameters","dye_fo",dye_fo,0.01d0)
-    call get_double_parameter("parameters","dng_fo",dng_fo,0.01d0)
-    call get_double_parameter("parameters","dnv_fo",dnv_fo,0.01d0)
+    call get_double_parameter("parameters", "dye_fo", dye_fo, 0.01d0)
+    call get_double_parameter("parameters", "dng_fo", dng_fo, 0.01d0)
+    call get_double_parameter("parameters", "dnv_fo", dnv_fo, 0.01d0)
 
-    call get_string_parameter("parameters","prefix",prefix,"")
+    call get_string_parameter("parameters", "prefix", prefix, "")
   end block
 
-  allocate( mass_p(np) )
-       
+  allocate(mass_p(np))
 
-  open(11,file=trim(dir_read)//"/ana_traj.dat",status="old",action="read")
-  read(11,*);read(11,*)
-  do ip=1,np
-     read(11,*) hoge(1:10)
-     mass_p(ip) = hoge(3)
+  open(11, file=trim(dir_read)//"/ana_traj.dat", &
+       status="old", action="read")
+  read(11,*)
+  read(11,*)
+  do ip = 1, np
+    read(11,*) hoge(1:10)
+    mass_p(ip) = hoge(3)
   enddo
   close(11)
-  
+
+  ! Keep the same convention as the original program: one extra array slot.
   itt_max = itt_max + 1
-  write(*,'("np, itt_min, itt_max=",3i7)') np,itt_min,itt_max
+  write(*,'("np, itt_min, itt_max=",3i7)') np, itt_min, itt_max
 
-  allocate( &
-       time     (itt_min:itt_max),&
-       x_p      (itt_min:itt_max),&
-       y_p      (itt_min:itt_max),&
-       z_p      (itt_min:itt_max),&
-       vlx_p    (itt_min:itt_max),&
-       vly_p    (itt_min:itt_max),&
-       vlz_p    (itt_min:itt_max),&
-       qrho_p   (itt_min:itt_max),&
-       tem_p   (itt_min:itt_max),&
-       ye_p   (itt_min:itt_max),&
-       rpc_p    (itt_min:itt_max),&
-       rec_p    (itt_min:itt_max) )
+  allocate(result_time(nresult,np), result_dye(nresult,np))
+  allocate(result_dng(nresult,np),  result_dnv(nresult,np))
+  allocate(valid(np))
 
-  allocate(lambda_ec (itt_min:itt_max) )
-  allocate(lambda_pc (itt_min:itt_max) )
+  result_time = 0d0
+  result_dye  = 0d0
+  result_dng  = 0d0
+  result_dnv  = 0d0
+  valid       = .false.
 
-  allocate(dye_rem (itt_min:itt_max), dng_rem (itt_min:itt_max), dnv_rem (itt_min:itt_max) )
-  
-  if(len(prefix)>0)then
-     prefix = trim(prefix) // "_"
-  endif
+  if (len_trim(prefix) > 0) prefix = trim(prefix)//"_"
 
   fn = "./"//trim(prefix)//"weak_freezeout_timescale.dat"
   open(newunit=nunit_out, file=fn, status="replace", action="write")
-  write(nunit_out, '("#",99a15)') "ip", "mass", "t_FO", "x_FO", "y_FO", "z_FO", "vx_FO", "vy_FO", "vz_FO", "rho_FO", "T_FO", "Ye_FO", "Rec_FO", "Rpc_FO", "t_exp", "t_weak", "dye(after FO)", "dng(after FO)", "dnv(after FO)"
+  call write_header(nunit_out)
 
   fn = "./"//trim(prefix)//"weak_freezeout_dye.dat"
   open(newunit=nunit_out2, file=fn, status="replace", action="write")
-  write(nunit_out2, '("#",99a15)') "ip", "mass", "t_FO", "x_FO", "y_FO", "z_FO", "vx_FO", "vy_FO", "vz_FO", "rho_FO", "T_FO", "Ye_FO", "Rec_FO", "Rpc_FO", "t_exp", "t_weak", "dye(after FO)", "dng(after FO)", "dnv(after FO)"
+  call write_header(nunit_out2)
 
   fn = "./"//trim(prefix)//"weak_freezeout_dng.dat"
   open(newunit=nunit_out3, file=fn, status="replace", action="write")
-  write(nunit_out3, '("#",99a15)') "ip", "mass", "t_FO", "x_FO", "y_FO", "z_FO", "vx_FO", "vy_FO", "vz_FO", "rho_FO", "T_FO", "Ye_FO", "Rec_FO", "Rpc_FO", "t_exp", "t_weak", "dye(after FO)", "dng(after FO)", "dnv(after FO)"
-  
+  call write_header(nunit_out3)
+
   fn = "./"//trim(prefix)//"weak_freezeout_dnv.dat"
   open(newunit=nunit_out4, file=fn, status="replace", action="write")
-  write(nunit_out4, '("#",99a15)') "ip", "mass", "t_FO", "x_FO", "y_FO", "z_FO", "vx_FO", "vy_FO", "vz_FO", "rho_FO", "T_FO", "Ye_FO", "Rec_FO", "Rpc_FO", "t_exp", "t_weak", "dye(after FO)", "dng(after FO)", "dnv(after FO)"
-  
-  do ip=np_start,np,np_skip
-     
-     write(str1,'(i8.8)') ip
-     fn = trim(dir_read)//"/traj_"//trim(str1)//".dat"
-     write(6,'(a)') trim(fn)
-     open(newunit=unit_traj,file=fn,status="old",action="read")
-     read(unit_traj,*)
-     read(unit_traj,*)
-     read(unit_traj,*)
-     read(unit_traj,*)
-     it = 0
-     do
-        nt = it
-        it = it + 1
-        read(unit_traj,*,end=99) hoge(1:10)
-        time(it) = hoge(1)
-        x_p(it) = hoge(2)
-        y_p(it) = hoge(3)
-        z_p(it) = hoge(4)
-        vlx_p(it) = hoge(5)
-        vly_p(it) = hoge(6)
-        vlz_p(it) = hoge(7)
-        qrho_p(it) = hoge(8)
-        tem_p(it) = hoge(9)
-        ye_p(it) = hoge(10)
-     enddo
-99   continue
-     close(unit_traj)
-     
-!!! misc. file
-     rpc_p(:) = 0d0
-     rec_p(:) = 0d0
-     lambda_ec(:) = 0d0
-     lambda_pc(:) = 0d0
+  call write_header(nunit_out4)
 
-     fn = "./weak/weak_"//trim(str1)//".dat"
-     inquire(file=fn, exist=file_exists)
-     if(.not.file_exists)then
-        write(6,*) "file not exists"
-        write(6,'(a)') trim(fn)
-        cycle
-     endif
-        
-     open(newunit=unit_traj,file=fn,status="old")
-     read(unit_traj,*)
-
-     do it=1,nt
-        read(unit_traj,*,end=991) hoge(1:9)
-        if (.not.ieee_is_finite(hoge(8))) then
-           write(6,*) "Warning: replacing invalid rec by zero:",ip,it,hoge(8)
-           hoge(8) = 0d0
-        endif
-        if (.not.ieee_is_finite(hoge(9))) then
-           write(6,*) "Warning: replacing invalid rpc by zero:",ip,it,hoge(9)
-           hoge(9) = 0d0
-        endif
-        
-        rec_p(it) = hoge(8)
-        rpc_p(it) = hoge(9)
-
-        if(hoge(7) == 0d0)then
-           lambda_ec(it) = 0d0
-        else
-           lambda_ec(it) = hoge(8)/hoge(7)
-        endif
-
-        if(hoge(6) == 0d0)then
-           lambda_pc(it) = 0d0
-        else
-           lambda_pc(it) = hoge(9)/hoge(6)
-        endif
-     enddo
-991  continue
-     close(unit_traj)
-
-     ! calculate the cumulative number of reactions from the final time.
-     block
-       real(8) :: dt
-       dye_rem(nt) = 0d0
-       dng_rem(nt) = 0d0
-       dnv_rem(nt) = 0d0
-       
-       do it = nt-1, 1, -1
-          dt = time(it+1) - time(it)
-          
-          dye_rem(it) = dye_rem(it+1) + 0.5d0*dt * &
-               ( (-rec_p(it)   + rpc_p(it)) + &
-               (-rec_p(it+1) + rpc_p(it+1)) )
-          
-          dng_rem(it) = dng_rem(it+1) + 0.5d0*dt * &
-               ( (rec_p(it)   + rpc_p(it)) + &
-               (rec_p(it+1) + rpc_p(it+1)) )
-          
-          dnv_rem(it) = dnv_rem(it+1) + 0.5d0*dt * &
-               ( abs(-rec_p(it)   + rpc_p(it)) + &
-               abs(-rec_p(it+1) + rpc_p(it+1)) )
-       enddo
-     end block
-
-     block
-       real(8) :: t_weak, r_tmp, vr_tmp, t_exp
-       integer :: it_fo_time, it_fo_dye, it_fo_dng, it_fo_dnv
-
-       real(8) :: dye_after_fo_time, dng_after_fo_time, dnv_after_fo_time, t_weak_fo_time, t_exp_fo_time
-       real(8) :: dye_after_fo_dye, dng_after_fo_dye, dnv_after_fo_dye, t_weak_fo_dye, t_exp_fo_dye
-       real(8) :: dye_after_fo_dng, dng_after_fo_dng, dnv_after_fo_dng, t_weak_fo_dng, t_exp_fo_dng
-       real(8) :: dye_after_fo_dnv, dng_after_fo_dnv, dnv_after_fo_dnv, t_weak_fo_dnv, t_exp_fo_dnv
-
-       
-       it_fo_time = 0
-       find_fo:do it=nt,1,-1
-          t_weak = 1d0/(lambda_ec(it) + lambda_pc(it))
-          
-          r_tmp =  sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2)
-          vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + z_p(it)*vlz_p(it))/r_tmp
-          t_exp = r_tmp/abs(vr_tmp)
-          
-          if(vr_tmp > 0d0 .and. t_weak < t_exp)then
-             it_fo_time = it
-             exit find_fo
-          endif
-       enddo find_fo
-       if (it_fo_time == 0) then
-          write(6,*) "Warning: no timescale freeze-out point:", ip
-          it_fo_time = nt
-       endif
-
-       dye_after_fo_time = dye_rem(it_fo_time)
-       dng_after_fo_time = dng_rem(it_fo_time)
-       dnv_after_fo_time = dnv_rem(it_fo_time)
-
-
-       it_fo_dye = 1
-       do it = nt-1, 1, -1
-          if (abs(dye_rem(it)) > dye_fo) then
-             it_fo_dye = it + 1
-             exit
-          endif
-       enddo
-       
-       dye_after_fo_dye = dye_rem(it_fo_dye)
-       dng_after_fo_dye = dng_rem(it_fo_dye)
-       dnv_after_fo_dye = dnv_rem(it_fo_dye)
-       
-       it_fo_dng = 1
-       do it = 1, nt
-          if (dng_rem(it) <= dng_fo) then
-             it_fo_dng = it
-             exit
-          endif
-       enddo
-
-       dye_after_fo_dng = dye_rem(it_fo_dng)
-       dng_after_fo_dng = dng_rem(it_fo_dng)
-       dnv_after_fo_dng = dnv_rem(it_fo_dng)
-
-       it_fo_dnv = 1
-       do it = 1, nt
-          if (dnv_rem(it) <= dnv_fo) then
-             it_fo_dnv = it
-             exit
-          endif
-       enddo
-
-       dye_after_fo_dnv = dye_rem(it_fo_dnv)
-       dng_after_fo_dnv = dng_rem(it_fo_dnv)
-       dnv_after_fo_dnv = dnv_rem(it_fo_dnv)
-
-       it=it_fo_time
-       t_weak_fo_time = 1d0/(lambda_ec(it) + lambda_pc(it))
-       r_tmp =  sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2)
-       vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + z_p(it)*vlz_p(it))/r_tmp
-       t_exp_fo_time = r_tmp/abs(vr_tmp)
-       
-       it=it_fo_dye
-       t_weak_fo_dye = 1d0/(lambda_ec(it) + lambda_pc(it))
-       r_tmp =  sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2)
-       vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + z_p(it)*vlz_p(it))/r_tmp
-       t_exp_fo_dye = r_tmp/abs(vr_tmp)
-
-       it=it_fo_dng
-       t_weak_fo_dng = 1d0/(lambda_ec(it) + lambda_pc(it))
-       r_tmp =  sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2)
-       vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + z_p(it)*vlz_p(it))/r_tmp
-       t_exp_fo_dng = r_tmp/abs(vr_tmp)
-
-       it=it_fo_dnv
-       t_weak_fo_dnv = 1d0/(lambda_ec(it) + lambda_pc(it))
-       r_tmp =  sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2)
-       vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + z_p(it)*vlz_p(it))/r_tmp
-       t_exp_fo_dnv = r_tmp/abs(vr_tmp)
-
-       write(nunit_out, '(" ",i15,99es15.6e3)') ip, mass_p(ip), time(it_fo_time), x_p(it_fo_time), y_p(it_fo_time), z_p(it_fo_time), vlx_p(it_fo_time), vly_p(it_fo_time), vlz_p(it_fo_time), qrho_p(it_fo_time), tem_p(it_fo_time), ye_p(it_fo_time), rec_p(it_fo_time), rpc_p(it_fo_time), t_exp_fo_time, t_weak_fo_time, dye_after_fo_time, dng_after_fo_time, dnv_after_fo_time
-
-       write(nunit_out2,'(" ",i15,99es15.6e3)') ip, mass_p(ip), time(it_fo_dye), x_p(it_fo_dye), y_p(it_fo_dye), z_p(it_fo_dye), vlx_p(it_fo_dye), vly_p(it_fo_dye), vlz_p(it_fo_dye), qrho_p(it_fo_dye), tem_p(it_fo_dye), ye_p(it_fo_dye), rec_p(it_fo_dye), rpc_p(it_fo_dye), t_exp_fo_dye, t_weak_fo_dye, dye_after_fo_dye, dng_after_fo_dye, dnv_after_fo_dye
-
-       write(nunit_out3,'(" ",i15,99es15.6e3)') ip, mass_p(ip), time(it_fo_dng), x_p(it_fo_dng), y_p(it_fo_dng), z_p(it_fo_dng), vlx_p(it_fo_dng), vly_p(it_fo_dng), vlz_p(it_fo_dng), qrho_p(it_fo_dng), tem_p(it_fo_dng), ye_p(it_fo_dng), rec_p(it_fo_dng), rpc_p(it_fo_dng), t_exp_fo_dng, t_weak_fo_dng, dye_after_fo_dng, dng_after_fo_dng, dnv_after_fo_dng
-
-       write(nunit_out4,'(" ",i15,99es15.6e3)') ip, mass_p(ip), time(it_fo_dnv), x_p(it_fo_dnv), y_p(it_fo_dnv), z_p(it_fo_dnv), vlx_p(it_fo_dnv), vly_p(it_fo_dnv), vlz_p(it_fo_dnv), qrho_p(it_fo_dnv), tem_p(it_fo_dnv), ye_p(it_fo_dnv), rec_p(it_fo_dnv), rpc_p(it_fo_dnv), t_exp_fo_dnv, t_weak_fo_dnv, dye_after_fo_dnv, dng_after_fo_dnv, dnv_after_fo_dnv
-
-     end block
-     
-     ! block
-     !   real(8) :: t_weak, r_tmp, vr_tmp, t_exp
-     !   integer :: it_fo, it_fo_dye, it_fo_dng, it_fo_dnv
-       
-     !   real(8) :: dt, dye, dng, dnv
-     !   real(8) :: dye_after_fo , dng_after_fo , dnv_after_fo , t_weak_fo , t_exp_fo
-     !   real(8) :: dye_after_fo2, dng_after_fo2, dnv_after_fo2, t_weak_dye, t_exp_dye
-     !   real(8) :: dye_after_fo3, dng_after_fo3, dnv_after_fo3, t_weak_dng, t_exp_dng
-     !   real(8) :: dye_after_fo4, dng_after_fo4, dnv_after_fo4, t_weak_dnv, t_exp_dnv
-
-     !   it_fo     = 0
-     !   find_fo:do it=nt,1,-1
-     !      !write(6,*)it, ye_p(it),rec_p(it),rpc_p(it), x_p(it)
-     !      ! t_weak = ye_p(it)/(rec_p(it) + rpc_p(it))
-     !      t_weak = 1d0/(lambda_ec(it) + lambda_pc(it))
-          
-     !      r_tmp =  sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2)
-     !      vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + z_p(it)*vlz_p(it))/r_tmp
-     !      t_exp = r_tmp/abs(vr_tmp)
-          
-     !      if(vr_tmp > 0d0 .and. t_weak < t_exp)then
-     !         it_fo = it
-     !         exit find_fo
-     !      endif
-     !   enddo find_fo
-     !   if (it_fo == 0) then
-     !      write(6,*) "Warning: no timescale freeze-out point:", ip
-     !      it_fo = nt
-     !   endif
-
-     !   it=it_fo
-     !   ! t_weak_fo = ye_p(it)/(rec_p(it) + rpc_p(it))
-     !   t_weak_fo = 1d0/(lambda_ec(it) + lambda_pc(it))
-     !   r_tmp =  sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2)
-     !   vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + z_p(it)*vlz_p(it))/r_tmp
-     !   t_exp_fo = r_tmp/abs(vr_tmp)
-
-       
-     !   dye = 0d0
-     !   dng = 0d0
-     !   dnv = 0d0
-     !   do it=it_fo,nt-1
-     !      dt = time(it+1) - time(it)
-          
-     !      if (dt <= 0d0) then
-     !         write(6,*) "Warning: non-positive dt:", ip, it, dt
-     !         cycle
-     !      endif
-          
-     !      dye = dye + 0.5d0*dt * &
-     !           ( (-rec_p(it)   + rpc_p(it))  + &
-     !             (-rec_p(it+1) + rpc_p(it+1)) )
-     !      dng  = dng + 0.5d0*dt * &
-     !           ( (rec_p(it)   + rpc_p(it))  + &
-     !             (rec_p(it+1) + rpc_p(it+1)) )
-     !      dnv = dnv + 0.5d0*dt * &
-     !           ( abs(-rec_p(it)   + rpc_p(it))  + &
-     !             abs(-rec_p(it+1) + rpc_p(it+1)) )
-
-     !   enddo
-     !   dye_after_fo = dye
-     !   dng_after_fo = dng
-     !   dnv_after_fo = dnv
-
-     !   ! FO condition 2 (dYe)
-     !   it_fo_dye = 0
-     !   dye = 0d0
-     !   find_fo_dye:do it=nt-1,1,-1
-     !      dt = time(it+1) - time(it)
-     !      dye = dye + 0.5d0*dt * &
-     !           ( (-rec_p(it)   + rpc_p(it)) + &
-     !             (-rec_p(it+1) + rpc_p(it+1)) )
-     !      if( abs(dye) > dye_fo)then
-     !         it_fo_dye = it
-     !         exit find_fo_dye
-     !      endif
-     !   enddo find_fo_dye
-       
-     !   if (it_fo_dye == 0) then
-     !      write(6,*) "Warning: total weak exposure is below dye_fo:", ip, dye
-     !      it_fo_dye = 1
-     !   endif
-
-     !   dng = 0d0
-     !   dnv = 0d0
-     !   do it=it_fo_dye,nt-1
-     !      dt = time(it+1) - time(it)
-     !      dng  = dng + 0.5d0*dt * &
-     !           ( (rec_p(it)   + rpc_p(it))  + &
-     !             (rec_p(it+1) + rpc_p(it+1)) )
-     !      dnv = dnv + 0.5d0*dt * &
-     !           ( abs(-rec_p(it)   + rpc_p(it))  + &
-     !             abs(-rec_p(it+1) + rpc_p(it+1)) )
-     !   enddo
-     !   dye_after_fo2 = dye
-     !   dng_after_fo2 = dng
-     !   dnv_after_fo2 = dnv
-
-
-     !   it=it_fo_dye
-     !   t_weak_dye = 1d0/(lambda_ec(it) + lambda_pc(it))
-     !   r_tmp =  sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2)
-     !   vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + z_p(it)*vlz_p(it))/r_tmp
-     !   t_exp_dye = r_tmp/abs(vr_tmp)
-
-     !   ! FO condition 3 (dNgross)
-     !   it_fo_dng = 0
-     !   dng = 0d0
-     !   find_fo_dng:do it=nt-1,1,-1
-     !      dt = time(it+1) - time(it)
-     !      dng = dng + 0.5d0*dt * &
-     !           ( ( rec_p(it)   + rpc_p(it)) + &
-     !             ( rec_p(it+1) + rpc_p(it+1)) )
-     !      if( abs(dng) > dn_fo)then
-     !         it_fo_dng = it
-     !         exit find_fo_dng
-     !      endif
-     !   enddo find_fo_dng
-
-     !   if (it_fo_dng == 0) then
-     !      write(6,*) "Warning: total weak exposure is below dng_fo:", ip, dng
-     !      it_fo_dng = 1
-     !   endif
-
-     !   dye = 0d0
-     !   dnv = 0d0
-     !   do it=it_fo_dng,nt-1
-     !      dt = time(it+1) - time(it)
-     !      dye = dye + 0.5d0*dt * &
-     !           ( (-rec_p(it)   + rpc_p(it))  + &
-     !             (-rec_p(it+1) + rpc_p(it+1)) )
-     !      dnv = dnv + 0.5d0*dt * &
-     !           ( abs(-rec_p(it)   + rpc_p(it))  + &
-     !             abs(-rec_p(it+1) + rpc_p(it+1)) )
-
-     !   enddo
-     !   dye_after_fo3 = dye
-     !   dng_after_fo3 = dng
-     !   dnv_after_fo3 = dnv
-
-     !   it=it_fo_dng
-     !   ! t_weak_dng = ye_p(it)/(rec_p(it) + rpc_p(it))
-     !   t_weak_dng = 1d0/(lambda_ec(it) + lambda_pc(it))
-     !   r_tmp =  sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2)
-     !   vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + z_p(it)*vlz_p(it))/r_tmp
-     !   t_exp_dng = r_tmp/abs(vr_tmp)
-
-
-     !   ! FO condition 4 (dNvariation)
-     !   it_fo_dnv = 0
-     !   dnv = 0d0
-     !   find_fo_dnv:do it=nt-1,1,-1
-     !      dt = time(it+1) - time(it)
-     !      dnv = dnv + 0.5d0*dt * &
-     !           ( abs(-rec_p(it)   + rpc_p(it)) + &
-     !             abs(-rec_p(it+1) + rpc_p(it+1)) )
-     !      if( abs(dnv) > dn_fo)then
-     !         it_fo_dnv = it
-     !         exit find_fo_dnv
-     !      endif
-     !   enddo find_fo_dnv
-
-     !   if (it_fo_dnv == 0) then
-     !      write(6,*) "Warning: total weak exposure is below dnv_fo:", ip, dnv
-     !      it_fo_dnv = 1
-     !   endif
-
-     !   dye = 0d0
-     !   dng = 0d0
-     !   do it=it_fo_dnv,nt-1
-     !      dt = time(it+1) - time(it)
-     !      dye = dye + 0.5d0*dt * &
-     !           ( (-rec_p(it)   + rpc_p(it))  + &
-     !             (-rec_p(it+1) + rpc_p(it+1)) )
-     !      dng = dng + 0.5d0*dt * &
-     !           ( (rec_p(it)   + rpc_p(it))  + &
-     !             (rec_p(it+1) + rpc_p(it+1)) )
-     !   enddo
-     !   dye_after_fo4 = dye
-     !   dng_after_fo4 = dng
-     !   dnv_after_fo4 = dnv
-
-     !   it=it_fo_dnv
-     !   ! t_weak_dnv = ye_p(it)/(rec_p(it) + rpc_p(it))
-     !   t_weak_dnv = 1d0/(lambda_ec(it) + lambda_pc(it))
-     !   r_tmp =  sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2)
-     !   vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + z_p(it)*vlz_p(it))/r_tmp
-     !   t_exp_dnv = r_tmp/abs(vr_tmp)
-
-
-     !   write(nunit_out, '(" ",i15,99es15.6e3)') ip, mass_p(ip), time(it_fo), x_p(it_fo), y_p(it_fo), z_p(it_fo), vlx_p(it_fo), vly_p(it_fo), vlz_p(it_fo), qrho_p(it_fo), tem_p(it_fo), ye_p(it_fo), rec_p(it_fo), rpc_p(it_fo), t_exp_fo, t_weak_fo, dye_after_fo, dng_after_fo, dnv_after_fo
-
-     !   write(nunit_out2,'(" ",i15,99es15.6e3)') ip, mass_p(ip), time(it_fo_dye), x_p(it_fo_dye), y_p(it_fo_dye), z_p(it_fo_dye), vlx_p(it_fo_dye), vly_p(it_fo_dye), vlz_p(it_fo_dye), qrho_p(it_fo_dye), tem_p(it_fo_dye), ye_p(it_fo_dye), rec_p(it_fo_dye), rpc_p(it_fo_dye), t_exp_dye, t_weak_dye, dye_after_fo2, dng_after_fo2, dnv_after_fo2
-
-     !   write(nunit_out3,'(" ",i15,99es15.6e3)') ip, mass_p(ip), time(it_fo_dng), x_p(it_fo_dng), y_p(it_fo_dng), z_p(it_fo_dng), vlx_p(it_fo_dng), vly_p(it_fo_dng), vlz_p(it_fo_dng), qrho_p(it_fo_dng), tem_p(it_fo_dng), ye_p(it_fo_dng), rec_p(it_fo_dng), rpc_p(it_fo_dng), t_exp_dng, t_weak_dng, dye_after_fo3, dng_after_fo3, dnv_after_fo3
-
-     !   write(nunit_out4,'(" ",i15,99es15.6e3)') ip, mass_p(ip), time(it_fo_dnv), x_p(it_fo_dnv), y_p(it_fo_dnv), z_p(it_fo_dnv), vlx_p(it_fo_dnv), vly_p(it_fo_dnv), vlz_p(it_fo_dnv), qrho_p(it_fo_dnv), tem_p(it_fo_dnv), ye_p(it_fo_dnv), rec_p(it_fo_dnv), rpc_p(it_fo_dnv), t_exp_dnv, t_weak_dnv, dye_after_fo4, dng_after_fo4, dnv_after_fo4
-       
-     !   ! write(6, '(" ",i15,99es15.6e3)') ip, mass_p(ip), time(it_fo), x_p(it_fo), y_p(it_fo), z_p(it_fo), vlx_p(it_fo), vly_p(it_fo), vlz_p(it_fo), qrho_p(it_fo), tem_p(it_fo), ye_p(it_fo), rec_p(it_fo), rpc_p(it_fo), t_exp, t_weak, dye_after_fo
-
-     ! end block
+  ! This loop remains serial for now.  It can later be changed to an
+  ! OpenMP loop because process_one_tracer uses only local work arrays.
+  do ip = np_start, np, np_skip
+    call process_one_tracer( &
+         ip, mass_p(ip), dir_read, itt_min, itt_max, &
+         dye_fo, dng_fo, dnv_fo, &
+         result_time(:,ip), result_dye(:,ip), &
+         result_dng(:,ip), result_dnv(:,ip), valid(ip))
   enddo
+
+  ! Keep file output outside process_one_tracer.  This preserves particle
+  ! ordering and avoids concurrent writes when the loop is parallelized.
+  do ip = np_start, np, np_skip
+    if (.not.valid(ip)) cycle
+
+    write(nunit_out, '(" ",i15,99es15.6e3)') &
+         ip, result_time(:,ip)
+    write(nunit_out2,'(" ",i15,99es15.6e3)') &
+         ip, result_dye(:,ip)
+    write(nunit_out3,'(" ",i15,99es15.6e3)') &
+         ip, result_dng(:,ip)
+    write(nunit_out4,'(" ",i15,99es15.6e3)') &
+         ip, result_dnv(:,ip)
+  enddo
+
   close(nunit_out)
   close(nunit_out2)
   close(nunit_out3)
   close(nunit_out4)
-  
+
+contains
+
+  subroutine write_header(nunit)
+    implicit none
+
+    integer, intent(in) :: nunit
+
+    write(nunit, '("#",99a15)') &
+         "ip", "mass", "t_FO", "x_FO", "y_FO", "z_FO", &
+         "vx_FO", "vy_FO", "vz_FO", "rho_FO", "T_FO", &
+         "Ye_FO", "Rec_FO", "Rpc_FO", "t_exp", "t_weak", &
+         "dye(after FO)", "dng(after FO)", "dnv(after FO)"
+  end subroutine write_header
+
+
+  subroutine process_one_tracer( &
+       ip, mass, dir_read, itt_min, itt_max, &
+       dye_fo, dng_fo, dnv_fo, &
+       result_time, result_dye, result_dng, result_dnv, valid)
+
+    use, intrinsic :: ieee_arithmetic
+
+    implicit none
+
+    integer, intent(in) :: ip, itt_min, itt_max
+    real(8), intent(in) :: mass, dye_fo, dng_fo, dnv_fo
+    character(*), intent(in) :: dir_read
+
+    real(8), intent(out) :: result_time(nresult)
+    real(8), intent(out) :: result_dye(nresult)
+    real(8), intent(out) :: result_dng(nresult)
+    real(8), intent(out) :: result_dnv(nresult)
+    logical, intent(out) :: valid
+
+    character(256) :: fn
+    character(10) :: str1
+    integer :: unit_traj, ios, it, nt
+    integer :: it_fo_time, it_fo_dye, it_fo_dng, it_fo_dnv
+    logical :: file_exists
+    real(8) :: hoge(99), dt
+    real(8) :: t_weak, t_exp, vr_tmp
+
+    real(8), allocatable :: time(:)
+    real(8), allocatable :: x_p(:), y_p(:), z_p(:)
+    real(8), allocatable :: vlx_p(:), vly_p(:), vlz_p(:)
+    real(8), allocatable :: qrho_p(:), tem_p(:), ye_p(:)
+    real(8), allocatable :: rec_p(:), rpc_p(:)
+    real(8), allocatable :: lambda_ec(:), lambda_pc(:)
+    real(8), allocatable :: dye_rem(:), dng_rem(:), dnv_rem(:)
+
+    result_time = 0d0
+    result_dye  = 0d0
+    result_dng  = 0d0
+    result_dnv  = 0d0
+    valid       = .false.
+
+    allocate(time(itt_min:itt_max))
+    allocate(x_p(itt_min:itt_max), y_p(itt_min:itt_max), &
+             z_p(itt_min:itt_max))
+    allocate(vlx_p(itt_min:itt_max), vly_p(itt_min:itt_max), &
+             vlz_p(itt_min:itt_max))
+    allocate(qrho_p(itt_min:itt_max), tem_p(itt_min:itt_max), &
+             ye_p(itt_min:itt_max))
+    allocate(rec_p(itt_min:itt_max), rpc_p(itt_min:itt_max))
+    allocate(lambda_ec(itt_min:itt_max), lambda_pc(itt_min:itt_max))
+    allocate(dye_rem(itt_min:itt_max), dng_rem(itt_min:itt_max), &
+             dnv_rem(itt_min:itt_max))
+
+    write(str1,'(i8.8)') ip
+
+    ! Read the tracer trajectory.
+    fn = trim(dir_read)//"/traj_"//trim(str1)//".dat"
+    write(6,'(a)') trim(fn)
+
+    open(newunit=unit_traj, file=fn, status="old", &
+         action="read", iostat=ios)
+    if (ios /= 0) then
+      write(6,*) "Error: cannot open trajectory file:", trim(fn)
+      return
+    endif
+
+    do it = 1, 4
+      read(unit_traj,*,iostat=ios)
+      if (ios /= 0) then
+        write(6,*) "Error: incomplete trajectory header:", ip
+        close(unit_traj)
+        return
+      endif
+    enddo
+
+    nt = 0
+    do
+      read(unit_traj,*,iostat=ios) hoge(1:10)
+      if (ios < 0) exit
+      if (ios > 0) then
+        write(6,*) "Error while reading trajectory:", ip, nt+1
+        close(unit_traj)
+        return
+      endif
+
+      nt = nt + 1
+      if (nt > itt_max) then
+        write(6,*) "Error: trajectory exceeds itt_max:", ip, nt, itt_max
+        close(unit_traj)
+        return
+      endif
+
+      time(nt)   = hoge(1)
+      x_p(nt)    = hoge(2)
+      y_p(nt)    = hoge(3)
+      z_p(nt)    = hoge(4)
+      vlx_p(nt)  = hoge(5)
+      vly_p(nt)  = hoge(6)
+      vlz_p(nt)  = hoge(7)
+      qrho_p(nt) = hoge(8)
+      tem_p(nt)  = hoge(9)
+      ye_p(nt)   = hoge(10)
+    enddo
+    close(unit_traj)
+
+    if (nt < 1) then
+      write(6,*) "Error: empty trajectory:", ip
+      return
+    endif
+
+    ! Read weak-interaction rates.
+    rec_p     = 0d0
+    rpc_p     = 0d0
+    lambda_ec = 0d0
+    lambda_pc = 0d0
+
+    fn = "./weak/weak_"//trim(str1)//".dat"
+    inquire(file=fn, exist=file_exists)
+    if (.not.file_exists) then
+      write(6,*) "File does not exist:", trim(fn)
+      return
+    endif
+
+    open(newunit=unit_traj, file=fn, status="old", &
+         action="read", iostat=ios)
+    if (ios /= 0) then
+      write(6,*) "Error: cannot open weak-rate file:", trim(fn)
+      return
+    endif
+
+    read(unit_traj,*,iostat=ios)
+    if (ios /= 0) then
+      write(6,*) "Error: incomplete weak-rate header:", ip
+      close(unit_traj)
+      return
+    endif
+
+    do it = 1, nt
+      read(unit_traj,*,iostat=ios) hoge(1:9)
+      if (ios /= 0) then
+        write(6,*) "Error: weak-rate row-count mismatch:", ip, it-1, nt
+        close(unit_traj)
+        return
+      endif
+
+      if (.not.ieee_is_finite(hoge(8))) then
+        write(6,*) "Warning: replacing invalid rec by zero:", &
+             ip, it, hoge(8)
+        hoge(8) = 0d0
+      endif
+      if (.not.ieee_is_finite(hoge(9))) then
+        write(6,*) "Warning: replacing invalid rpc by zero:", &
+             ip, it, hoge(9)
+        hoge(9) = 0d0
+      endif
+
+      rec_p(it) = hoge(8)
+      rpc_p(it) = hoge(9)
+
+      if (hoge(7) == 0d0) then
+        lambda_ec(it) = 0d0
+      else
+        lambda_ec(it) = hoge(8)/hoge(7)
+      endif
+
+      if (hoge(6) == 0d0) then
+        lambda_pc(it) = 0d0
+      else
+        lambda_pc(it) = hoge(9)/hoge(6)
+      endif
+    enddo
+    close(unit_traj)
+
+    ! Cumulative integrals from each time to the final time.
+    dye_rem(nt) = 0d0
+    dng_rem(nt) = 0d0
+    dnv_rem(nt) = 0d0
+
+    do it = nt-1, 1, -1
+      dt = time(it+1) - time(it)
+
+      dye_rem(it) = dye_rem(it+1) + 0.5d0*dt * &
+           ((-rec_p(it)   + rpc_p(it)) + &
+            (-rec_p(it+1) + rpc_p(it+1)))
+
+      dng_rem(it) = dng_rem(it+1) + 0.5d0*dt * &
+           ((rec_p(it)   + rpc_p(it)) + &
+            (rec_p(it+1) + rpc_p(it+1)))
+
+      dnv_rem(it) = dnv_rem(it+1) + 0.5d0*dt * &
+           (abs(-rec_p(it)   + rpc_p(it)) + &
+            abs(-rec_p(it+1) + rpc_p(it+1)))
+    enddo
+
+    ! Last point satisfying t_weak < t_exp during outward motion.
+    it_fo_time = 0
+    do it = nt, 1, -1
+      call calculate_timescales( &
+           it, x_p, y_p, z_p, vlx_p, vly_p, vlz_p, &
+           lambda_ec, lambda_pc, t_exp, t_weak, vr_tmp)
+
+      if (vr_tmp > 0d0 .and. t_weak < t_exp) then
+        it_fo_time = it
+        exit
+      endif
+    enddo
+
+    if (it_fo_time == 0) then
+      write(6,*) "Warning: no timescale freeze-out point:", ip
+      it_fo_time = nt
+    endif
+
+    ! First point after which |remaining net dYe| stays below dye_fo.
+    it_fo_dye = 1
+    do it = nt-1, 1, -1
+      if (abs(dye_rem(it)) > dye_fo) then
+        it_fo_dye = it + 1
+        exit
+      endif
+    enddo
+
+    ! First points where the monotonic gross/variation integrals are small.
+    it_fo_dng = 1
+    do it = 1, nt
+      if (dng_rem(it) <= dng_fo) then
+        it_fo_dng = it
+        exit
+      endif
+    enddo
+
+    it_fo_dnv = 1
+    do it = 1, nt
+      if (dnv_rem(it) <= dnv_fo) then
+        it_fo_dnv = it
+        exit
+      endif
+    enddo
+
+    call make_result( &
+         it_fo_time, mass, time, x_p, y_p, z_p, &
+         vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, &
+         rec_p, rpc_p, lambda_ec, lambda_pc, &
+         dye_rem, dng_rem, dnv_rem, result_time)
+
+    call make_result( &
+         it_fo_dye, mass, time, x_p, y_p, z_p, &
+         vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, &
+         rec_p, rpc_p, lambda_ec, lambda_pc, &
+         dye_rem, dng_rem, dnv_rem, result_dye)
+
+    call make_result( &
+         it_fo_dng, mass, time, x_p, y_p, z_p, &
+         vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, &
+         rec_p, rpc_p, lambda_ec, lambda_pc, &
+         dye_rem, dng_rem, dnv_rem, result_dng)
+
+    call make_result( &
+         it_fo_dnv, mass, time, x_p, y_p, z_p, &
+         vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, &
+         rec_p, rpc_p, lambda_ec, lambda_pc, &
+         dye_rem, dng_rem, dnv_rem, result_dnv)
+
+    valid = .true.
+  end subroutine process_one_tracer
+
+
+  subroutine calculate_timescales( &
+       it, x_p, y_p, z_p, vlx_p, vly_p, vlz_p, &
+       lambda_ec, lambda_pc, t_exp, t_weak, vr_tmp)
+
+    implicit none
+
+    integer, intent(in) :: it
+    real(8), intent(in) :: x_p(:), y_p(:), z_p(:)
+    real(8), intent(in) :: vlx_p(:), vly_p(:), vlz_p(:)
+    real(8), intent(in) :: lambda_ec(:), lambda_pc(:)
+    real(8), intent(out) :: t_exp, t_weak, vr_tmp
+
+    real(8) :: r_tmp, lambda_sum
+
+    lambda_sum = lambda_ec(it) + lambda_pc(it)
+    if (lambda_sum > 0d0) then
+      t_weak = 1d0/lambda_sum
+    else
+      t_weak = huge(1d0)
+    endif
+
+    r_tmp = sqrt(x_p(it)**2 + y_p(it)**2 + z_p(it)**2)
+    if (r_tmp > 0d0) then
+      vr_tmp = (x_p(it)*vlx_p(it) + y_p(it)*vly_p(it) + &
+                z_p(it)*vlz_p(it))/r_tmp
+    else
+      vr_tmp = 0d0
+    endif
+
+    if (abs(vr_tmp) > 0d0) then
+      t_exp = r_tmp/abs(vr_tmp)
+    else
+      t_exp = huge(1d0)
+    endif
+  end subroutine calculate_timescales
+
+
+  subroutine make_result( &
+       it_fo, mass, time, x_p, y_p, z_p, &
+       vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, &
+       rec_p, rpc_p, lambda_ec, lambda_pc, &
+       dye_rem, dng_rem, dnv_rem, result)
+
+    implicit none
+
+    integer, intent(in) :: it_fo
+    real(8), intent(in) :: mass
+    real(8), intent(in) :: time(:), x_p(:), y_p(:), z_p(:)
+    real(8), intent(in) :: vlx_p(:), vly_p(:), vlz_p(:)
+    real(8), intent(in) :: qrho_p(:), tem_p(:), ye_p(:)
+    real(8), intent(in) :: rec_p(:), rpc_p(:)
+    real(8), intent(in) :: lambda_ec(:), lambda_pc(:)
+    real(8), intent(in) :: dye_rem(:), dng_rem(:), dnv_rem(:)
+    real(8), intent(out) :: result(nresult)
+
+    real(8) :: t_exp, t_weak, vr_tmp
+
+    call calculate_timescales( &
+         it_fo, x_p, y_p, z_p, vlx_p, vly_p, vlz_p, &
+         lambda_ec, lambda_pc, t_exp, t_weak, vr_tmp)
+
+    result(1)  = mass
+    result(2)  = time(it_fo)
+    result(3)  = x_p(it_fo)
+    result(4)  = y_p(it_fo)
+    result(5)  = z_p(it_fo)
+    result(6)  = vlx_p(it_fo)
+    result(7)  = vly_p(it_fo)
+    result(8)  = vlz_p(it_fo)
+    result(9)  = qrho_p(it_fo)
+    result(10) = tem_p(it_fo)
+    result(11) = ye_p(it_fo)
+    result(12) = rec_p(it_fo)
+    result(13) = rpc_p(it_fo)
+    result(14) = t_exp
+    result(15) = t_weak
+    result(16) = dye_rem(it_fo)
+    result(17) = dng_rem(it_fo)
+    result(18) = dnv_rem(it_fo)
+  end subroutine make_result
+
 end program weak_freezeout
