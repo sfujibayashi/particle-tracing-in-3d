@@ -7,8 +7,10 @@ program weak_freezeout
 
   integer, parameter :: nresult = 18
 
-  character(256) :: dir_read, fn, label, prefix
+  character(256) :: dir_read, fn, label, prefix, cumulative_dir
   integer :: itt_min, itt_max, np, ip, np_skip, np_start
+  integer :: cumulative_stride, command_status
+  logical :: write_cumulative
   integer :: nunit_out, nunit_out2, nunit_out3, nunit_out4
 
   real(8), allocatable :: mass_p(:)
@@ -36,20 +38,44 @@ program weak_freezeout
     call get_double_parameter("parameters", "dnv_fo", dnv_fo, 0.01d0)
 
     call get_string_parameter("parameters", "prefix", prefix, "")
+
+    call get_logical_parameter("parameters", "write_cumulative", &
+         write_cumulative,.false.)
+    call get_integer_parameter("parameters", "cumulative_stride", &
+         cumulative_stride,1)
+    call get_string_parameter("parameters", "cumulative_dir", &
+         cumulative_dir, "./cumulative")
   end block
-
+  
+  if (write_cumulative) then
+     if (cumulative_stride < 1) then
+        write(6,*) "Error: cumulative_stride must be positive:", &
+             cumulative_stride
+        stop 1
+     endif
+     
+     call execute_command_line( &
+          'mkdir -p "'//trim(cumulative_dir)//'"', &
+          exitstat=command_status)
+     if (command_status /= 0) then
+        write(6,*) "Error: cannot create cumulative directory:", &
+             trim(cumulative_dir)
+        stop 1
+     endif
+  endif
+  
   allocate(mass_p(np))
-
+  
   open(11, file=trim(dir_read)//"/ana_traj.dat", &
        status="old", action="read")
   read(11,*)
   read(11,*)
   do ip = 1, np
-    read(11,*) hoge(1:10)
-    mass_p(ip) = hoge(3)
+     read(11,*) hoge(1:10)
+     mass_p(ip) = hoge(3)
   enddo
   close(11)
-
+  
   ! Keep the same convention as the original program: one extra array slot.
   itt_max = itt_max + 1
   write(*,'("np, itt_min, itt_max=",3i7)') np, itt_min, itt_max
@@ -89,12 +115,14 @@ program weak_freezeout
   !$omp parallel do default(none) schedule(dynamic,4) &
   !$omp& shared(np_start,np,np_skip,mass_p,dir_read,itt_min,itt_max) &
   !$omp& shared(dye_fo,dng_fo,dnv_fo) &
+  !$omp& shared(write_cumulative,cumulative_stride,cumulative_dir) &
   !$omp& shared(result_time,result_dye,result_dng,result_dnv,valid) &
   !$omp& private(ip)
   do ip = np_start, np, np_skip
     call process_one_tracer( &
          ip, mass_p(ip), dir_read, itt_min, itt_max, &
          dye_fo, dng_fo, dnv_fo, &
+         write_cumulative, cumulative_stride, cumulative_dir, &
          result_time(:,ip), result_dye(:,ip), &
          result_dng(:,ip), result_dnv(:,ip), valid(ip))
   enddo
@@ -138,6 +166,7 @@ contains
   subroutine process_one_tracer( &
        ip, mass, dir_read, itt_min, itt_max, &
        dye_fo, dng_fo, dnv_fo, &
+       write_cumulative, cumulative_stride, cumulative_dir, &
        result_time, result_dye, result_dng, result_dnv, valid)
 
     use, intrinsic :: ieee_arithmetic
@@ -145,8 +174,10 @@ contains
     implicit none
 
     integer, intent(in) :: ip, itt_min, itt_max
+    logical, intent(in) :: write_cumulative
+    integer, intent(in) :: cumulative_stride
     real(8), intent(in) :: mass, dye_fo, dng_fo, dnv_fo
-    character(*), intent(in) :: dir_read
+    character(*), intent(in) :: dir_read, cumulative_dir
 
     real(8), intent(out) :: result_time(nresult)
     real(8), intent(out) :: result_dye(nresult)
@@ -350,6 +381,15 @@ contains
             abs(-rec_p(it+1) + rpc_p(it+1)))
     enddo
 
+    if (write_cumulative) then
+      call output_cumulative_history( &
+           ip, nt, cumulative_dir, cumulative_stride, &
+           time, tem_p, qrho_p, ye_p, &
+           rec_p, rpc_p, lambda_ec, lambda_pc, &
+           dye_rem, dng_rem, dnv_rem, &
+           x_p, y_p, z_p, vlx_p, vly_p, vlz_p)
+    endif
+
     ! Last point satisfying t_weak < t_exp during outward motion.
     it_fo_time = 0
     do it = nt, 1, -1
@@ -422,6 +462,113 @@ contains
 
     valid = .true.
   end subroutine process_one_tracer
+
+
+  subroutine output_cumulative_history( &
+       ip, nt, output_dir, output_stride, &
+       time, tem_p, qrho_p, ye_p, &
+       rec_p, rpc_p, lambda_ec, lambda_pc, &
+       dye_rem, dng_rem, dnv_rem, &
+       x_p, y_p, z_p, vlx_p, vly_p, vlz_p)
+
+    implicit none
+
+    integer, intent(in) :: ip, nt, output_stride
+    character(*), intent(in) :: output_dir
+    real(8), intent(in) :: time(:), tem_p(:), qrho_p(:), ye_p(:)
+    real(8), intent(in) :: rec_p(:), rpc_p(:)
+    real(8), intent(in) :: lambda_ec(:), lambda_pc(:)
+    real(8), intent(in) :: dye_rem(:), dng_rem(:), dnv_rem(:)
+
+    real(8), intent(in) :: x_p(:), y_p(:), z_p(:)
+    real(8), intent(in) :: vlx_p(:), vly_p(:), vlz_p(:)
+
+    character(256) :: fn
+    character(10) :: str1
+    integer :: it, nunit_cumulative, ios, stride
+    real(8) :: t_exp, t_weak, vr_tmp, r_tmp
+    integer :: i
+
+    write(str1,'(i8.8)') ip
+    fn = trim(output_dir)//"/cumulative_"//trim(str1)//".dat"
+
+    open(newunit=nunit_cumulative, file=trim(fn), &
+         status="replace", action="write", iostat=ios)
+    if (ios /= 0) then
+      !$omp critical(log_output)
+      write(6,*) "Error: cannot open cumulative file:", trim(fn)
+      !$omp end critical(log_output)
+      return
+    endif
+
+    
+    write(nunit_cumulative,'("#",i10,99i15)') (i,i=1,20)
+    write(nunit_cumulative,'("#",a10,99a15)') &
+         "it", "time", "T", "rho", "Ye", "Rec", "Rpc", "lambda_ec", "lambda_pc", "t_weak", &
+         "rate_net", "rate_gross", "rate_variation", &
+         "dye_rem", "abs_dye_rem", "dng_rem", "dnv_rem", &
+         "t_exp", "v^r", "r"
+
+    stride = max(1, output_stride)
+
+    do it = 1, nt, stride
+       call calculate_timescales( &
+            it, x_p, y_p, z_p, vlx_p, vly_p, vlz_p, &
+            lambda_ec, lambda_pc, t_exp, t_weak, vr_tmp)
+       r_tmp = sqrt(x_p(it)**2 + y_p(it)**2 + z_p(it)**2)
+       call write_cumulative_row( &
+            nunit_cumulative, it, time, tem_p, qrho_p, ye_p, &
+            rec_p, rpc_p, lambda_ec, lambda_pc, &
+            dye_rem, dng_rem, dnv_rem, &
+            t_exp, t_weak, vr_tmp, r_tmp)
+    enddo
+    
+    ! Always include the final point, where all cumulative integrals are zero.
+    if (mod(nt-1,stride) /= 0) then
+       it=nt
+       call calculate_timescales( &
+            it, x_p, y_p, z_p, vlx_p, vly_p, vlz_p, &
+            lambda_ec, lambda_pc, t_exp, t_weak, vr_tmp)
+       r_tmp = sqrt(x_p(it)**2 + y_p(it)**2 + z_p(it)**2)
+       call write_cumulative_row( &
+            nunit_cumulative, it, time, tem_p, qrho_p, ye_p, &
+            rec_p, rpc_p, lambda_ec, lambda_pc, &
+            dye_rem, dng_rem, dnv_rem, &
+            t_exp, t_weak, vr_tmp, r_tmp)
+    endif
+
+    close(nunit_cumulative)
+  end subroutine output_cumulative_history
+
+
+  subroutine write_cumulative_row( &
+       nunit, it, time, tem_p, qrho_p, ye_p, &
+       rec_p, rpc_p, lambda_ec, lambda_pc, &
+       dye_rem, dng_rem, dnv_rem, &
+       t_exp, t_weak, vr_tmp, r_tmp)
+
+    implicit none
+
+    integer, intent(in) :: nunit, it
+    real(8), intent(in) :: time(:), tem_p(:), qrho_p(:), ye_p(:)
+    real(8), intent(in) :: rec_p(:), rpc_p(:)
+    real(8), intent(in) :: lambda_ec(:), lambda_pc(:)
+    real(8), intent(in) :: dye_rem(:), dng_rem(:), dnv_rem(:)
+    real(8), intent(in) :: t_exp, t_weak, vr_tmp, r_tmp
+
+    real(8) :: rate_net, rate_gross, rate_variation
+
+    rate_net       = -rec_p(it) + rpc_p(it)
+    rate_gross     =  rec_p(it) + rpc_p(it)
+    rate_variation = abs(rate_net)
+
+    write(nunit,'(" ",i10,99es15.6e3)') &
+         it, time(it), tem_p(it), qrho_p(it), ye_p(it), &
+         rec_p(it), rpc_p(it), lambda_ec(it), lambda_pc(it), &
+         t_weak, rate_net, rate_gross, rate_variation, &
+         dye_rem(it), abs(dye_rem(it)), dng_rem(it), dnv_rem(it), &
+         t_exp, vr_tmp, r_tmp
+  end subroutine write_cumulative_row
 
 
   subroutine calculate_timescales( &

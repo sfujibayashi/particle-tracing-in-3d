@@ -8,7 +8,8 @@ OBJ_DIR := obj/
 SRC_DIR := src/
 SRC2_DIR := ../src/
 
-PROG := $(EXE_DIR)a.out
+# PROG := $(EXE_DIR)a.out
+PROG := $(EXE_DIR)$(EXEC)
 ifndef PROG
   $(error MAKE_TARGET is not set well. Specify ptr or interp)
 endif
@@ -31,13 +32,14 @@ LIBS := -lhdf5_hl_fortran -lhdf5_hl
 %.o: %.mod
 
 # source file
-MOD2 := module_eos.f90
+MOD2 := unit_mod.f90 module_eos.f90
 SRC2 :=
 
-MOD1:= input_parser.f90 unit_mod.f90 module_weak_interaction.f90 module_etanu.f90 #module_EOS_sekig.f90
+MOD1:= input_parser.f90 module_weak_interaction.f90 module_etanu.f90 #module_EOS_sekig.f90
 
 
-SRC1:= make_table.f90 test_weak_rate.f90 test_ye_equil.f90 sort_median.f90
+# SRC1:= make_table.f90 test_weak_rate.f90 test_ye_equil.f90 sort_median.f90
+SRC1:= $(MAIN_SRC)
 
 MOD :=
 MOD += $(addprefix $(SRC2_DIR), $(MOD2))
