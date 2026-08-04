@@ -409,32 +409,83 @@ subroutine evolution_particle_3D(ipu,time,time_prv,substep_max)
            z1 = (ztmp-z(l,lv))/(z(l1,lv)-z(l,lv))
            z0 = 1.d0-z1
 
-           vxtmp = x1*y1*z1* vlx  (j1,k1,l1,lv) &
-                 + x0*y1*z1* vlx  (j ,k1,l1,lv) &
-                 + x1*y0*z1* vlx  (j1,k ,l1,lv) &
-                 + x0*y0*z1* vlx  (j ,k ,l1,lv) &
-                 + x1*y1*z0* vlx  (j1,k1,l ,lv) &
-                 + x0*y1*z0* vlx  (j ,k1,l ,lv) &
-                 + x1*y0*z0* vlx  (j1,k ,l ,lv) &
-                 + x0*y0*z0* vlx  (j ,k ,l ,lv)
+           vxtmp= t1*x1*y1*z1* vlx_b(j1,k1,l1,lv) &
+                + t1*x0*y1*z1* vlx_b(j ,k1,l1,lv) &
+                + t1*x1*y0*z1* vlx_b(j1,k ,l1,lv) &
+                + t1*x0*y0*z1* vlx_b(j ,k ,l1,lv) &
+                + t1*x1*y1*z0* vlx_b(j1,k1,l ,lv) &
+                + t1*x0*y1*z0* vlx_b(j ,k1,l ,lv) &
+                + t1*x1*y0*z0* vlx_b(j1,k ,l ,lv) &
+                + t1*x0*y0*z0* vlx_b(j ,k ,l ,lv) &
+                + t0*x1*y1*z1* vlx  (j1,k1,l1,lv) &
+                + t0*x0*y1*z1* vlx  (j ,k1,l1,lv) &
+                + t0*x1*y0*z1* vlx  (j1,k ,l1,lv) &
+                + t0*x0*y0*z1* vlx  (j ,k ,l1,lv) &
+                + t0*x1*y1*z0* vlx  (j1,k1,l ,lv) &
+                + t0*x0*y1*z0* vlx  (j ,k1,l ,lv) &
+                + t0*x1*y0*z0* vlx  (j1,k ,l ,lv) &
+                + t0*x0*y0*z0* vlx  (j ,k ,l ,lv)
 
-           vytmp = x1*y1*z1* vly  (j1,k1,l1,lv) &
-                 + x0*y1*z1* vly  (j ,k1,l1,lv) &
-                 + x1*y0*z1* vly  (j1,k ,l1,lv) &
-                 + x0*y0*z1* vly  (j ,k ,l1,lv) &
-                 + x1*y1*z0* vly  (j1,k1,l ,lv) &
-                 + x0*y1*z0* vly  (j ,k1,l ,lv) &
-                 + x1*y0*z0* vly  (j1,k ,l ,lv) &
-                 + x0*y0*z0* vly  (j ,k ,l ,lv)
+           vytmp= t1*x1*y1*z1* vly_b(j1,k1,l1,lv) &
+                + t1*x0*y1*z1* vly_b(j ,k1,l1,lv) &
+                + t1*x1*y0*z1* vly_b(j1,k ,l1,lv) &
+                + t1*x0*y0*z1* vly_b(j ,k ,l1,lv) &
+                + t1*x1*y1*z0* vly_b(j1,k1,l ,lv) &
+                + t1*x0*y1*z0* vly_b(j ,k1,l ,lv) &
+                + t1*x1*y0*z0* vly_b(j1,k ,l ,lv) &
+                + t1*x0*y0*z0* vly_b(j ,k ,l ,lv) &
+                + t0*x1*y1*z1* vly  (j1,k1,l1,lv) &
+                + t0*x0*y1*z1* vly  (j ,k1,l1,lv) &
+                + t0*x1*y0*z1* vly  (j1,k ,l1,lv) &
+                + t0*x0*y0*z1* vly  (j ,k ,l1,lv) &
+                + t0*x1*y1*z0* vly  (j1,k1,l ,lv) &
+                + t0*x0*y1*z0* vly  (j ,k1,l ,lv) &
+                + t0*x1*y0*z0* vly  (j1,k ,l ,lv) &
+                + t0*x0*y0*z0* vly  (j ,k ,l ,lv)
 
-           vztmp = x1*y1*z1* vlz  (j1,k1,l1,lv) &
-                 + x0*y1*z1* vlz  (j ,k1,l1,lv) &
-                 + x1*y0*z1* vlz  (j1,k ,l1,lv) &
-                 + x0*y0*z1* vlz  (j ,k ,l1,lv) &
-                 + x1*y1*z0* vlz  (j1,k1,l ,lv) &
-                 + x0*y1*z0* vlz  (j ,k1,l ,lv) &
-                 + x1*y0*z0* vlz  (j1,k ,l ,lv) &
-                 + x0*y0*z0* vlz  (j ,k ,l ,lv)
+           vztmp= t1*x1*y1*z1* vlz_b(j1,k1,l1,lv) &
+                + t1*x0*y1*z1* vlz_b(j ,k1,l1,lv) &
+                + t1*x1*y0*z1* vlz_b(j1,k ,l1,lv) &
+                + t1*x0*y0*z1* vlz_b(j ,k ,l1,lv) &
+                + t1*x1*y1*z0* vlz_b(j1,k1,l ,lv) &
+                + t1*x0*y1*z0* vlz_b(j ,k1,l ,lv) &
+                + t1*x1*y0*z0* vlz_b(j1,k ,l ,lv) &
+                + t1*x0*y0*z0* vlz_b(j ,k ,l ,lv) &
+                + t0*x1*y1*z1* vlz  (j1,k1,l1,lv) &
+                + t0*x0*y1*z1* vlz  (j ,k1,l1,lv) &
+                + t0*x1*y0*z1* vlz  (j1,k ,l1,lv) &
+                + t0*x0*y0*z1* vlz  (j ,k ,l1,lv) &
+                + t0*x1*y1*z0* vlz  (j1,k1,l ,lv) &
+                + t0*x0*y1*z0* vlz  (j ,k1,l ,lv) &
+                + t0*x1*y0*z0* vlz  (j1,k ,l ,lv) &
+                + t0*x0*y0*z0* vlz  (j ,k ,l ,lv)
+
+           ! vxtmp = x1*y1*z1* vlx  (j1,k1,l1,lv) &
+           !       + x0*y1*z1* vlx  (j ,k1,l1,lv) &
+           !       + x1*y0*z1* vlx  (j1,k ,l1,lv) &
+           !       + x0*y0*z1* vlx  (j ,k ,l1,lv) &
+           !       + x1*y1*z0* vlx  (j1,k1,l ,lv) &
+           !       + x0*y1*z0* vlx  (j ,k1,l ,lv) &
+           !       + x1*y0*z0* vlx  (j1,k ,l ,lv) &
+           !       + x0*y0*z0* vlx  (j ,k ,l ,lv)
+
+           ! vytmp = x1*y1*z1* vly  (j1,k1,l1,lv) &
+           !       + x0*y1*z1* vly  (j ,k1,l1,lv) &
+           !       + x1*y0*z1* vly  (j1,k ,l1,lv) &
+           !       + x0*y0*z1* vly  (j ,k ,l1,lv) &
+           !       + x1*y1*z0* vly  (j1,k1,l ,lv) &
+           !       + x0*y1*z0* vly  (j ,k1,l ,lv) &
+           !       + x1*y0*z0* vly  (j1,k ,l ,lv) &
+           !       + x0*y0*z0* vly  (j ,k ,l ,lv)
+
+           ! vztmp = x1*y1*z1* vlz  (j1,k1,l1,lv) &
+           !       + x0*y1*z1* vlz  (j ,k1,l1,lv) &
+           !       + x1*y0*z1* vlz  (j1,k ,l1,lv) &
+           !       + x0*y0*z1* vlz  (j ,k ,l1,lv) &
+           !       + x1*y1*z0* vlz  (j1,k1,l ,lv) &
+           !       + x0*y1*z0* vlz  (j ,k1,l ,lv) &
+           !       + x1*y0*z0* vlz  (j1,k ,l ,lv) &
+           !       + x0*y0*z0* vlz  (j ,k ,l ,lv)
 
         enddo
 
