@@ -155,5 +155,9 @@ contains
     
   end subroutine get_h_min_ye
 
+  subroutine get_h_min_glo(h)
+    real(8),intent(out):: h
+    h = hhh_min
+  end subroutine get_h_min_glo
   
 end module module_eos

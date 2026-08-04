@@ -215,9 +215,14 @@ program main
      call ascii(model,dir_out,it_skip_out)
   endif
   if(do_only_analysis)then
+     write(6,*)
+     write(6,'("EOS table        : ",a)') trim(fn_eos)
+     write(6,'("nrho, nye, ntemp : ",3i5)') nrho_in,nye_in,ntemp_in
+     call readeos(fn_eos,nrho_in,ntemp_in,nye_in)
+     
      block
        use analysis
-       call tr_analysis(model,dir_out)
+       call tr_analysis(model,dir_out,rfl)
      end block
   endif
   if(make_ascii_file .or. do_only_analysis)then
@@ -1029,7 +1034,7 @@ program main
   call ascii(model,dir_out,it_skip_out)
   block
     use analysis
-    call tr_analysis(model,dir_out)
+    call tr_analysis(model,dir_out,rfl)
   end block
   
 end program main
