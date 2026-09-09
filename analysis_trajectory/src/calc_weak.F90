@@ -44,7 +44,7 @@ program weak
     call get_integer_parameter("parameters", "itt_max", itt_max)
     call get_integer_parameter("parameters", "np", np)
     call get_integer_parameter("parameters", "np_start", np_start)
-    call get_integer_parameter("parameters", "parameters", np_skip)
+    call get_integer_parameter("parameters", "np_skip", np_skip)
     write(6,*) itt_min, itt_max
     write(6,*) np_start, np, np_skip
 
