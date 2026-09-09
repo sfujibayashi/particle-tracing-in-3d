@@ -501,19 +501,19 @@ def make_figure_selected_5GK(
 parser = argparse.ArgumentParser()
 parser.add_argument(
     "--ye-5gk-min", type=float, default=None,
-    help="Minimum Ye_fin. Omit for no lower cut."
+    help="Minimum Ye_5GK. Omit for no lower cut."
 )
 parser.add_argument(
     "--ye-5gk-max", type=float, default=None,
-    help="Maximum Ye_fin. Omit for no upper cut."
+    help="Maximum Ye_5GK. Omit for no upper cut."
 )
 parser.add_argument(
     "--s-5gk-min", type=float, default=None,
-    help="Minimum s_fin [k_b/nuc]. Omit for no lower cut."
+    help="Minimum s_5GK [k_b/nuc]. Omit for no lower cut."
 )
 parser.add_argument(
     "--s-5gk-max", type=float, default=None,
-    help="Maximum s_fin [k_b/nuc]. Omit for no upper cut."
+    help="Maximum s_5GK [k_b/nuc]. Omit for no upper cut."
 )
 parser.add_argument(
     "--vr-min", type=float, default=None,
