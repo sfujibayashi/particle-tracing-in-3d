@@ -53,7 +53,7 @@ program make_table
   integer :: ip_current
   integer,allocatable :: np_active(:)
   real(8),allocatable :: time_temp_traj_list(:,:),ye_temp_traj_list(:,:),mass_temp_traj_list(:,:),eta_temp_traj_list(:,:),sen_temp_traj_list(:,:),texp_temp_traj_list(:,:), vel_temp_traj_list(:,:), r_temp_traj_list(:,:)
-  real(8),allocatable :: caprate_temp_traj_list(:,:),absrate_temp_traj_list(:,:),yecap_temp_traj_list(:,:),yeabs_temp_traj_list(:,:),yemu0_temp_traj_list(:,:)
+  real(8),allocatable :: caprate_temp_traj_list(:,:),absrate_temp_traj_list(:,:),yecap_temp_traj_list(:,:),yeabs_temp_traj_list(:,:),yemu0_temp_traj_list(:,:), avtexp_temp_traj_list(:,:)
   integer,allocatable :: ip_list(:)
   real(8),allocatable :: mass_list(:)
   real(8),allocatable :: dummy_list(:)
@@ -86,7 +86,7 @@ program make_table
   logical :: mass_weighted
   real(8) :: my_time
 
-  integer :: access
+  logical :: file_exists
   real(8) :: eta_n, eta_a, rnetrap_tmp, raetrap_tmp, abs_nt_nrate,abs_at_nrate
 
   real(8) :: ecap_nrate_block,pcap_nrate_block
@@ -95,7 +95,7 @@ program make_table
   real(8) :: buf(100)
   real(8),allocatable :: hut(:), ut1(:)
 
-  integer :: nunit, nunit_time, nunit_ye, nunit_eta, nunit_entr, nunit_texp, nunit_rcap, nunit_yecap, nunit_vel, nunit_r
+  integer :: nunit, nunit_time, nunit_ye, nunit_eta, nunit_entr, nunit_texp, nunit_rcap, nunit_yecap, nunit_vel, nunit_r, nunit_avtexp
   integer :: i
     
   !call make_epcap_table(1d-2,1d3,1d-2,1d2,401,401)
@@ -111,7 +111,7 @@ program make_table
     call get_integer_parameter("parameters","nrho",nrho_in)
     call get_integer_parameter("parameters","ntemp",ntemp_in)
     call get_integer_parameter("parameters","nye",nye_in)
-    write(6,*) fn_eos
+    write(6,'(a)') trim(fn_eos)
     write(6,*) nrho_in, ntemp_in, nye_in
     call get_integer_parameter("parameters","ntemp_list",ntemp_list)
     call get_double_parameter("parameters","temp_min",temp_min)
@@ -125,7 +125,7 @@ program make_table
     write(6,*) itt_min, itt_max
     write(6,*) np_start, np, np_skip
     call get_string_parameter("parameters","fn_caprate",fn_caprate)
-    write(6,*)trim( fn_caprate)
+    write(6,'(a)') trim(fn_caprate)
     call get_string_parameter("parameters","fn_caprate_neg",fn_caprate_neg)
     call get_string_parameter("parameters","fn_etanu",fn_etanu)
 
@@ -195,7 +195,8 @@ program make_table
 
   allocate( ip_list(np), mass_list(np))
   allocate( time_temp_traj_list(ntemp_list,np),ye_temp_traj_list(ntemp_list,np),mass_temp_traj_list(ntemp_list,np),eta_temp_traj_list(ntemp_list,np),sen_temp_traj_list(ntemp_list,np),texp_temp_traj_list(ntemp_list,np),vel_temp_traj_list(ntemp_list,np),r_temp_traj_list(ntemp_list,np) )
-  allocate( caprate_temp_traj_list(ntemp_list,np),absrate_temp_traj_list(ntemp_list,np),yecap_temp_traj_list(ntemp_list,np),yeabs_temp_traj_list(ntemp_list,np),yemu0_temp_traj_list(ntemp_list,np) )
+  allocate( caprate_temp_traj_list(ntemp_list,np),absrate_temp_traj_list(ntemp_list,np),yecap_temp_traj_list(ntemp_list,np),yeabs_temp_traj_list(ntemp_list,np),yemu0_temp_traj_list(ntemp_list,np),avtexp_temp_traj_list(ntemp_list,np))
+
 
   itt_max = itt_max + 1
   write(*,'("np, itt_min, itt_max=",3i7)') np,itt_min,itt_max
@@ -263,6 +264,11 @@ program make_table
      open(newunit=nunit_yecap, file="traj_yecap", status="replace", action="write")
      write(nunit_yecap,'("#", 99a15)') "id", "mass", "T"
      write(nunit_yecap,'(" ", 15x,15x,99es15.7)') (temp_list(itemp),itemp=1,ntemp_list)
+
+     open(newunit=nunit_avtexp, file="traj_avtexp", status="replace", action="write")
+     write(nunit_avtexp,'("#", 99a15)') "id", "mass", "T"
+     write(nunit_avtexp,'(" ", 15x,15x,99es15.7)') (temp_list(itemp),itemp=1,ntemp_list)
+
   endif
 
   idx = 0
@@ -302,8 +308,11 @@ program make_table
      close(unit_traj)
 
 !!! misc. file
+     yn_p(:) = 0d0
+     ya_p(:) = 0d0
      fn = trim(dir_read)//"/misc_"//trim(str1)//".dat"
-     if(access(fn," ")==0)then
+     inquire(file=fn, exist=file_exists)
+     if(file_exists)then
         
         open(newunit=unit_traj,file=fn,status="old")
         read(unit_traj,*)
@@ -321,10 +330,6 @@ program make_table
         enddo
 991     continue
         close(unit_traj)
-     else
-        yn_p(:) = 0d0
-        ya_p(:) = 0d0
-        
      endif
 
      if(.not.mass_weighted) mass_p(ip) = 1d0
@@ -367,7 +372,8 @@ program make_table
            ! 最後まで 1 MeV 以上。まだ freeze-out していない可能性あり
            it_search_start = nt - 1
         else
-           do it=it_last_hot,nt
+           it_search_start = max(1,it_last_hot)
+           do it=max(2,it_last_hot+1),nt
               if(tem_p(it) < tem_p(it-1))then
                  it_search_start = it
               endif
@@ -440,12 +446,16 @@ program make_table
                       +tt1*(x_p(it+1)*vlx_p(it+1) + y_p(it+1)*vly_p(it+1) + z_p(it+1)*vlz_p(it+1))/sqrt(x_p(it+1)**2+y_p(it+1)**2+z_p(it+1)**2)
               r_tmp =  tt *sqrt(x_p(it)**2+y_p(it)**2+z_p(it)**2) &
                       +tt1*sqrt(x_p(it+1)**2+y_p(it+1)**2+z_p(it+1)**2)
-              texp_tmp=r_tmp/abs(vr_tmp)
+              if(vr_tmp==0d0)then
+                 texp_tmp=ieee_value(hoge, ieee_quiet_nan)
+              else
+                 texp_tmp=r_tmp/(vr_tmp)
+              endif
 
               ! dlntemp_dt_tmp = (tem_p(it+1) - tem_p(it))/(time(it+1) - time(it)) / ((tem_p(it+1) + tem_p(it))/2d0)
               dlntemp_dt_tmp = (log(tem_p(it+1)) - log(tem_p(it)))/(time(it+1) - time(it))
-              dlntemp_dt_long = (log(tem_p(it+1000)) - log(tem_p(it-1000)))/(time(it+1000) - time(it-1000))
-
+              !dlntemp_dt_long = (log(tem_p(it+1000)) - log(tem_p(it-1000)))/(time(it+1000) - time(it-1000))
+              
               ! write(6,'(99es15.7)') temp_list(itemp), vr_tmp, r_tmp, texp_tmp, 1d0/dlntemp_dt_tmp, 1d0/dlntemp_dt_long
               ! write(99,'(99es14.6)') t_tmp, tem_tmp*tem_uni
               block
@@ -476,10 +486,14 @@ program make_table
               end block
               
               call ye_equilibrium_capture(den_tmp,tem_tmp,ye_equil_cap,eta_dummy,xn_dummy,xp_dummy,ecap_nrate,pcap_nrate)
+              ye_equil_abs = 0d0
               !call ye_equilibrium_abs(den_tmp,tem_tmp,rne_tmp,rae_tmp,ye_equil_abs,xn_dummy,xp_dummy,abs_n_nrate,abs_a_nrate)
-              ! call ye_equilibrium_munu0(den_tmp,tem_tmp,ye_mu0)
               ye_mu0 = 0d0
+              ! call ye_equilibrium_munu0(den_tmp,tem_tmp,ye_mu0)
 
+
+              abs_n_nrate = 0d0
+              abs_a_nrate = 0d0
               call nrate_cap(den_tmp,tem_tmp,ye_tmp,eta_dummy,xn_dummy,xp_dummy,ecap_nrate,pcap_nrate)
               !call nrate_abs(den_tmp,tem_tmp,ye_tmp,rne_tmp,rae_tmp,xn_dummy,xp_dummy,abs_n_nrate,abs_a_nrate)
 
@@ -487,6 +501,8 @@ program make_table
               !write(6,'(99es12.4)') 
               !call etanu_eta_ene(den_tmp*yn_tmp,tem_tmp, eta_n, rnetrap_tmp)
               !call etanu_eta_ene(den_tmp*ya_tmp,tem_tmp, eta_a, raetrap_tmp)
+              abs_nt_nrate = 0d0
+              abs_at_nrate = 0d0
               !call nrate_abs(den_tmp,tem_tmp,ye_tmp,rnetrap_tmp,raetrap_tmp,xn_dummy,xp_dummy,abs_nt_nrate,abs_at_nrate)
 
               ! call nrate_cap_block(den_tmp,tem_tmp,ye_tmp,eta_n, eta_a, eta_dummy,xn_dummy,xp_dummy,ecap_nrate_block,pcap_nrate_block)
@@ -515,6 +531,109 @@ program make_table
               yeabs_temp_traj_list(itemp,idx) = ye_equil_abs
               yemu0_temp_traj_list(itemp,idx) = ye_mu0
 
+              block
+                real(8), parameter :: dlnT_window = 2d0*log(0.5d0*exp(1d0))
+                integer :: it_tmp, it_tmp1, it_tmp2, ibeg, iend
+                real(8) :: temp_hi, temp_lo, temp_target
+                real(8) :: avtexp
+                logical :: found_hi, found_lo
+
+                temp_target = temp_list(itemp)*tem_uni
+                temp_hi = temp_target*exp( 0.5d0*dlnT_window)
+                temp_lo = temp_target*exp(-0.5d0*dlnT_window)
+                
+                ! if(itemp==ntemp_list)then
+                !    temp_hi = temp_list(itemp)*tem_uni
+                ! else
+                !    temp_hi = 0.5d0*(temp_list(itemp) + temp_list(itemp+1))*tem_uni
+                ! endif
+                ! if(itemp==1)then
+                !    temp_lo = temp_list(itemp)*tem_uni
+                ! else
+                !    temp_lo = 0.5d0*(temp_list(itemp-1)+temp_list(itemp))*tem_uni
+                ! endif
+                
+                !------------------------------------------------------------
+                ! 高温側を過去方向に探す
+                !------------------------------------------------------------
+
+                found_hi = .false.
+                it_tmp1 = it
+                
+                find_hi: do it_tmp = it, 1, -1
+                   
+                   ! 通常の冷却過程で高温側境界に到達
+                   if (tem_p(it_tmp) >= temp_hi) then
+                      it_tmp1 = it_tmp
+                      found_hi = .true.
+                      exit find_hi
+                   endif
+                   
+                   ! 高温側境界に達する前に温度が再び低下した場合。
+                   ! 区間内の温度最大点を高温側端点とする。
+                   if (tem_p(it_tmp) <= temp_lo) then
+                      ibeg = it_tmp
+                      
+                      it_tmp1 = ibeg - 1 + &
+                           maxloc(tem_p(ibeg:it), dim=1)
+                      
+                      found_hi = .true.
+                      exit find_hi
+                   endif
+                   
+                enddo find_hi
+                
+                !------------------------------------------------------------
+                ! 低温側を未来方向に探す
+                !
+                ! itから始めると、tem_p(it)>temp_hi の場合に
+                ! 「再加熱」と誤判定するので、it+1から始める。
+                !------------------------------------------------------------
+                
+                found_lo = .false.
+                it_tmp2 = it + 1
+                
+                find_lo: do it_tmp = it+1, nt
+                   
+                   ! 通常の冷却過程で低温側境界に到達
+                   if (tem_p(it_tmp) <= temp_lo) then
+                      it_tmp2 = it_tmp
+                      found_lo = .true.
+                      exit find_lo
+                   endif
+                   
+                   ! 低温側境界に達する前に再加熱した場合。
+                   ! 区間内の温度最小点を低温側端点とする。
+                   if (tem_p(it_tmp) >= temp_hi) then
+                      iend = it_tmp
+                      
+                      it_tmp2 = it - 1 + &
+                           minloc(tem_p(it:iend), dim=1)
+                      
+                      found_lo = .true.
+                      exit find_lo
+                   endif
+                   
+                enddo find_lo
+                
+                if (found_hi .and. found_lo .and. &
+                     it_tmp2 > it_tmp1 .and. &
+                     tem_p(it_tmp1) > tem_p(it_tmp2) .and. &
+                     tem_p(it_tmp2) > 0d0) then
+                   
+                   avtexp = (time(it_tmp2) - time(it_tmp1)) / &
+                        log(tem_p(it_tmp1)/tem_p(it_tmp2))
+                   
+                else
+                   
+                   avtexp = ieee_value(hoge, ieee_quiet_nan)
+                   
+                endif
+
+                avtexp_temp_traj_list(itemp,idx) = avtexp
+
+              end block
+
            else
               
               time_temp_traj_list(itemp,idx) = ieee_value(hoge, ieee_quiet_nan)
@@ -530,7 +649,8 @@ program make_table
               yecap_temp_traj_list(itemp,idx) = ieee_value(hoge, ieee_quiet_nan)
               yeabs_temp_traj_list(itemp,idx) = ieee_value(hoge, ieee_quiet_nan)
               yemu0_temp_traj_list(itemp,idx) = ieee_value(hoge, ieee_quiet_nan)
-              
+              avtexp_temp_traj_list(itemp,idx) = ieee_value(hoge, ieee_quiet_nan)
+
            endif
 999        continue
            
@@ -555,6 +675,8 @@ program make_table
            write(nunit_rcap,'(" ", i15,99es15.7)') ip_list(i), mass_list(i), (caprate_temp_traj_list(itemp,i),itemp=1,ntemp_list)
            
            write(nunit_yecap,'(" ", i15,99es15.7)') ip_list(i), mass_list(i), (yecap_temp_traj_list(itemp,i),itemp=1,ntemp_list)
+
+           write(nunit_avtexp,'(" ", i15,99es15.7)') ip_list(i), mass_list(i), (avtexp_temp_traj_list(itemp,i),itemp=1,ntemp_list)
 
 
            ! do itemp=1,ntemp_list
@@ -642,6 +764,15 @@ program make_table
         write(nunit_yecap,'(" ", i15,99es15.7)') ip_list(i), mass_list(i), (yecap_temp_traj_list(itemp,i),itemp=1,ntemp_list)
      enddo
      close(nunit_yecap)
+
+     open(newunit=nunit_avtexp, file="traj_avtexp", status="replace", action="write")
+     write(nunit_avtexp,'("#", 99a15)') "id", "mass", "T"
+     write(nunit_avtexp,'(" ", 15x,15x,99es15.7)') (temp_list(itemp),itemp=1,ntemp_list)
+     do i=1,idx
+        write(nunit_avtexp,'(" ", i15,99es15.7)') ip_list(i), mass_list(i), (avtexp_temp_traj_list(itemp,i),itemp=1,ntemp_list)
+     enddo
+     close(nunit_avtexp)
+
   else
 
      close(nunit_time)
@@ -653,6 +784,7 @@ program make_table
      close(nunit_r)
      close(nunit_rcap)
      close(nunit_yecap)
+     close(nunit_avtexp)
 
   endif
     ! open(newunit=nunit, file="traj_yemu0", status="replace", action="write")

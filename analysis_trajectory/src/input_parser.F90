@@ -109,12 +109,12 @@ contains
     if(found)then
        !read(line_string,*,iostat=ios) par
        par = trim(line_string)
-       if(ios /= 0) then
-          write(6,*) "Uh. Bad string parameter ",trim(parname)
-          write(6,*) "Please check input file!"
-          call flush(6)
-          stop
-       endif
+       ! if(ios /= 0) then
+       !    write(6,*) "Uh. Bad string parameter ",trim(parname)
+       !    write(6,*) "Please check input file!"
+       !    call flush(6)
+       !    stop
+       ! endif
     else
        if(present(par_default))then
           par = par_default

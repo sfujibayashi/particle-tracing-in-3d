@@ -5,11 +5,12 @@ module analysis
 
 contains
 
-  subroutine tr_analysis(model, dir_read, time_map, itt_max_in)
+  subroutine tr_analysis(model, dir_read, rfl, time_map, itt_max_in)
     !$ use omp_lib
     implicit none
 
     character(*),intent(in) :: model,dir_read
+    real(8),intent(in) :: rfl
     real(8),intent(in),optional :: time_map
     integer,intent(in),optional :: itt_max_in
     
@@ -39,6 +40,9 @@ contains
          rae_p (:),&
          deptn_p(:),&
          depta_p(:)
+    real(8) :: buf(100)
+    real(8) :: hhh_min_glo
+
     character(200) :: fn, str1,dir_out
 
     integer,parameter :: nflag=5
@@ -57,7 +61,8 @@ contains
          tem_max_traj(:), tem_max_af3gk_traj(:),t_tem_max_traj(:), t_tem_max_af3gk_traj(:), &
          t_5gk_traj(:), s_5gk_traj(:), ye_5gk_traj(:), texp_5gk_traj(:), &
          t_3gk_traj(:), t_1gk_traj(:), ye_10gk_traj(:), t_10gk_traj(:), &
-         time_50gk_25gk_traj(:), rho_fin_traj(:), vx_fin_traj(:), vy_fin_traj(:), vz_fin_traj(:), r_ini_traj(:)
+         time_50gk_25gk_traj(:), rho_fin_traj(:), vx_fin_traj(:), vy_fin_traj(:), vz_fin_traj(:), r_ini_traj(:), &
+         t_last_rfl_traj(:)
     real(8),allocatable :: x_ini_traj(:), y_ini_traj(:), z_ini_traj(:), rho_ini_traj(:), t_ini_traj(:), rho_max_traj(:), &
          t_rho_max_traj(:), s_rho_max_traj(:), texp_rho_max_traj(:), ye_rho_max_traj(:), &
          t_drip_traj(:), s_drip_traj(:), texp_drip_traj(:), ye_drip_traj(:), &
@@ -89,6 +94,11 @@ contains
 
     dir_out = dir_read
 
+    block
+      use module_eos
+      call get_h_min_glo(hhh_min_glo)
+    end block
+    
     write(6,*) "counting itt_max..."
 
     itt_min = 1
@@ -186,7 +196,7 @@ contains
          rne_p    (itt_min:itt_max),&
          rae_p    (itt_min:itt_max),&
          deptn_p  (itt_min:itt_max),&
-         depta_p  (itt_min:itt_max) )
+         depta_p  (itt_min:itt_max))
     allocate (n_cond(np) )
     allocate ( &
          mass_traj(np), &
@@ -194,7 +204,8 @@ contains
          tem_max_traj(np), tem_max_af3gk_traj(np), t_tem_max_traj(np), t_tem_max_af3gk_traj(np), &
          t_5gk_traj(np), s_5gk_traj(np), ye_5gk_traj(np), texp_5gk_traj(np), &
          t_3gk_traj(np), t_1gk_traj(np), ye_10gk_traj(np), t_10gk_traj(np), &
-         time_50gk_25gk_traj(np), rho_fin_traj(np), vx_fin_traj(np), vy_fin_traj(np), vz_fin_traj(np), r_ini_traj(np) )
+         time_50gk_25gk_traj(np), rho_fin_traj(np), vx_fin_traj(np), vy_fin_traj(np), vz_fin_traj(np), r_ini_traj(np), &
+         t_last_rfl_traj(np) )
 
     allocate ( &
          v_max_traj(np),x_ini_traj(np),y_ini_traj(np),z_ini_traj(np),rho_ini_traj(np),t_ini_traj(np),rho_max_traj(np), &
@@ -233,12 +244,12 @@ contains
     !$omp   tem_max_traj, tem_max_af3gk_traj, t_tem_max_traj, t_tem_max_af3gk_traj, &
     !$omp   t_5gk_traj, s_5gk_traj, ye_5gk_traj, texp_5gk_traj, &
     !$omp   t_3gk_traj, t_1gk_traj, ye_10gk_traj, t_10gk_traj, &
-    !$omp   time_50gk_25gk_traj, rho_fin_traj, vx_fin_traj, vy_fin_traj, vz_fin_traj, r_ini_traj, &
+    !$omp   time_50gk_25gk_traj, rho_fin_traj, vx_fin_traj, vy_fin_traj, vz_fin_traj, r_ini_traj, t_last_rfl_traj, rfl, &
     !$omp   v_max_traj,x_ini_traj, y_ini_traj, z_ini_traj, rho_ini_traj, t_ini_traj, time_init, rho_max_traj, &
     !$omp   t_rho_max_traj, s_rho_max_traj, texp_rho_max_traj, ye_rho_max_traj, &
     !$omp   t_drip_traj, s_drip_traj, texp_drip_traj, ye_drip_traj, &
-    !$omp   s_tem_max_traj, texp_tem_max_traj, ye_tem_max_traj) &
-    !$omp private( fn,str1,nunit,it,time, x_p,y_p, z_p, vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, sen_p, rne_p, rae_p, &
+    !$omp   s_tem_max_traj, texp_tem_max_traj, ye_tem_max_traj, hhh_min_glo) &
+    !$omp private( fn,str1,nunit,it,time, x_p,y_p, z_p, vlx_p, vly_p, vlz_p, qrho_p, tem_p, ye_p, sen_p, rne_p, rae_p, ut_p, hhh_p, buf, &
     !$omp   it_max,it_tem_max,it_5gk,it_10gk,it_3gk,it_1gk, temp_gk, x_ini,y_ini,z_ini, &
     !$omp   smax_traj_7_0,smax_traj_7_4,smin_traj_7_0,smin_traj_7_4, r_fin, &
     !$omp   s1,s0,x_5gk, y_5gk, z_5gk, r_5gk, vx_5gk, vy_5gk, vz_5gk, vr_5gk, s_10gk, s_3gk, ye_3gk, s_1gk,ye_1gk, &
@@ -270,26 +281,31 @@ contains
 
           it=1
           do
-             read(nunit,*,end=99) &
-                  time(it), &
-                  x_p(it), &
-                  y_p(it), &
-                  z_p(it), &
-                  vlx_p(it), &
-                  vly_p(it), &
-                  vlz_p(it), &
-                  qrho_p(it), &
-                  tem_p(it), &
-                  ye_p(it), &
-                  sen_p(it), &
-                  rne_p(it), &
-                  rae_p(it)
+             read(nunit,*,end=99) buf(1:17)
+             time(it) = buf(1)
+             x_p(it) = buf(2)
+             y_p(it) = buf(3)
+             z_p(it) = buf(4)
+             vlx_p(it) = buf(5)
+             vly_p(it) = buf(6)
+             vlz_p(it) = buf(7)
+             qrho_p(it) = buf(8)
+             tem_p(it) = buf(9)
+             ye_p(it) = buf(10)
+             sen_p(it) = buf(11)
+             rne_p(it) = buf(12)
+             rae_p(it) = buf(13)
+             ut_p(it) = buf(16)
+             hhh_p(it) = buf(17)
 
              it = it + 1
           enddo
 99        continue
           close(nunit)
           it_max = it - 1
+          
+          ut1_fin_traj(ip) = ut_p(it_max) + 1d0
+          hut_fin_traj(ip) = hhh_p(it_max)*ut_p(it_max) + hhh_min_glo
 
           ! analysis of the trajectories
           smax_traj_7_0=0.d0
@@ -320,7 +336,7 @@ contains
                 it_tem_max = it
              endif
 
-             v_max = max(v_max, sqrt(sqrt(vlx_p(it)**2 + vly_p(it)**2 + vlz_p(it)**2)))
+             v_max = max(v_max, sqrt(vlx_p(it)**2 + vly_p(it)**2 + vlz_p(it)**2))
 
              ! max, minimum entropy values in 0 < T < 7
              if(0.d0 < temp_gk .and. temp_gk < 7.d9)then
@@ -443,6 +459,10 @@ contains
           ye_fin = ye_p(it_max)
           rho_fin= qrho_p(it_max)
 
+          ! Last time at which the trajectory crosses r = rfl.
+          ! If the trajectory terminates at rfl, use t_fin directly.
+          call find_last_radius_crossing(time, x_p, y_p, z_p, it_max, rfl, t_last_rfl_traj(ip))
+          
           ! important value for nuc. reaction
           it = it_5gk
           if(it>0)then
@@ -697,11 +717,13 @@ contains
     open(newunit=nunit,file=trim(dir_out)//"/stat_traj.dat",status="replace")  
     write(nunit,'("# model: ",a)') trim(model)
     write(nunit,'("# ntraj,ntraj_inside: ",99i15)') np, np_inside
-    write(nunit,'("#",99i20)') (i,i=1,35)
+    write(nunit,'("# rfl [cm]: ",es20.10)') rfl
+    write(nunit,'("# t_last_rfl = -1 means that no crossing was found.")')
+    write(nunit,'("#",99i20)') (i,i=1,36)
     write(nunit,'("#",99a20)') "id",  "mass [g]",  "time_fin [s]",  "x_fin [cm]", "y_fin [cm]", "z_fin [cm]", "v^r_fin [cm/s]", "v^x_fin", "v^y_fin", "v^z_fin", &
          "s_fin [k_b/nuc]", "Ye_fin", "time_5GK [s]", "s_5GK [k_b/nuc]", "Ye_5GK", "t_exp_5GK [s]", "Tmax [K]", "ut+1", "hut+h_at", "Ye(10GK)", &
          "t(T=10GK)", "t(T=Tmax)", "(r/v)_5GK [s]", "rho_max [g/cm^3]", "s_drip [k_b/nuc]", "(r/v)_drip [s]", "Ye_drip", "s_dmax [k_b/nuc]", "(r/v)_dmax [s]", "Ye_dmax", &
-         "s_Tmax [kb/nuc]", "(r/v)_Tmax [s]", "Ye_Tmax", "t(dmax)", "t(drip)"
+         "s_Tmax [kb/nuc]", "(r/v)_Tmax [s]", "Ye_Tmax", "t(dmax)", "t(drip)", "t_last_rfl [s]"
     do ip=1,np
        write(nunit,'(" ",i20,99es20.7)') &
             ip, &
@@ -710,7 +732,7 @@ contains
             s_drip_traj(ip),texp_drip_traj(ip),ye_drip_traj(ip), &
             s_rho_max_traj(ip), texp_rho_max_traj(ip), ye_rho_max_traj(ip), &
             s_tem_max_traj(ip), texp_tem_max_traj(ip), ye_tem_max_traj(ip), &
-            t_rho_max_traj(ip), t_drip_traj(ip)
+            t_rho_max_traj(ip), t_drip_traj(ip), t_last_rfl_traj(ip)
     enddo
 
     close(nunit)
@@ -753,6 +775,58 @@ contains
 
 
 
+
   end subroutine tr_analysis
+
+
+  pure subroutine find_last_radius_crossing(time, x, y, z, n, r_target, t_cross)
+    implicit none
+
+    integer, intent(in) :: n
+    real(8), intent(in) :: time(:), x(:), y(:), z(:)
+    real(8), intent(in) :: r_target
+    real(8), intent(out) :: t_cross
+
+    integer :: i
+    real(8) :: r0, r1, f0, f1, frac, r_tol
+
+    ! A relative tolerance is used only to recognize a trajectory whose
+    ! final point was deliberately placed on the outer boundary.
+    r_tol = max(1.d-4*abs(r_target), 1.d0)
+
+    t_cross = -1.d0
+    if(n < 1) return
+
+    r1 = sqrt(x(n)**2 + y(n)**2 + z(n)**2)
+
+    ! Some trajectories are terminated exactly at r = r_target.
+    ! In that case the final recorded time is the desired crossing time.
+    if(abs(r1-r_target) <= r_tol)then
+       t_cross = time(n)
+       return
+    endif
+
+    ! Search backward so that the first interval found is the last crossing.
+    do i=n-1,1,-1
+       r0 = sqrt(x(i  )**2 + y(i  )**2 + z(i  )**2)
+       r1 = sqrt(x(i+1)**2 + y(i+1)**2 + z(i+1)**2)
+       f0 = r0-r_target
+       f1 = r1-r_target
+       
+       if(abs(f1) <= r_tol)then
+          t_cross = time(i+1)
+          return
+       elseif(abs(f0) <= r_tol)then
+          t_cross = time(i)
+          return
+       elseif((f0 < 0.d0 .and. f1 > 0.d0) .or. &
+              (f0 > 0.d0 .and. f1 < 0.d0))then
+          frac = (r_target-r0)/(r1-r0)
+          t_cross = time(i) + frac*(time(i+1)-time(i))
+          return
+       endif
+    enddo
+
+  end subroutine find_last_radius_crossing
 
 end module analysis
