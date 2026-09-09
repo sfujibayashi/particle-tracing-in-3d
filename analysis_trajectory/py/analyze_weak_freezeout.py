@@ -500,19 +500,19 @@ def make_figure_selected_5GK(
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--ye-min", type=float, default=None,
+    "--ye-5gk-min", type=float, default=None,
     help="Minimum Ye_fin. Omit for no lower cut."
 )
 parser.add_argument(
-    "--ye-max", type=float, default=None,
+    "--ye-5gk-max", type=float, default=None,
     help="Maximum Ye_fin. Omit for no upper cut."
 )
 parser.add_argument(
-    "--s-min", type=float, default=None,
+    "--s-5gk-min", type=float, default=None,
     help="Minimum s_fin [k_b/nuc]. Omit for no lower cut."
 )
 parser.add_argument(
-    "--s-max", type=float, default=None,
+    "--s-5gk-max", type=float, default=None,
     help="Maximum s_fin [k_b/nuc]. Omit for no upper cut."
 )
 parser.add_argument(
@@ -1307,13 +1307,13 @@ def build_cut_annotation():
         ),
         _latex_range(
             r"Y_{\rm e}(5\,\mathrm{GK})",
-            args.ye_min,
-            args.ye_max,
+            args.ye_5gk_min,
+            args.ye_5gk_max,
         ),
         _latex_range(
             r"s(5\,\mathrm{GK})/k_{\rm B}",
-            args.s_min,
-            args.s_max,
+            args.s_5gk_min,
+            args.s_5gk_max,
         ),
         _latex_range(
             r"v^r_{\rm fin}",
@@ -1392,11 +1392,11 @@ print(f"Wrote selected ejecta IDs: {selected_ejecta_id_file}")
 
 common_mask = ejecta_mask.copy()
 common_mask = stat.add_range_condition(
-    common_mask, ye_5GK, args.ye_min, args.ye_max,
+    common_mask, ye_5GK, args.ye_5gk_min, args.ye_5gk_max,
     open_upper=args.open_upper
 )
 common_mask = stat.add_range_condition(
-    common_mask, s_5GK, args.s_min, args.s_max,
+    common_mask, s_5GK, args.s_5gk_min, args.s_5gk_max,
     open_upper=args.open_upper
 )
 
@@ -2369,10 +2369,10 @@ fig_shist.savefig(fn_fig)
 #     ye_5GK,
 #     s_5GK,
 #     vr_fin,
-#     args.ye_min,
-#     args.ye_max,
-#     args.s_min,
-#     args.s_max,
+#     args.ye_5gk_min,
+#     args.ye_5gk_max,
+#     args.s_5gk_min,
+#     args.s_5gk_max,
 #     args.vr_min,
 #     args.vr_max,
 #     args.output_prefix,
