@@ -24,11 +24,15 @@ The Python scripts are kept in
 particle-tracing-in-3d/analysis_trajectory/py/
 ```
 
-and do not need to be copied into each model-analysis directory.
+They can either be run directly from the repository or copied into an individual
+model-analysis directory, as described below.
 
 ## 1. Setup
 
-Define the root directory of this repository, for example
+### 1.1 Running the scripts directly from the repository
+
+The recommended setup is to keep a single copy of the analysis scripts in the
+Git repository. Define the root directory of this repository, for example
 
 ```bash
 export PTR_ROOT=/path/to/particle-tracing-in-3d
@@ -47,6 +51,42 @@ python3 $PTR_PY/analyze_weak_freezeout.py ...
 scripts. When a script is executed as above, Python automatically adds that
 script directory to its module search path, so there is no need to copy
 `tracer_analysis_utils.py` into each analysis directory or to set `PYTHONPATH`.
+
+### 1.2 Alternative: copying the scripts into the analysis directory
+
+It is also possible to use the analysis tools without defining `PTR_ROOT` or
+`PTR_PY`. In this case, copy the required Python files from
+
+```text
+particle-tracing-in-3d/analysis_trajectory/py/
+```
+
+to the model-analysis directory. For the workflow described in this README, the
+required files are
+
+```text
+analyze_weak_freezeout.py
+compute_tracer_percentiles.py
+plot_weak_evolution.py
+tracer_analysis_utils.py
+```
+
+All four files should be kept in the same directory because
+`analyze_weak_freezeout.py` and `plot_weak_evolution.py` import
+`tracer_analysis_utils.py`.
+
+After copying them, the scripts can be executed directly, for example
+
+```bash
+cd /path/to/model/analysis
+python3 analyze_weak_freezeout.py ...
+python3 compute_tracer_percentiles.py ...
+python3 plot_weak_evolution.py ...
+```
+
+This local-copy setup is convenient for a self-contained analysis directory,
+whereas the `PTR_ROOT` / `PTR_PY` setup above is preferable when the same scripts
+are used for many models because only one repository copy needs to be updated.
 
 A typical analysis directory contains
 
@@ -518,7 +558,7 @@ vr-weakfo.pdf
 
 ## 5. Standard workflow
 
-A typical complete analysis is
+A typical complete analysis using the scripts directly from the repository is
 
 ```bash
 export PTR_ROOT=/path/to/particle-tracing-in-3d
@@ -541,6 +581,25 @@ python3 $PTR_PY/plot_weak_evolution.py \
     --tfo-hist-file weakfo_TFO_histograms.txt
 ```
 
-This keeps the analysis scripts under Git control in a single repository while
-keeping model-dependent data and outputs in their individual analysis
-directories.
+If the four Python files listed in Sec. 1.2 have instead been copied into the
+analysis directory, the corresponding workflow is simply
+
+```bash
+python3 analyze_weak_freezeout.py \
+    --time-rfl-min 0.05 \
+    --time-rfl-max 0.10 \
+    --theta-max 45 \
+    -o weakfo
+
+python3 compute_tracer_percentiles.py \
+    --id-file weakfo_selected_dye_particles.txt \
+    -o weakfo
+
+python3 plot_weak_evolution.py \
+    --prefix weakfo \
+    --tfo-hist-file weakfo_TFO_histograms.txt
+```
+
+The repository-based setup keeps the analysis scripts under Git control in a
+single location, while the local-copy setup provides a fully self-contained
+analysis directory.
