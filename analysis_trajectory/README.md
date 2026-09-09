@@ -118,14 +118,15 @@ The current analysis starts from positive-mass tracers satisfying the Bernoulli
 criterion used in the code (`bernoulli < 0`) and then applies the requested
 additional cuts.
 
-### 2.1 Reflection-time cut
+### 2.1 time cut
 
 ```bash
 --time-rfl-min TMIN
 --time-rfl-max TMAX
 ```
 
-These options select tracers according to `time_rfl`, read from the
+These options select tracers according to `time_rfl`, the time at which the
+tracer crosses the extraction radius rfl, read from the
 `t_last_rfl` column of `stat_traj.dat`.
 
 For example,
