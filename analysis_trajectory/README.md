@@ -339,7 +339,7 @@ with `dye` as the default.
 
 ### 2.7 Typical freeze-out selection
 
-For example, to select relatively late reflected polar ejecta,
+For example, to select relatively late polar ejecta,
 
 ```bash
 python3 $PTR_PY/analyze_weak_freezeout.py \
