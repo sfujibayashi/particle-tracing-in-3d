@@ -934,7 +934,7 @@ def read_time_rfl_from_stat(
     if column_override is None:
         time_column = detect_named_column_from_header(
             filename,
-            candidate_names=("t_last_rfl"),
+            candidate_names=("t_last_rfl",),
         )
         if time_column is None:
             raise ValueError(
