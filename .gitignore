@@ -10,3 +10,4 @@ connect_traj
 mapto2D
 reject_particle
 __pycache__
+.DS_Store
