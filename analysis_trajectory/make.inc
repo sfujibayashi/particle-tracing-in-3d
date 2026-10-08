@@ -5,8 +5,8 @@ OPTION = -mcmodel=large -shared-intel -fpic -qopenmp -march=x86-64-v3 -qopt-zmm-
 #MAIN_SRC = calc_weak.f90 test_weak_rate.f90 test_ye_equil.f90
 #EXEC = weak.out
 
-MAIN_SRC = weak_freezeout.f90
-EXEC = freezeout.out
+#MAIN_SRC = weak_freezeout.f90
+#EXEC = freezeout.out
 
 MAIN_SRC = make_table.f90  test_weak_rate.f90 test_ye_equil.f90
 EXEC = make_table.out
